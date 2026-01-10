@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.Repositories;
+﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Domain.Repositories;
 using Inventory.Infrastructure.Persistence;
 using Inventory.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,8 @@ namespace Inventory.Infrastructure
                     configuration.GetConnectionString("InventoryDb")));
 
             services.AddScoped<ICategoryRepository, CategoryRepository>();
+
+            services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
 
             return services;
         }

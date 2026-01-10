@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using MediatR;
 
-namespace Inventory.Application.Categories.Commands.DeleteCategory
-{
-    internal class DeleteCategoryCommand
-    {
-    }
-}
+namespace Inventory.Application.Categories.Commands.DeleteCategory;
+
+public sealed record DeleteCategoryCommand(Guid Id) : IRequest;

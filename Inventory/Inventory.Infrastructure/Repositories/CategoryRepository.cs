@@ -1,45 +1,45 @@
 ﻿using Inventory.Domain.Entities;
-using Inventory.Domain.Repositories;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Infrastructure.Repositories;
 
-public class CategoryRepository : ICategoryRepository
+public sealed class CategoryRepository : ICategoryRepository
 {
-    private readonly InventoryDbContext _context;
+    private readonly InventoryDbContext _db;
 
-    public CategoryRepository(InventoryDbContext context)
+    public CategoryRepository(InventoryDbContext db)
     {
-        _context = context;
+        _db = db;
     }
 
     public async Task AddAsync(Category category)
     {
-        _context.Categories.Add(category);
-        await _context.SaveChangesAsync();
+        _db.Categories.Add(category);
+        await _db.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Category category)
     {
-        _context.Categories.Update(category);
-        await _context.SaveChangesAsync();
+        _db.Categories.Update(category);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Category category)
+    {
+        _db.Categories.Remove(category);
+        await _db.SaveChangesAsync();
     }
 
     public async Task<Category?> GetByIdAsync(Guid id)
     {
-        return await _context.Categories.FirstOrDefaultAsync(x => x.Id == id);
+        return await _db.Categories.FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task<List<Category>> GetAllAsync()
     {
-        return await _context.Categories
+        return await _db.Categories
             .AsNoTracking()
             .ToListAsync();
-    }
-
-    public Task DeleteAsync(Category category)
-    {
-        throw new NotImplementedException();
     }
 }

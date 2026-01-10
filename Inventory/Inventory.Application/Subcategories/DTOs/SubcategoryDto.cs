@@ -1,0 +1,14 @@
+﻿namespace Inventory.Application.Subcategories.DTOs;
+
+public sealed class SubcategoryDto
+{
+    public Guid Id { get; set; }
+    public Guid CategoryId { get; set; }
+
+    public string SubcategoryCode { get; set; } = string.Empty;
+    public string SubcategoryName { get; set; } = string.Empty;
+
+    public decimal DefaultGst { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
+}

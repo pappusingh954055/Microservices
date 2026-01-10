@@ -14,8 +14,8 @@ builder.Services.AddOpenApi();
 // Infrastructure (DB)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-//builder.Services.AddMediatR(cfg =>
-//    cfg.RegisterServicesFromAssemblyContaining<AssemblyReference>());
+builder.Services.AddMediatR(cfg =>
+    cfg.RegisterServicesFromAssemblyContaining<AssemblyReference>());
 
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssemblyContaining<CreateCategoryCommandHandler>());

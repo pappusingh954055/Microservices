@@ -1,10 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using MediatR;
 
-namespace Inventory.Application.Categories.Commands.UpdateCategory
-{
-    internal class UpdateCategoryCommand
-    {
-    }
-}
+namespace Inventory.Application.Categories.Commands.UpdateCategory;
+
+public sealed record UpdateCategoryCommand(
+    Guid Id,
+    string CategoryName,
+    string CategoryCode,
+    decimal DefaultGst,
+    string? Description,
+    bool IsActive
+) : IRequest;

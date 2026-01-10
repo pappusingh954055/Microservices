@@ -1,13 +1,16 @@
 ﻿using Inventory.Application.Categories.Commands.CreateCategory;
+using Inventory.Application.Categories.Commands.DeleteCategory;
+using Inventory.Application.Categories.Commands.UpdateCategory;
 using Inventory.Application.Categories.Queries.GetCategories;
+using Inventory.Application.Categories.Queries.GetCategoryById;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
 {
-    [Route("api/categories")]
     [ApiController]
-    public class CategoriesController : ControllerBase
+    [Route("api/categories")]
+    public sealed class CategoriesController : ControllerBase
     {
         private readonly IMediator _mediator;
 
@@ -23,11 +26,32 @@ namespace Inventory.API.Controllers
             return Ok(id);
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(Guid id, UpdateCategoryCommand command)
+        {
+            if (id != command.Id) return BadRequest();
+            await _mediator.Send(command);
+            return NoContent();
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            await _mediator.Send(new DeleteCategoryCommand(id));
+            return NoContent();
+        }
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var result = await _mediator.Send(new GetCategoryByIdQuery(id));
+            return result is null ? NotFound() : Ok(result);
+        }
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var categories = await _mediator.Send(new GetCategoriesQuery());
-            return Ok(categories);
+            return Ok(await _mediator.Send(new GetCategoriesQuery()));
         }
     }
 }
