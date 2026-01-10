@@ -2,4 +2,5 @@
 
 namespace Inventory.Application.PriceLists.Commands.DeletePriceList;
 
-public sealed record DeletePriceListCommand(Guid Id) : IRequest;
+public sealed record DeletePriceListCommand(Guid Id)
+    : IRequest<Guid>;

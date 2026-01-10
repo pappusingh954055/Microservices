@@ -9,4 +9,4 @@ public sealed record UpdatePriceListCommand(
     DateTime ValidFrom,
     DateTime? ValidTo,
     bool IsActive
-) : IRequest;
+) : IRequest<Guid>;

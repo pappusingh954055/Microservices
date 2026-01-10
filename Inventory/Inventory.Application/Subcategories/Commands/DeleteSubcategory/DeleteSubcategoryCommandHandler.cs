@@ -8,9 +8,12 @@ public sealed class DeleteSubcategoryCommandHandler
 {
     private readonly ISubcategoryRepository _repository;
 
-    public DeleteSubcategoryCommandHandler(ISubcategoryRepository repository)
+    private readonly IInventoryDbContext _context;
+
+    public DeleteSubcategoryCommandHandler(ISubcategoryRepository repository, IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task Handle(
@@ -21,5 +24,7 @@ public sealed class DeleteSubcategoryCommandHandler
             ?? throw new KeyNotFoundException("Subcategory not found");
 
         await _repository.DeleteAsync(subcategory);
+
+        await _context.SaveChangesAsync();
     }
 }

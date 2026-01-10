@@ -15,5 +15,12 @@ public class PriceListItemConfiguration : IEntityTypeConfiguration<PriceListItem
         builder.Property(x => x.Price)
             .HasPrecision(18, 2)
             .IsRequired();
+        builder.Property(x => x.MinQty)
+       .IsRequired();
+
+        builder.Property(x => x.MaxQty);
+
+        builder.Property(x => x.IsActive)
+               .IsRequired();
     }
 }

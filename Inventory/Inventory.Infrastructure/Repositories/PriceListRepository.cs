@@ -3,45 +3,45 @@ using Inventory.Domain.PriceLists;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
-namespace Inventory.Infrastructure.Repositories;
-
-public sealed class PriceListRepository : IPriceListRepository
+internal sealed class PriceListRepository : IPriceListRepository
 {
-    private readonly InventoryDbContext _db;
+    private readonly InventoryDbContext _context;
 
-    public PriceListRepository(InventoryDbContext db)
+    public PriceListRepository(InventoryDbContext context)
     {
-        _db = db;
+        _context = context;
     }
 
     public async Task AddAsync(PriceList priceList)
     {
-        _db.PriceLists.Add(priceList);
-        await _db.SaveChangesAsync();
+        await _context.PriceLists.AddAsync(priceList);
+        await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateAsync(PriceList priceList)
+    public Task UpdateAsync(PriceList priceList)
     {
-        _db.PriceLists.Update(priceList);
-        await _db.SaveChangesAsync();
+        _context.PriceLists.Update(priceList);
+        return Task.CompletedTask;
+    }
+
+    // ✅ THIS IS THE METHOD YOU ASKED FOR
+    public Task DeleteAsync(PriceList priceList)
+    {
+        _context.PriceLists.Remove(priceList);
+        return Task.CompletedTask;
     }
 
     public async Task<PriceList?> GetByIdAsync(Guid id)
     {
-        return await _db.PriceLists
+        return await _context.PriceLists
             .Include(x => x.Items)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task<List<PriceList>> GetAllAsync()
     {
-        return await _db.PriceLists
-            .AsNoTracking()
+        return await _context.PriceLists
+            .Include(x => x.Items)
             .ToListAsync();
-    }
-
-    public Task DeleteAsync(PriceList priceList)
-    {
-        throw new NotImplementedException();
     }
 }

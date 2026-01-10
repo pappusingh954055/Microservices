@@ -9,9 +9,12 @@ public sealed class CreateSubcategoryCommandHandler
 {
     private readonly ISubcategoryRepository _repository;
 
-    public CreateSubcategoryCommandHandler(ISubcategoryRepository repository)
+    private readonly IInventoryDbContext _context;
+
+    public CreateSubcategoryCommandHandler(ISubcategoryRepository repository, IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task<Guid> Handle(
@@ -27,6 +30,8 @@ public sealed class CreateSubcategoryCommandHandler
         );
 
         await _repository.AddAsync(subcategory);
+
+        await _context.SaveChangesAsync();
 
         return subcategory.Id;
     }

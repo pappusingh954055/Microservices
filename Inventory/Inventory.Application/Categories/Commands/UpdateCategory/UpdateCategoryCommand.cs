@@ -9,4 +9,4 @@ public sealed record UpdateCategoryCommand(
     decimal DefaultGst,
     string? Description,
     bool IsActive
-) : IRequest;
+) : IRequest<Guid>;

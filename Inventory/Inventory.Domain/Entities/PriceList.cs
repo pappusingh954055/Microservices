@@ -33,9 +33,9 @@ public class PriceList
         IsActive = isActive;
     }
 
-    public void AddItem(Guid productId, decimal price)
+    public void AddItem(Guid productId, decimal price, int minqty, int maxqty, bool isactive)
     {
-        Items.Add(new PriceListItem(Guid.NewGuid(), Id, productId, price));
+        Items.Add(new PriceListItem(Guid.NewGuid(), Id, productId, price, minqty,maxqty, isactive));
     }
 
     public void Update(

@@ -38,10 +38,13 @@
     public void Update(
         string sku,
         string name,
+        Guid CategoryId,
+        Guid SubCategoryId,
         string unit,
         decimal? defaultGst,
         string? description,
-        bool isActive)
+        bool isActive
+        )
     {
         Sku = sku;
         Name = name;

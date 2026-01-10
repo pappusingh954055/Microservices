@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Inventory.Domain.PriceLists;
+﻿namespace Inventory.Domain.PriceLists;
 
 public class PriceListItem
 {
@@ -9,17 +7,27 @@ public class PriceListItem
     public Guid ProductId { get; private set; }
     public decimal Price { get; private set; }
 
+    public int MinQty { get; private set; }
+    public int? MaxQty { get; private set; }
+    public bool IsActive { get; private set; }
+
     private PriceListItem() { } // EF Core
 
     internal PriceListItem(
         Guid id,
         Guid priceListId,
         Guid productId,
-        decimal price)
+        decimal price,
+        int minQty,
+        int maxQty,
+        bool isActive)
     {
         Id = id;
         PriceListId = priceListId;
         ProductId = productId;
         Price = price;
+        MinQty = minQty;
+        MaxQty = maxQty;
+        IsActive = isActive;
     }
 }

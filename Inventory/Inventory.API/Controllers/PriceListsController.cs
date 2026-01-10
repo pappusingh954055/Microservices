@@ -1,6 +1,8 @@
-﻿using Inventory.Application.PriceLists.Commands.CreatePriceList;
+﻿using Inventory.API.Common;
+using Inventory.Application.PriceLists.Commands.CreatePriceList;
 using Inventory.Application.PriceLists.Commands.DeletePriceList;
 using Inventory.Application.PriceLists.Commands.UpdatePriceList;
+using Inventory.Application.PriceLists.Queries.GetPriceListById;
 using Inventory.Application.PriceLists.Queries.GetPriceLists;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -22,25 +24,47 @@ namespace Inventory.API.Controllers
         public async Task<IActionResult> Create(CreatePriceListCommand command)
         {
             var id = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id }, null);
+            return Ok(
+           ApiResponse<Guid>.Ok(
+               id,
+               "Price list created successfully"
+           ));
         }
 
-        [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, UpdatePriceListCommand command)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(
+                    Guid id,
+                    UpdatePriceListCommand command)
         {
             if (id != command.Id)
-                return BadRequest();
+                return BadRequest(
+                    ApiResponse<string>.Fail("Id mismatch"));
 
-            await _mediator.Send(command);
-            return NoContent();
+            var result = await _mediator.Send(command);
+
+            return Ok(
+                ApiResponse<Guid>.Ok(
+                    result,
+                    "Price list updated successfully"
+                )
+            );
         }
 
-        [HttpDelete("{id:guid}")]
+
+        [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _mediator.Send(new DeletePriceListCommand(id));
-            return NoContent();
+            var result = await _mediator.Send(
+                new DeletePriceListCommand(id));
+
+            return Ok(
+                ApiResponse<Guid>.Ok(
+                    result,
+                    "Price list deleted successfully"
+                )
+            );
         }
+
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)

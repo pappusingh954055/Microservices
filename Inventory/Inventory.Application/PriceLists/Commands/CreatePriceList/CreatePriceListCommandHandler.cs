@@ -8,10 +8,13 @@ public sealed class CreatePriceListCommandHandler
     : IRequestHandler<CreatePriceListCommand, Guid>
 {
     private readonly IPriceListRepository _repository;
+    private readonly IInventoryDbContext _context;
 
-    public CreatePriceListCommandHandler(IPriceListRepository repository)
+    public CreatePriceListCommandHandler(IPriceListRepository repository
+        , IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task<Guid> Handle(
@@ -27,6 +30,9 @@ public sealed class CreatePriceListCommandHandler
         );
 
         await _repository.AddAsync(priceList);
+
+        await _context.SaveChangesAsync(cancellationToken);  
+
         return priceList.Id;
     }
 }

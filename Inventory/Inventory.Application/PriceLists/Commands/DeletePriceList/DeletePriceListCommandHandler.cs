@@ -4,24 +4,32 @@ using MediatR;
 namespace Inventory.Application.PriceLists.Commands.DeletePriceList;
 
 internal sealed class DeletePriceListCommandHandler
-    : IRequestHandler<DeletePriceListCommand>
+    : IRequestHandler<DeletePriceListCommand, Guid>
 {
     private readonly IPriceListRepository _repository;
+    private readonly IInventoryDbContext _context;
 
-    public DeletePriceListCommandHandler(IPriceListRepository repository)
+    public DeletePriceListCommandHandler(
+        IPriceListRepository repository,
+        IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
-    public async Task Handle(
+    public async Task<Guid> Handle(
         DeletePriceListCommand request,
         CancellationToken cancellationToken)
     {
         var priceList = await _repository.GetByIdAsync(request.Id);
 
         if (priceList is null)
-            throw new KeyNotFoundException("Price list not found");
+            throw new KeyNotFoundException("PriceList not found");
 
-        await _repository.DeleteAsync(priceList);
+       await _repository.DeleteAsync(priceList);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return request.Id;
     }
 }

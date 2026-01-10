@@ -1,34 +1,44 @@
-﻿using MediatR;
-using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Common.Interfaces;
+using MediatR;
 
 namespace Inventory.Application.Products.Commands.UpdateProduct;
 
-public sealed class UpdateProductCommandHandler
-    : IRequestHandler<UpdateProductCommand>
+internal sealed class UpdateProductCommandHandler
+    : IRequestHandler<UpdateProductCommand, Guid>
 {
     private readonly IProductRepository _repository;
+    private readonly IInventoryDbContext _context;
 
-    public UpdateProductCommandHandler(IProductRepository repository)
+    public UpdateProductCommandHandler(
+        IProductRepository repository,
+        IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
-    public async Task Handle(
+    public async Task<Guid> Handle(
         UpdateProductCommand request,
         CancellationToken cancellationToken)
     {
-        var product = await _repository.GetByIdAsync(request.Id)
-            ?? throw new KeyNotFoundException("Product not found");
+        var product = await _repository.GetByIdAsync(request.Id);
+
+        if (product is null)
+            throw new KeyNotFoundException("Product not found");
 
         product.Update(
             request.Sku,
-            request.ProductName,
+            request.Name,            
+            request.CategoryId,
+            request.SubCategoryId,
             request.Unit,
             request.DefaultGst,
             request.Description,
             request.IsActive
         );
 
-        await _repository.UpdateAsync(product);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return product.Id;
     }
 }

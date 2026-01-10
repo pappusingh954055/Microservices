@@ -2,4 +2,5 @@
 
 namespace Inventory.Application.Categories.Commands.DeleteCategory;
 
-public sealed record DeleteCategoryCommand(Guid Id) : IRequest;
+public sealed record DeleteCategoryCommand(Guid Id)
+    : IRequest<Guid>;

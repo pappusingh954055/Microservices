@@ -8,10 +8,12 @@ public sealed class CreateProductCommandHandler
     : IRequestHandler<CreateProductCommand, Guid>
 {
     private readonly IProductRepository _repository;
-
-    public CreateProductCommandHandler(IProductRepository repository)
+    private readonly IInventoryDbContext _context;
+    public CreateProductCommandHandler(IProductRepository repository, 
+        IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task<Guid> Handle(
@@ -29,6 +31,9 @@ public sealed class CreateProductCommandHandler
         );
 
         await _repository.AddAsync(product);
+
+        await _context.SaveChangesAsync(cancellationToken);  
+
         return product.Id;
     }
 }

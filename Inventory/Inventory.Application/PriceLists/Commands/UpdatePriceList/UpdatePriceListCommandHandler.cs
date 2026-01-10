@@ -4,23 +4,27 @@ using MediatR;
 namespace Inventory.Application.PriceLists.Commands.UpdatePriceList;
 
 internal sealed class UpdatePriceListCommandHandler
-    : IRequestHandler<UpdatePriceListCommand>
+    : IRequestHandler<UpdatePriceListCommand, Guid>
 {
     private readonly IPriceListRepository _repository;
+    private readonly IInventoryDbContext _context;
 
-    public UpdatePriceListCommandHandler(IPriceListRepository repository)
+    public UpdatePriceListCommandHandler(
+        IPriceListRepository repository,
+        IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
-    public async Task Handle(
+    public async Task<Guid> Handle(
         UpdatePriceListCommand request,
         CancellationToken cancellationToken)
     {
         var priceList = await _repository.GetByIdAsync(request.Id);
 
         if (priceList is null)
-            throw new KeyNotFoundException("Price list not found");
+            throw new KeyNotFoundException("PriceList not found");
 
         priceList.Update(
             request.Name,
@@ -30,6 +34,8 @@ internal sealed class UpdatePriceListCommandHandler
             request.IsActive
         );
 
-        await _repository.UpdateAsync(priceList);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return priceList.Id;
     }
 }

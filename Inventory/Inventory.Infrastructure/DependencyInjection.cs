@@ -1,13 +1,9 @@
 ﻿using Inventory.Application.Common.Interfaces;
-using Inventory.Domain.Repositories;
 using Inventory.Infrastructure.Persistence;
 using Inventory.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Inventory.Infrastructure
 {
@@ -28,6 +24,9 @@ namespace Inventory.Infrastructure
             services.AddScoped<IProductRepository, ProductRepository>();
 
             services.AddScoped<IPriceListRepository, PriceListRepository>();
+
+            services.AddScoped<IInventoryDbContext>(
+            provider => provider.GetRequiredService<InventoryDbContext>());
 
             return services;
         }

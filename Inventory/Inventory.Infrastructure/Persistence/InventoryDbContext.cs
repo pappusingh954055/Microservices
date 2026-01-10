@@ -1,10 +1,12 @@
-﻿using Inventory.Domain.Entities;
+﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Infrastructure.Persistence;
 
-public class InventoryDbContext : DbContext
+public sealed class InventoryDbContext : DbContext,
+    Application.Common.Interfaces.IInventoryDbContext
 {
     public InventoryDbContext(DbContextOptions<InventoryDbContext> options)
         : base(options) { }
@@ -14,6 +16,8 @@ public class InventoryDbContext : DbContext
     public DbSet<Product> Products => Set<Product>();
     public DbSet<PriceList> PriceLists => Set<PriceList>();
     public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
+
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

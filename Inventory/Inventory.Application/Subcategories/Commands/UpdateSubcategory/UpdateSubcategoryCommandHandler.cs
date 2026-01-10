@@ -8,9 +8,12 @@ public sealed class UpdateSubcategoryCommandHandler
 {
     private readonly ISubcategoryRepository _repository;
 
-    public UpdateSubcategoryCommandHandler(ISubcategoryRepository repository)
+    private readonly IInventoryDbContext _context;
+
+    public UpdateSubcategoryCommandHandler(ISubcategoryRepository repository, IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task Handle(
@@ -29,5 +32,7 @@ public sealed class UpdateSubcategoryCommandHandler
         );
 
         await _repository.UpdateAsync(subcategory);
+
+        await _context.SaveChangesAsync();
     }
 }
