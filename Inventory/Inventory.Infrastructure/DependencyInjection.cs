@@ -25,6 +25,10 @@ namespace Inventory.Infrastructure
 
             services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
 
+            services.AddScoped<IProductRepository, ProductRepository>();
+
+            services.AddScoped<IPriceListRepository, PriceListRepository>();
+
             return services;
         }
     }

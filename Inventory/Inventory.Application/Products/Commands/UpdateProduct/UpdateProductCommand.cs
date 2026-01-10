@@ -4,7 +4,7 @@ namespace Inventory.Application.Products.Commands.UpdateProduct;
 
 public sealed record UpdateProductCommand(
     Guid Id,
-    string ProductCode,
+    string Sku,
     string ProductName,
     string Unit,
     decimal? DefaultGst,

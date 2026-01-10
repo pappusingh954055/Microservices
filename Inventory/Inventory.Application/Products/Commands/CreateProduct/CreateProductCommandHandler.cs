@@ -21,7 +21,7 @@ public sealed class CreateProductCommandHandler
         var product = new Product(
             request.CategoryId,
             request.SubcategoryId,
-            request.ProductCode,
+            request.Sku,
             request.ProductName,
             request.Unit,
             request.DefaultGst,

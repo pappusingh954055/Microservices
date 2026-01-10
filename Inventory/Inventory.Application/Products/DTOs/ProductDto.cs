@@ -1,13 +1,11 @@
-﻿namespace Inventory.Application.Products.DTOs;
-
-public sealed class ProductDto
+﻿public sealed class ProductDto
 {
     public Guid Id { get; set; }
 
     public Guid CategoryId { get; set; }
     public Guid SubcategoryId { get; set; }
 
-    public string ProductCode { get; set; } = string.Empty;
+    public string Sku { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;
     public string Unit { get; set; } = string.Empty;
 

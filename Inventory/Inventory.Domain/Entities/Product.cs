@@ -1,13 +1,11 @@
-﻿namespace Inventory.Domain.Entities;
-
-public class Product
+﻿public class Product
 {
     public Guid Id { get; private set; }
 
     public Guid CategoryId { get; private set; }
     public Guid SubcategoryId { get; private set; }
 
-    public string Code { get; private set; } = null!;
+    public string Sku { get; private set; } = null!;
     public string Name { get; private set; } = null!;
     public string Unit { get; private set; } = null!;
 
@@ -20,7 +18,7 @@ public class Product
     public Product(
         Guid categoryId,
         Guid subcategoryId,
-        string code,
+        string sku,
         string name,
         string unit,
         decimal? defaultGst,
@@ -29,7 +27,7 @@ public class Product
         Id = Guid.NewGuid();
         CategoryId = categoryId;
         SubcategoryId = subcategoryId;
-        Code = code;
+        Sku = sku;
         Name = name;
         Unit = unit;
         DefaultGst = defaultGst;
@@ -38,14 +36,14 @@ public class Product
     }
 
     public void Update(
-        string code,
+        string sku,
         string name,
         string unit,
         decimal? defaultGst,
         string? description,
         bool isActive)
     {
-        Code = code;
+        Sku = sku;
         Name = name;
         Unit = unit;
         DefaultGst = defaultGst;

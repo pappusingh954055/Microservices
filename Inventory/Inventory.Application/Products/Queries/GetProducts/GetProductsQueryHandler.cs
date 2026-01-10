@@ -1,6 +1,5 @@
-﻿using MediatR;
-using Inventory.Application.Common.Interfaces;
-using Inventory.Application.Products.DTOs;
+﻿using Inventory.Application.Common.Interfaces;
+using MediatR;
 
 namespace Inventory.Application.Products.Queries.GetProducts;
 
@@ -25,7 +24,7 @@ public sealed class GetProductsQueryHandler
             Id = p.Id,
             CategoryId = p.CategoryId,
             SubcategoryId = p.SubcategoryId,
-            ProductCode = p.Code,
+            Sku = p.Sku,
             ProductName = p.Name,
             Unit = p.Unit,
             DefaultGst = p.DefaultGst,

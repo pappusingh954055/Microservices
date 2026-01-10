@@ -21,7 +21,7 @@ public sealed class UpdateProductCommandHandler
             ?? throw new KeyNotFoundException("Product not found");
 
         product.Update(
-            request.ProductCode,
+            request.Sku,
             request.ProductName,
             request.Unit,
             request.DefaultGst,
