@@ -1,30 +1,35 @@
-﻿using MediatR;
-using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Common.Interfaces;
+using MediatR;
 
 namespace Inventory.Application.Subcategories.Commands.DeleteSubcategory;
 
-public sealed class DeleteSubcategoryCommandHandler
-    : IRequestHandler<DeleteSubcategoryCommand>
+internal sealed class DeleteSubcategoryCommandHandler
+    : IRequestHandler<DeleteSubcategoryCommand, Guid>
 {
     private readonly ISubcategoryRepository _repository;
-
     private readonly IInventoryDbContext _context;
 
-    public DeleteSubcategoryCommandHandler(ISubcategoryRepository repository, IInventoryDbContext context)
+    public DeleteSubcategoryCommandHandler(
+        ISubcategoryRepository repository,
+        IInventoryDbContext context)
     {
         _repository = repository;
         _context = context;
     }
 
-    public async Task Handle(
+    public async Task<Guid> Handle(
         DeleteSubcategoryCommand request,
         CancellationToken cancellationToken)
     {
-        var subcategory = await _repository.GetByIdAsync(request.Id)
-            ?? throw new KeyNotFoundException("Subcategory not found");
+        var subcategory = await _repository.GetByIdAsync(request.Id);
 
-        await _repository.DeleteAsync(subcategory);
+        if (subcategory is null)
+            throw new KeyNotFoundException("Subcategory not found");
 
-        await _context.SaveChangesAsync();
+       await _repository.DeleteAsync(subcategory);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return request.Id;
     }
 }

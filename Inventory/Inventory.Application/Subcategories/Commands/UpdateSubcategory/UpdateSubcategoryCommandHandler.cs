@@ -1,38 +1,42 @@
-﻿using MediatR;
-using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Common.Interfaces;
+using MediatR;
 
 namespace Inventory.Application.Subcategories.Commands.UpdateSubcategory;
 
-public sealed class UpdateSubcategoryCommandHandler
-    : IRequestHandler<UpdateSubcategoryCommand>
+internal sealed class UpdateSubcategoryCommandHandler
+    : IRequestHandler<UpdateSubcategoryCommand, Guid>
 {
     private readonly ISubcategoryRepository _repository;
-
     private readonly IInventoryDbContext _context;
 
-    public UpdateSubcategoryCommandHandler(ISubcategoryRepository repository, IInventoryDbContext context)
+    public UpdateSubcategoryCommandHandler(
+        ISubcategoryRepository repository,
+        IInventoryDbContext context)
     {
         _repository = repository;
         _context = context;
     }
 
-    public async Task Handle(
+    public async Task<Guid> Handle(
         UpdateSubcategoryCommand request,
         CancellationToken cancellationToken)
     {
-        var subcategory = await _repository.GetByIdAsync(request.Id)
-            ?? throw new KeyNotFoundException("Subcategory not found");
+        var subcategory = await _repository.GetByIdAsync(request.Id);
+
+        if (subcategory is null)
+            throw new KeyNotFoundException("Subcategory not found");
 
         subcategory.Update(
-            request.SubcategoryCode,
-            request.SubcategoryName,
+            request.Code,
+            request.Name,
+            request.CategoryId,                      
             request.DefaultGst,
             request.Description,
             request.IsActive
         );
 
-        await _repository.UpdateAsync(subcategory);
+        await _context.SaveChangesAsync(cancellationToken);
 
-        await _context.SaveChangesAsync();
+        return subcategory.Id;
     }
 }

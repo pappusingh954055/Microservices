@@ -4,9 +4,10 @@ namespace Inventory.Application.Subcategories.Commands.UpdateSubcategory;
 
 public sealed record UpdateSubcategoryCommand(
     Guid Id,
-    string SubcategoryCode,
-    string SubcategoryName,
+    Guid CategoryId,
+    string Name,
+    string Code,
     decimal DefaultGst,
     string? Description,
     bool IsActive
-) : IRequest;
+) : IRequest<Guid>;

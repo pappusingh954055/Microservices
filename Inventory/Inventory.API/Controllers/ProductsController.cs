@@ -23,7 +23,11 @@ namespace Inventory.API.Controllers
         public async Task<IActionResult> Create(CreateProductCommand command)
         {
             var id = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id }, null);
+            return Ok(
+           ApiResponse<Guid>.Ok(
+               id,
+               "Product is created successfully"
+           ));
         }
 
         [HttpPut("{id}")]

@@ -24,7 +24,11 @@ namespace Inventory.API.Controllers
         public async Task<IActionResult> Create(CreateCategoryCommand command)
         {
             var id = await _mediator.Send(command);
-            return Ok(id);
+            return Ok(
+           ApiResponse<Guid>.Ok(
+               id,
+               "Price list created successfully"
+           ));
         }
 
         [HttpPut("{id}")]

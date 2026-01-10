@@ -24,11 +24,12 @@ internal sealed class UpdateCategoryCommandHandler
         var category = await _repository.GetByIdAsync(request.Id);
 
         if (category is null)
-            throw new KeyNotFoundException("Category not found");
+            throw new KeyNotFoundException("Subcategory not found");
 
         category.Update(
-            request.CategoryName,
             request.CategoryCode,
+            request.CategoryName,         
+            
             request.DefaultGst,
             request.Description,
             request.IsActive

@@ -33,12 +33,14 @@ public class Subcategory
     public void Update(
         string code,
         string name,
+        Guid categoryId,
         decimal defaultGst,
         string? description,
         bool isActive)
     {
         Code = code;
         Name = name;
+        CategoryId = categoryId;
         DefaultGst = defaultGst;
         Description = description;
         IsActive = isActive;

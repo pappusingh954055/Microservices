@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Subcategories.Commands.CreateSubcategory;
+﻿using Inventory.API.Common;
+using Inventory.Application.Subcategories.Commands.CreateSubcategory;
 using Inventory.Application.Subcategories.Commands.DeleteSubcategory;
 using Inventory.Application.Subcategories.Commands.UpdateSubcategory;
 using Inventory.Application.Subcategories.Queries.GetSubcategories;
@@ -23,25 +24,47 @@ namespace Inventory.API.Controllers
         public async Task<IActionResult> Create(CreateSubcategoryCommand command)
         {
             var id = await _mediator.Send(command);
-            return CreatedAtAction(nameof(GetById), new { id }, null);
+            return Ok(
+            ApiResponse<Guid>.Ok(
+                id,
+                "Sub category created successfully"
+            ));
         }
 
-        [HttpPut("{id:guid}")]
-        public async Task<IActionResult> Update(Guid id, UpdateSubcategoryCommand command)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(
+      Guid id,
+      UpdateSubcategoryCommand command)
         {
             if (id != command.Id)
-                return BadRequest();
+                return BadRequest(
+                    ApiResponse<string>.Fail("Id mismatch"));
 
-            await _mediator.Send(command);
-            return NoContent();
+            var result = await _mediator.Send(command);
+
+            return Ok(
+                ApiResponse<Guid>.Ok(
+                    result,
+                    "Subcategory updated successfully"
+                )
+            );
         }
 
-        [HttpDelete("{id:guid}")]
+
+        [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _mediator.Send(new DeleteSubcategoryCommand(id));
-            return NoContent();
+            var result = await _mediator.Send(
+                new DeleteSubcategoryCommand(id));
+
+            return Ok(
+                ApiResponse<Guid>.Ok(
+                    result,
+                    "Subcategory deleted successfully"
+                )
+            );
         }
+
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)

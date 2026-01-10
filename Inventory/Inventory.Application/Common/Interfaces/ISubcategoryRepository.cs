@@ -13,6 +13,5 @@ namespace Inventory.Application.Common.Interfaces
 
         Task<Subcategory?> GetByIdAsync(Guid id);
         Task<List<Subcategory>> GetAllAsync();
-        Task<List<Subcategory>> GetByCategoryIdAsync(Guid categoryId);
     }
 }
