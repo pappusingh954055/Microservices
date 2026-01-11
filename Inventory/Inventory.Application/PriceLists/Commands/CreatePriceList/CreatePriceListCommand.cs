@@ -3,11 +3,13 @@
 namespace Inventory.Application.PriceLists.Commands.CreatePriceList
 {
     public sealed record CreatePriceListCommand(
-    string Name,
-    string Code,
-    DateTime ValidFrom,
-    DateTime ValidTo,
-    Boolean isActive
+    string name,
+    string code,
+    string pricetype,
+    DateTime validfrom,
+    DateTime validto,
+    string description,
+    Boolean isactive
 ) : IRequest<Guid>;
 
 }

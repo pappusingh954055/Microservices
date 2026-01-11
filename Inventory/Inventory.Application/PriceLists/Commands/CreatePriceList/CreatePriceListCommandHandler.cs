@@ -22,11 +22,13 @@ public sealed class CreatePriceListCommandHandler
         CancellationToken cancellationToken)
     {
         var priceList = new PriceList(            
-            request.Name,
-            request.Code,
-            request.ValidFrom,
-            request.ValidTo,
-            request.isActive
+            request.name,
+            request.code,
+            request.pricetype,
+            request.validfrom,
+            request.validto,
+            request.description,
+            request.isactive
         );
 
         await _repository.AddAsync(priceList);

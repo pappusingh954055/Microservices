@@ -27,9 +27,11 @@ public sealed class GetProductsQueryHandler
             Sku = p.Sku,
             ProductName = p.Name,
             Unit = p.Unit,
+            HsnCode=p.HSNCode,
+            MinStock=p.MinStock,
             DefaultGst = p.DefaultGst,
             Description = p.Description,
-            IsActive = p.IsActive
+            TrackInventory = p.TrackInventory
         }).ToList();
     }
 }

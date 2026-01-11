@@ -22,11 +22,12 @@ public sealed class CreateSubcategoryCommandHandler
         CancellationToken cancellationToken)
     {
         var subcategory = new Subcategory(
-            request.CategoryId,
-            request.SubcategoryCode,
-            request.SubcategoryName,
-            request.DefaultGst,
-            request.Description
+            request.categoryid,
+            request.subcategorycode,
+            request.subcategoryname,
+            request.defaultgst,
+            request.description,
+            request.isactive
         );
 
         await _repository.AddAsync(subcategory);

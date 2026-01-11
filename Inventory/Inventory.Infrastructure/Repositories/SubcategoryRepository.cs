@@ -37,6 +37,17 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
 
     public async Task<List<Subcategory>> GetAllAsync()
     {
-        return await _context.Subcategories.ToListAsync();
+        return await _context.Subcategories
+            .Include(s=>s.Category)
+            .ToListAsync();
     }
+
+    public async Task<List<Subcategory>> GetByCategoryIdAsync(Guid categoryId)
+    {
+        return await _context.Subcategories
+            .Include(s => s.Category)
+            .Where(s => s.CategoryId == categoryId)
+            .ToListAsync();
+    }
+
 }

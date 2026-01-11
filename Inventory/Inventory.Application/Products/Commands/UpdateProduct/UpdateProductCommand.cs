@@ -9,8 +9,10 @@ public sealed record UpdateProductCommand(
     Guid CategoryId,
     Guid SubCategoryId,
     string Unit,
+    string hsncode,
+    int minstock,
     decimal DefaultPrice,
     decimal DefaultGst,
     string Description,
-    bool IsActive
+    bool TrackInventory
 ) : IRequest<Guid>;

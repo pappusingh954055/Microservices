@@ -5,6 +5,7 @@ public class Subcategory
     public Guid Id { get; private set; }
 
     public Guid CategoryId { get; private set; }
+    public Category Category { get; private set; }
 
     public string Code { get; private set; } = null!;
     public string Name { get; private set; } = null!;
@@ -15,33 +16,34 @@ public class Subcategory
     private Subcategory() { }
 
     public Subcategory(
-        Guid categoryId,
+        Guid categoryid,
         string code,
         string name,
         decimal defaultGst,
-        string? description)
+        string? description,
+        bool isactive)
     {
         Id = Guid.NewGuid();
-        CategoryId = categoryId;
+        CategoryId = categoryid;
         Code = code;
         Name = name;
         DefaultGst = defaultGst;
         Description = description;
-        IsActive = true;
+        IsActive = isactive;
     }
 
     public void Update(
         string code,
         string name,
-        Guid categoryId,
-        decimal defaultGst,
+        Guid categoryid,
+        decimal defaultgst,
         string? description,
         bool isActive)
     {
         Code = code;
         Name = name;
-        CategoryId = categoryId;
-        DefaultGst = defaultGst;
+        CategoryId = categoryid;
+        DefaultGst = defaultgst;
         Description = description;
         IsActive = isActive;
     }

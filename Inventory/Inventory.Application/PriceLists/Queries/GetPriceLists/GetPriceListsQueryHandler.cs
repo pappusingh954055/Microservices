@@ -22,12 +22,14 @@ public sealed class GetPriceListsQueryHandler
 
         return lists.Select(pl => new PriceListDto
         {
-            Id = pl.Id,
-            Name = pl.Name,
-            Code = pl.Code,
-            ValidFrom = pl.ValidFrom,
-            ValidTo = pl.ValidTo,
-            IsActive = pl.IsActive
+            id = pl.Id,
+            name = pl.Name,
+            code = pl.Code,
+            pricetype=pl.PriceType,
+            description= pl.Description,    
+            validfrom = pl.ValidFrom,
+            validto = pl.ValidTo,
+            isactive = pl.IsActive
         }).ToList();
     }
 }

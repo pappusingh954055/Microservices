@@ -21,13 +21,16 @@ public sealed class CreateProductCommandHandler
         CancellationToken cancellationToken)
     {
         var product = new Product(
-            request.CategoryId,
-            request.SubcategoryId,
-            request.Sku,
-            request.ProductName,
-            request.Unit,
-            request.DefaultGst,
-            request.Description
+            request.categoryid,
+            request.subcategoryid,
+            request.sku,
+            request.productname,
+            request.unit,
+            request.hsncode,
+            request.minstock,
+            request.defaultgst,
+            request.description,
+            request.trackinventory
         );
 
         await _repository.AddAsync(product);

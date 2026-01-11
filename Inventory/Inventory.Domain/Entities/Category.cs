@@ -16,14 +16,15 @@ public class Category
         string code,
         string name,
         decimal defaultGst,
-        string? description, bool IsActive)
+        string? description, 
+        bool isActive)
     {
         Id = Guid.NewGuid();
         Code = code;
         Name = name;
         DefaultGst = defaultGst;
         Description = description;
-        IsActive = true;
+        IsActive = isActive;
     }
 
     public void Update(

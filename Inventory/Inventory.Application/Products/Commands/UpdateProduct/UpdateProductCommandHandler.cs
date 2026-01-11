@@ -32,9 +32,11 @@ internal sealed class UpdateProductCommandHandler
             request.CategoryId,
             request.SubCategoryId,
             request.Unit,
+            request.hsncode,
+            request.minstock,
             request.DefaultGst,
             request.Description,
-            request.IsActive
+            request.TrackInventory
         );
 
         await _context.SaveChangesAsync(cancellationToken);

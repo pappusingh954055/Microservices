@@ -7,9 +7,11 @@ public class PriceList
 {
     public Guid Id { get; private set; }
     public string Name { get; private set; } = default!;
+    public string PriceType { get; private set; } =string.Empty;
     public string Code { get; private set; } = default!;
     public DateTime ValidFrom { get; private set; }
     public DateTime? ValidTo { get; private set; }
+    public string? Description { get; private set; }
     public bool IsActive { get; private set; }
 
     // 🔴 IMPORTANT: NO backing field, NO private list
@@ -21,16 +23,20 @@ public class PriceList
        
         string name,
         string code,
-        DateTime validFrom,
-        DateTime? validTo,
-        bool isActive)
+        string pricetype,
+        DateTime validfrom,
+        DateTime? validto,
+        string description,
+        bool isactive)
     {
         Id = Guid.NewGuid();
         Name = name;
         Code = code;
-        ValidFrom = validFrom;
-        ValidTo = validTo;
-        IsActive = isActive;
+        PriceType = pricetype;  
+        ValidFrom = validfrom;
+        ValidTo = validto;
+        Description = description;
+        IsActive = isactive;
     }
 
     public void AddItem(Guid productId, decimal price, int minqty, int maxqty, bool isactive)

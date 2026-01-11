@@ -27,7 +27,7 @@ namespace Inventory.API.Controllers
             return Ok(
            ApiResponse<Guid>.Ok(
                id,
-               "Price list created successfully"
+               "Categories created successfully"
            ));
         }
 

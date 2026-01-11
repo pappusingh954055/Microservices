@@ -7,6 +7,7 @@ public sealed class SubcategoryDto
 
     public string SubcategoryCode { get; set; } = string.Empty;
     public string SubcategoryName { get; set; } = string.Empty;
+    public string CategoryName { get; set; } = string.Empty;
 
     public decimal DefaultGst { get; set; }
     public string? Description { get; set; }

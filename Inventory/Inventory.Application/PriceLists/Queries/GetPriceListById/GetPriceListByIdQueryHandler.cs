@@ -25,12 +25,12 @@ public sealed class GetPriceListByIdQueryHandler
 
         return new PriceListDto
         {
-            Id = priceList.Id,
-            Name = priceList.Name,
-            Code = priceList.Code,
-            ValidFrom = priceList.ValidFrom,
-            ValidTo = priceList.ValidTo,
-            IsActive = priceList.IsActive,
+            id = priceList.Id,
+            name = priceList.Name,
+            code = priceList.Code,
+            validfrom = priceList.ValidFrom,
+            validto = priceList.ValidTo,
+            isactive = priceList.IsActive,
             Items = priceList.Items.Select(i => new PriceListItemDto
             {
                 Id = i.Id,

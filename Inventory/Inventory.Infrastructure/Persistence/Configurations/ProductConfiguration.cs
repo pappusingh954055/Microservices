@@ -35,7 +35,7 @@ public sealed class ProductConfiguration
         builder.Property(x => x.Description)
                .HasMaxLength(500);
 
-        builder.Property(x => x.IsActive)
+        builder.Property(x => x.TrackInventory)
                .IsRequired();
 
         builder.Property(x => x.CategoryId)

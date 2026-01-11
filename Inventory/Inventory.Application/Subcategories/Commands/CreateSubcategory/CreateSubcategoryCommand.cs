@@ -3,9 +3,10 @@
 namespace Inventory.Application.Subcategories.Commands.CreateSubcategory;
 
 public sealed record CreateSubcategoryCommand(
-    Guid CategoryId,
-    string SubcategoryCode,
-    string SubcategoryName,
-    decimal DefaultGst,
-    string? Description
+    Guid categoryid,
+    string subcategorycode,
+    string subcategoryname,
+    decimal defaultgst,
+    string? description,
+    bool isactive
 ) : IRequest<Guid>;

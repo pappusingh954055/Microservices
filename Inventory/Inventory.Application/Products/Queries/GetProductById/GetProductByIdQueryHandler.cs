@@ -27,10 +27,12 @@ public sealed class GetProductByIdQueryHandler
             SubcategoryId = p.SubcategoryId,
             Sku = p.Sku,
             ProductName = p.Name,
-            Unit = p.Unit,
+            Unit = p.Unit,  
+            HsnCode=p.HSNCode,
+            MinStock=p.MinStock,
             DefaultGst = p.DefaultGst,
             Description = p.Description,
-            IsActive = p.IsActive
+            TrackInventory = p.TrackInventory
         };
     }
 }

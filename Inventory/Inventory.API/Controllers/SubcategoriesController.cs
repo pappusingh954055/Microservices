@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/subcategories")]
     [ApiController]
     public class SubcategoriesController : ControllerBase
     {
@@ -79,5 +79,15 @@ namespace Inventory.API.Controllers
             var result = await _mediator.Send(new GetSubcategoriesQuery());
             return Ok(result);
         }
+
+        [HttpGet("by-category/{categoryId}")]
+        public async Task<IActionResult> GetByCategory(Guid categoryId)
+        {
+            var result = await _mediator.Send(
+                new GetSubcategoriesByCategoryQuery(categoryId));
+
+            return Ok(result);
+        }
+
     }
 }

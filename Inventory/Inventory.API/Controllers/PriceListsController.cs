@@ -9,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/pricelists")]
     [ApiController]
     public class PriceListsController : ControllerBase
     {
