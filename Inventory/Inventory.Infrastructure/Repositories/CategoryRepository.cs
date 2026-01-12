@@ -42,4 +42,9 @@ public sealed class CategoryRepository : ICategoryRepository
             .AsNoTracking()
             .ToListAsync();
     }
+    public IQueryable<Category> Query()
+    {
+        return _db.Categories.AsNoTracking();
+    }
+
 }

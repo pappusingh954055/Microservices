@@ -1,7 +1,6 @@
-﻿using MediatR;
-using Inventory.Application.Categories.DTOs;
+﻿using Inventory.Application.Categories.DTOs;
+using Inventory.Application.Common.Models;
+using MediatR;
 
-namespace Inventory.Application.Categories.Queries.GetCategories;
-
-public sealed record GetCategoriesQuery
-    : IRequest<List<CategoryDto>>;
+public sealed record GetCategoriesQuery(PagedQuery Query)
+    : IRequest<PagedResult<CategoryDto>>;

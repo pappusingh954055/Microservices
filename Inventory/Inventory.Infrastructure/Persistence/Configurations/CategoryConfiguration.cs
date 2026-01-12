@@ -12,14 +12,14 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Code)
+        builder.Property(x => x.CategoryCode)
                .IsRequired()
                .HasMaxLength(50);
 
-        builder.HasIndex(x => x.Code)
+        builder.HasIndex(x => x.CategoryCode)
                .IsUnique();
 
-        builder.Property(x => x.Name)
+        builder.Property(x => x.CategoryName)
                .IsRequired()
                .HasMaxLength(150);
 
@@ -32,5 +32,9 @@ public class CategoryConfiguration : IEntityTypeConfiguration<Category>
 
         builder.Property(x => x.IsActive)
                .IsRequired();
+
+        //builder.Property(x => x.CreatedOn).IsRequired();
+        //builder.Property(x => x.UpdatedOn).IsRequired();
+        //builder.Property(x => x.UpdatedBy).IsRequired();
     }
 }

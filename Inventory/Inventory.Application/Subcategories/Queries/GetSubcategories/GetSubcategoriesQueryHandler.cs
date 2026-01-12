@@ -24,7 +24,7 @@ public sealed class GetSubcategoriesQueryHandler
         {
             Id = s.Id,
             CategoryId = s.CategoryId,
-            CategoryName=s.Category.Name,
+            CategoryName=s.Category.CategoryName,
             SubcategoryCode = s.Code,
             SubcategoryName = s.Name,
             DefaultGst = s.DefaultGst,

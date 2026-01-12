@@ -23,7 +23,7 @@ internal sealed class GetSubcategoriesByCategoryQueryHandler
         {
             Id = s.Id,
             CategoryId = s.CategoryId,
-            CategoryName = s.Category.Name,
+            CategoryName = s.Category.CategoryName,
             SubcategoryName = s.Name,
             DefaultGst = s.DefaultGst,
             IsActive = s.IsActive

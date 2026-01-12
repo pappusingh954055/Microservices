@@ -3,7 +3,9 @@
     public Guid Id { get; set; }
 
     public Guid CategoryId { get; set; }
+    public Guid CategoryName { get; set; }
     public Guid SubcategoryId { get; set; }
+    public Guid SubcategoryName { get; set; }
 
     public string Sku { get; set; } = string.Empty;
     public string ProductName { get; set; } = string.Empty;

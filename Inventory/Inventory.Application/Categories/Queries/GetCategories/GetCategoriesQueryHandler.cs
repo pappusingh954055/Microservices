@@ -1,11 +1,11 @@
-﻿using MediatR;
+﻿using Inventory.Application.Categories.DTOs;
+using Inventory.Application.Common.Interfaces;
+using Inventory.Application.Common.Models;
+using MediatR;
+using Microsoft.EntityFrameworkCore;
 
-using Inventory.Application.Categories.DTOs;
-
-namespace Inventory.Application.Categories.Queries.GetCategories;
-
-public sealed class GetCategoriesQueryHandler
-    : IRequestHandler<GetCategoriesQuery, List<CategoryDto>>
+internal sealed class GetCategoriesQueryHandler
+    : IRequestHandler<GetCategoriesQuery, PagedResult<CategoryDto>>
 {
     private readonly ICategoryRepository _repository;
 
@@ -14,20 +14,54 @@ public sealed class GetCategoriesQueryHandler
         _repository = repository;
     }
 
-    public async Task<List<CategoryDto>> Handle(
+    public async Task<PagedResult<CategoryDto>> Handle(
         GetCategoriesQuery request,
         CancellationToken cancellationToken)
     {
-        var categories = await _repository.GetAllAsync();
+        var query = _repository.Query();
 
-        return categories.Select(c => new CategoryDto
+        // 🔍 SEARCH
+        if (!string.IsNullOrWhiteSpace(request.Query.Search))
         {
-            Id = c.Id,
-            CategoryName = c.Name,
-            CategoryCode = c.Code,
-            DefaultGst = c.DefaultGst,
-            Description = c.Description,
-            IsActive = c.IsActive
-        }).ToList();
+            query = query.Where(x =>
+                x.CategoryName.Contains(request.Query.Search));
+        }
+
+        // 🔃 SORTING
+        query = request.Query.SortBy switch
+        {
+            "categoryName" =>
+                request.Query.SortDirection == "asc"
+                    ? query.OrderBy(x => x.CategoryName)
+                    : query.OrderByDescending(x => x.CategoryName),
+
+            "categoryCode" =>
+                request.Query.SortDirection == "asc"
+                    ? query.OrderBy(x => x.CategoryCode)
+                    : query.OrderByDescending(x => x.CategoryCode),
+
+            _ => query.OrderByDescending(x => x.CreatedOn)
+        };
+
+        var totalCount = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .Skip((request.Query.PageNumber - 1) * request.Query.PageSize)
+            .Take(request.Query.PageSize)
+            .Select(x => new CategoryDto
+            {
+                Id = x.Id,
+                CategoryName = x.CategoryName,
+                CategoryCode = x.CategoryCode,
+                DefaultGst = x.DefaultGst,
+                IsActive = x.IsActive
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<CategoryDto>
+        {
+            TotalCount = totalCount,
+            Items = items
+        };
     }
 }

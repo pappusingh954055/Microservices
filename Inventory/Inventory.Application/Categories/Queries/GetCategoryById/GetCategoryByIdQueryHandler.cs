@@ -23,8 +23,8 @@ public sealed class GetCategoryByIdQueryHandler
         return new CategoryDto
         {
             Id = c.Id,
-            CategoryName = c.Name,
-            CategoryCode = c.Code,
+            CategoryName = c.CategoryName,
+            CategoryCode = c.CategoryCode,
             DefaultGst = c.DefaultGst,
             Description = c.Description,
             IsActive = c.IsActive

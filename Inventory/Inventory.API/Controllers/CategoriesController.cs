@@ -2,8 +2,8 @@
 using Inventory.Application.Categories.Commands.CreateCategory;
 using Inventory.Application.Categories.Commands.DeleteCategory;
 using Inventory.Application.Categories.Commands.UpdateCategory;
-using Inventory.Application.Categories.Queries.GetCategories;
 using Inventory.Application.Categories.Queries.GetCategoryById;
+using Inventory.Application.Common.Models;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -65,6 +65,12 @@ namespace Inventory.API.Controllers
             );
         }
 
+        //[HttpPost("bulk-delete")]
+        //public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
+        //{
+        //    await _mediator.Send(new DeleteCategoryCommand(ids));
+        //    return Ok(new { success = true });
+        //}
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
@@ -74,9 +80,14 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetCategories(
+            [FromQuery] PagedQuery query)
         {
-            return Ok(await _mediator.Send(new GetCategoriesQuery()));
+            var result = await _mediator.Send(
+                new GetCategoriesQuery(query));
+
+            return Ok(result);
         }
+
     }
 }

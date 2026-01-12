@@ -8,4 +8,6 @@ public interface ICategoryRepository
 
     Task<Category?> GetByIdAsync(Guid id);
     Task<List<Category>> GetAllAsync();
+
+    IQueryable<Category> Query();
 }

@@ -4,12 +4,16 @@ public class Category
 {
     public Guid Id { get; private set; }
 
-    public string Code { get; private set; } = null!;
-    public string Name { get; private set; } = null!;
+    public string CategoryCode { get; private set; } = null!;
+    public string CategoryName { get; private set; } = null!;
     public decimal DefaultGst { get; private set; }
     public string? Description { get; private set; }
     public bool IsActive { get; private set; }
 
+    public DateTime? CreatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? UpdatedOn { get; set; } = DateTime.UtcNow;
+    public int? UpdatedBy { get; set; }
+    public int? CreatedBy { get; set; }
     private Category() { } // EF Core
 
     public Category(
@@ -20,8 +24,8 @@ public class Category
         bool isActive)
     {
         Id = Guid.NewGuid();
-        Code = code;
-        Name = name;
+        CategoryCode = code;
+        CategoryName = name;
         DefaultGst = defaultGst;
         Description = description;
         IsActive = isActive;
@@ -34,8 +38,8 @@ public class Category
         string? description,
         bool isActive)
     {
-        Code = code;
-        Name = name;
+        CategoryCode = code;
+        CategoryName = name;
         DefaultGst = defaultGst;
         Description = description;
         IsActive = isActive;
