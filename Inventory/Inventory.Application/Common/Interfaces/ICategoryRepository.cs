@@ -6,8 +6,16 @@ public interface ICategoryRepository
     Task UpdateAsync(Category category);
     Task DeleteAsync(Category category);
 
-    Task<Category?> GetByIdAsync(Guid id);
     Task<List<Category>> GetAllAsync();
+
+    Task<Category?> GetByIdAsync(Guid id);
+    Task<List<Category>> GetByIdsAsync(List<Guid> ids);
+
+    Task<bool> HasSubcategoriesAsync(Guid categoryId);
+    Task<bool> HasSubcategoriesAsync(List<Guid> categoryIds);
+
+    void Delete(Category category);
+    void DeleteRange(List<Category> categories);
 
     IQueryable<Category> Query();
 }

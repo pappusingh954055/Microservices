@@ -54,23 +54,17 @@ namespace Inventory.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var result = await _mediator.Send(
-                new DeleteCategoryCommand(id));
-
-            return Ok(
-                ApiResponse<Guid>.Ok(
-                    result,
-                    "Category deleted successfully"
-                )
-            );
+            await _mediator.Send(new DeleteCategoryCommand(id));
+            return Ok(new { message = "Category deleted successfully" });
         }
 
-        //[HttpPost("bulk-delete")]
-        //public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
-        //{
-        //    await _mediator.Send(new DeleteCategoryCommand(ids));
-        //    return Ok(new { success = true });
-        //}
+        [HttpPost("bulk-delete")]
+        public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
+        {
+            await _mediator.Send(new BulkDeleteCategoriesCommand(ids));
+            return Ok(new { message = "Categories deleted successfully" });
+        }
+
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)

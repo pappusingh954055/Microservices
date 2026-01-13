@@ -42,9 +42,39 @@ public sealed class CategoryRepository : ICategoryRepository
             .AsNoTracking()
             .ToListAsync();
     }
-    public IQueryable<Category> Query()
+    
+
+    public async Task<List<Category>> GetByIdsAsync(List<Guid> ids)
     {
-        return _db.Categories.AsNoTracking();
+        return await _db.Categories
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
     }
 
+    public void DeleteRange(List<Category> categories)
+    {
+        _db.Categories.RemoveRange(categories);
+    }
+
+    // ✅ DEPENDENCY CHECK (NO NAVIGATION PROPERTY)
+    public async Task<bool> HasSubcategoriesAsync(Guid categoryId)
+    {
+        return await _db.Subcategories
+            .AnyAsync(x => x.CategoryId == categoryId);
+    }
+
+    public async Task<bool> HasSubcategoriesAsync(List<Guid> categoryIds)
+    {
+        return await _db.Subcategories
+            .AnyAsync(x => categoryIds.Contains(x.CategoryId));
+    }
+
+    public void Delete(Category category)
+    {
+        _db.Categories.Remove(category);
+    }
+    public IQueryable<Category> Query()
+    {
+        return _db.Categories.AsQueryable();
+    }
 }
