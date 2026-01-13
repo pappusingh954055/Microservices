@@ -54,15 +54,64 @@ namespace Inventory.API.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            await _mediator.Send(new DeleteCategoryCommand(id));
-            return Ok(new { message = "Category deleted successfully" });
+            try
+            {
+                await _mediator.Send(new DeleteCategoryCommand(id));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Category deleted successfully"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
+
 
         [HttpPost("bulk-delete")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
-            await _mediator.Send(new BulkDeleteCategoriesCommand(ids));
-            return Ok(new { message = "Categories deleted successfully" });
+            try
+            {
+                await _mediator.Send(new BulkDeleteCategoriesCommand(ids));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Category deleted successfully"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
 
