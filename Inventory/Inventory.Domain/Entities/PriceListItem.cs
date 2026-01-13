@@ -10,7 +10,11 @@ public class PriceListItem
     public int MinQty { get; private set; }
     public int? MaxQty { get; private set; }
     public bool IsActive { get; private set; }
+    public int? CreatedBy { get; set; }
 
+    public DateTime? CreatedOn { get; set; } = DateTime.Now;
+    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
+    public int? ModifiedBy { get; set; }
     private PriceListItem() { } // EF Core
 
     internal PriceListItem(

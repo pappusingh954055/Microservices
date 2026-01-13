@@ -1,7 +1,8 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Domain.Entities;
-using Inventory.Application.Common.Interfaces;
+using Inventory.Domain.PriceLists;
 using Inventory.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Infrastructure.Repositories;
 
@@ -59,5 +60,27 @@ public sealed class ProductRepository : IProductRepository
             .AsNoTracking()
             .Where(x => x.SubcategoryId == subcategoryId)
             .ToListAsync();
+    }
+
+    public IQueryable<Product> Query()
+    {
+        return _db.Products.AsQueryable();
+    }
+    public void DeleteRange(List<Product> products)
+    {
+        _db.Products.RemoveRange(products);
+    }
+
+    public async Task<List<Product>> GetByIdsAsync(List<Guid> ids)
+    {
+        return await _db.Products
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
+    }
+
+    public async Task<bool> HasPriceListAsync(List<Guid> ProductsIds)
+    {
+        return await _db.Products
+           .AnyAsync(x => ProductsIds.Contains(x.Id));
     }
 }

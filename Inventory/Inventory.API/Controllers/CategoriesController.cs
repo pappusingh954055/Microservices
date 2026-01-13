@@ -2,8 +2,10 @@
 using Inventory.Application.Categories.Commands.CreateCategory;
 using Inventory.Application.Categories.Commands.DeleteCategory;
 using Inventory.Application.Categories.Commands.UpdateCategory;
+using Inventory.Application.Categories.Queries.GetCategories;
 using Inventory.Application.Categories.Queries.GetCategoryById;
 using Inventory.Application.Common.Models;
+using Inventory.Application.Subcategories.Queries.GetSubcategories;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -122,13 +124,21 @@ namespace Inventory.API.Controllers
             return result is null ? NotFound() : Ok(result);
         }
 
-        [HttpGet]
+
+        [HttpGet("paged")]
         public async Task<IActionResult> GetCategories(
-            [FromQuery] PagedQuery query)
+            [FromQuery] GridRequest query)
         {
             var result = await _mediator.Send(
-                new GetCategoriesQuery(query));
+                new GetCategoriesPagedQuery(query));
 
+            return Ok(result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var result = await _mediator.Send(new GetCategoriesQuery());
             return Ok(result);
         }
 

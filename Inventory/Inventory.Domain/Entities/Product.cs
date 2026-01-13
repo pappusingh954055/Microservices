@@ -1,9 +1,12 @@
-﻿public class Product
+﻿using Inventory.Domain.Entities;
+
+public class Product
 {
     public Guid Id { get; private set; }
-
     public Guid CategoryId { get; private set; }
+    public Category Category { get; private set; }
     public Guid SubcategoryId { get; private set; }
+    public Subcategory Subcategory { get; private set; }
 
     public string Sku { get; private set; } = null!;
     public string Name { get; private set; } = null!;
@@ -14,6 +17,11 @@
     public decimal? DefaultGst { get; private set; }
     public string? Description { get; private set; }
     public bool TrackInventory { get; private set; }
+
+    public int? CreatedBy { get; set; }
+    public DateTime? CreatedOn { get; set; } = DateTime.Now;
+    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
+    public int? ModifiedBy { get; set; }
 
     private Product() { }
 

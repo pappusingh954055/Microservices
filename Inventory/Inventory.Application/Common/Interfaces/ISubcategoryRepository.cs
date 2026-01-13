@@ -15,5 +15,12 @@ namespace Inventory.Application.Common.Interfaces
         Task<List<Subcategory>> GetAllAsync();
 
         Task<List<Subcategory>> GetByCategoryIdAsync(Guid categoryId);
+
+        IQueryable<Subcategory> Query();
+        void Delete(Subcategory subcategory);
+        void DeleteRange(List<Subcategory> subcategories);
+        Task<List<Subcategory>> GetByIdsAsync(List<Guid> ids);
+        Task<bool> HasSubcategoriesAsync(Guid categoryId);
+        Task<bool> HasSubcategoriesAsync(List<Guid> categoryIds);
     }
 }

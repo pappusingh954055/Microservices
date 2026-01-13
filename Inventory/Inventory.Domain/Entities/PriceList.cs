@@ -14,7 +14,11 @@ public class PriceList
     public string? Description { get; private set; }
     public bool IsActive { get; private set; }
 
-    // 🔴 IMPORTANT: NO backing field, NO private list
+    public int? CreatedBy { get; set; }
+
+    public DateTime? CreatedOn { get; set; } = DateTime.Now;
+    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
+    public int? ModifiedBy { get; set; }
     public ICollection<PriceListItem> Items { get; private set; } = new List<PriceListItem>();
 
     private PriceList() { } // EF Core

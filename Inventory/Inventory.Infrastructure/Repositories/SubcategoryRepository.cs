@@ -50,4 +50,38 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
             .ToListAsync();
     }
 
+    public IQueryable<Subcategory> Query()
+    {
+        return _context.Subcategories.AsQueryable();
+    }
+
+    public void Delete(Subcategory subcategory)
+    {
+        _context.Subcategories.Remove(subcategory);
+    }
+
+    public void DeleteRange(List<Subcategory> subcategories)
+    {
+        _context.Subcategories.RemoveRange(subcategories);
+    }
+
+    public async Task<List<Subcategory>> GetByIdsAsync(List<Guid> ids)
+    {
+        return await _context.Subcategories
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
+    }  
+
+    // ✅ DEPENDENCY CHECK (NO NAVIGATION PROPERTY)
+    public async Task<bool> HasSubcategoriesAsync(Guid categoryId)
+    {
+        return await _context.Subcategories
+            .AnyAsync(x => x.CategoryId == categoryId);
+    }
+
+    public async Task<bool> HasSubcategoriesAsync(List<Guid> categoryIds)
+    {
+        return await _context.Subcategories
+            .AnyAsync(x => categoryIds.Contains(x.CategoryId));
+    } 
 }

@@ -35,7 +35,7 @@ internal sealed class GetProductLookupsQueryHandler
             {
                 Id = s.Id,
                 CategoryId = s.CategoryId,
-                Name = s.Name
+                Name = s.SubcategoryName
             }).ToList()
         };
     }

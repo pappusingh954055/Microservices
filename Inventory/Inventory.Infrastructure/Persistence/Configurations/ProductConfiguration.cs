@@ -45,15 +45,15 @@ public sealed class ProductConfiguration
                .IsRequired();
 
         // FK → Category
-        builder.HasOne<Category>()
+        builder.HasOne(p => p.Category)
                .WithMany()
-               .HasForeignKey(x => x.CategoryId)
+               .HasForeignKey(p => p.CategoryId)
                .OnDelete(DeleteBehavior.Restrict);
 
         // FK → Subcategory
-        builder.HasOne<Subcategory>()
+        builder.HasOne(p => p.Subcategory)
                .WithMany()
-               .HasForeignKey(x => x.SubcategoryId)
+               .HasForeignKey(p => p.SubcategoryId)
                .OnDelete(DeleteBehavior.Restrict);
     }
 }

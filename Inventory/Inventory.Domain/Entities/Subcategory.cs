@@ -2,16 +2,20 @@
 
 public sealed class Subcategory
 {
-    public Guid Id { get; private set; }
+    public Guid Id { get; set; }
 
-    public Guid CategoryId { get; private set; }
-    public Category Category { get; private set; }
+    public Guid CategoryId { get; set; }
+    public Category Category { get; set; }
+    public int? CreatedBy { get; set; }
 
-    public string Code { get; private set; } = null!;
-    public string Name { get; private set; } = null!;
-    public decimal DefaultGst { get; private set; }
-    public string? Description { get; private set; }
-    public bool IsActive { get; private set; }
+    public DateTime? CreatedOn { get; set; } = DateTime.Now;
+    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
+    public int? ModifiedBy { get; set; }
+    public string SubcategoryCode { get; set; } = null!;
+    public string SubcategoryName { get; set; }
+    public decimal DefaultGst { get; set; }
+    public string? Description { get; set; }
+    public bool IsActive { get; set; }
 
     private Subcategory() { }
 
@@ -25,8 +29,8 @@ public sealed class Subcategory
     {
         Id = Guid.NewGuid();
         CategoryId = categoryid;
-        Code = code;
-        Name = name;
+        SubcategoryCode = code;
+        SubcategoryName = name;
         DefaultGst = defaultGst;
         Description = description;
         IsActive = isactive;
@@ -40,8 +44,8 @@ public sealed class Subcategory
         string? description,
         bool isActive)
     {
-        Code = code;
-        Name = name;
+        SubcategoryCode = code;
+        SubcategoryName = name;
         CategoryId = categoryid;
         DefaultGst = defaultgst;
         Description = description;

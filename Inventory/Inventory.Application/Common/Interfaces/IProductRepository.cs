@@ -1,4 +1,5 @@
 ﻿using Inventory.Domain.Entities;
+using Inventory.Domain.PriceLists;
 
 namespace Inventory.Application.Common.Interfaces;
 
@@ -13,4 +14,9 @@ public interface IProductRepository
 
     Task<List<Product>> GetByCategoryIdAsync(Guid categoryId);
     Task<List<Product>> GetBySubcategoryIdAsync(Guid subcategoryId);
+
+    IQueryable<Product> Query();
+    void DeleteRange(List<Product> product);
+    Task<List<Product>> GetByIdsAsync(List<Guid> ids);
+    Task<bool> HasPriceListAsync(List<Guid> productIds);
 }

@@ -13,14 +13,14 @@ public sealed class SubcategoryConfiguration
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Code)
+        builder.Property(x => x.SubcategoryCode)
                .IsRequired()
                .HasMaxLength(50);
 
-        builder.HasIndex(x => x.Code)
+        builder.HasIndex(x => x.SubcategoryCode)
                .IsUnique();
 
-        builder.Property(x => x.Name)
+        builder.Property(x => x.SubcategoryName)
                .IsRequired()
                .HasMaxLength(150);
 

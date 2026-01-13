@@ -1,9 +1,11 @@
 ﻿using Inventory.API.Common;
+using Inventory.Application.Common.Models;
 using Inventory.Application.Subcategories.Commands.CreateSubcategory;
-using Inventory.Application.Subcategories.Commands.DeleteSubcategory;
+using Inventory.Application.Subcategories.Commands.Delete;
 using Inventory.Application.Subcategories.Commands.UpdateSubcategory;
 using Inventory.Application.Subcategories.Queries.GetSubcategories;
 using Inventory.Application.Subcategories.Queries.GetSubcategoryById;
+using Inventory.Application.Subcategories.Queries.Searching;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -89,5 +91,46 @@ namespace Inventory.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged(
+            [FromQuery] GridRequest request)
+        {
+            var result = await _mediator.Send(
+                new GetSubcategoriesPagedQuery(request)
+            );
+
+            return Ok(result);
+        }
+
+        [HttpPost("bulk-delete")]
+        public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
+        {
+            try
+            {
+                await _mediator.Send(new BulkDeleteSubCategoriesCommand(ids));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Category deleted successfully"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
     }
 }

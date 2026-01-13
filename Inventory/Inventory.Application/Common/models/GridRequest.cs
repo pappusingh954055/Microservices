@@ -1,6 +1,6 @@
 ﻿namespace Inventory.Application.Common.Models;
 
-public sealed class PagedQuery
+public sealed class GridRequest
 {
     public int PageNumber { get; set; } = 1;
     public int PageSize { get; set; } = 10;

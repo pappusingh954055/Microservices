@@ -17,29 +17,29 @@ public class Category
     private Category() { } // EF Core
 
     public Category(
-        string code,
         string name,
+        string code,        
         decimal defaultGst,
         string? description, 
         bool isActive)
     {
         Id = Guid.NewGuid();
-        CategoryCode = code;
         CategoryName = name;
+        CategoryCode = code;        
         DefaultGst = defaultGst;
         Description = description;
         IsActive = isActive;
     }
 
     public void Update(
-        string code,
         string name,
+        string code,        
         decimal defaultGst,
         string? description,
         bool isActive)
     {
-        CategoryCode = code;
         CategoryName = name;
+        CategoryCode = code;        
         DefaultGst = defaultGst;
         Description = description;
         IsActive = isActive;

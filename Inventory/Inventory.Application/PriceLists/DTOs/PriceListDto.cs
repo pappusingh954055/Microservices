@@ -3,9 +3,14 @@
 public sealed class PriceListDto
 {
     public Guid id { get; set; }
-    public string name { get; set; } = string.Empty;
-    public string code { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+    public string Code { get; set; } = string.Empty;
 
+    public int? CreatedBy { get; set; }
+
+    public DateTime? CreatedOn { get; set; } = DateTime.Now;
+    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
+    public int? ModifiedBy { get; set; }
     public DateTime? validfrom { get; set; }
     public DateTime? validto { get; set; }
 

@@ -23,8 +23,8 @@ public sealed class GetPriceListsQueryHandler
         return lists.Select(pl => new PriceListDto
         {
             id = pl.Id,
-            name = pl.Name,
-            code = pl.Code,
+            Name = pl.Name,
+            Code = pl.Code,
             pricetype=pl.PriceType,
             description= pl.Description,    
             validfrom = pl.ValidFrom,

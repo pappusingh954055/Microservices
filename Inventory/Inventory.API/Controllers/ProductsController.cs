@@ -1,4 +1,5 @@
 ﻿using Inventory.API.Common;
+using Inventory.Application.Common.Models;
 using Inventory.Application.Products.Commands.DeleteProduct;
 using Inventory.Application.Products.Commands.UpdateProduct;
 using Inventory.Application.Products.Queries.GetProductById;
@@ -77,6 +78,48 @@ namespace Inventory.API.Controllers
         {
             var result = await _mediator.Send(new GetProductsQuery());
             return Ok(result);
+        }
+
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetPaged(
+            [FromQuery] GridRequest request)
+        {
+            var result = await _mediator.Send(
+                new GetProductsPagedQuery(request)
+            );
+
+            return Ok(result);
+        }
+
+        [HttpPost("bulk-delete")]
+        public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
+        {
+            try
+            {
+                await _mediator.Send(new BulkDeleteProductCommand(ids));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Product list deleted successfully"
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
     }
 }

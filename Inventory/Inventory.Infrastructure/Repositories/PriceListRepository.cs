@@ -44,4 +44,25 @@ internal sealed class PriceListRepository : IPriceListRepository
             .Include(x => x.Items)
             .ToListAsync();
     }
+    public IQueryable<PriceList> Query()
+    {
+        return _context.PriceLists.AsQueryable();
+    }
+    public void DeleteRange(List<PriceList> PriceLists)
+    {
+        _context.PriceLists.RemoveRange(PriceLists);
+    }
+
+    public async Task<List<PriceList>> GetByIdsAsync(List<Guid> ids)
+    {
+        return await _context.PriceLists
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
+    }
+
+    public async Task<bool> HasPriceListAsync(List<Guid> pricelistIds)
+    {
+        return await _context.PriceLists
+           .AnyAsync(x => pricelistIds.Contains(x.Id));
+    }
 }

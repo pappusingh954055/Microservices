@@ -1,7 +1,7 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using MediatR;
 
-namespace Inventory.Application.Subcategories.Commands.DeleteSubcategory;
+namespace Inventory.Application.Subcategories.Commands.Delete;
 
 internal sealed class DeleteSubcategoryCommandHandler
     : IRequestHandler<DeleteSubcategoryCommand, Guid>

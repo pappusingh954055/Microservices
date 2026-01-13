@@ -25,8 +25,8 @@ public sealed class GetSubcategoryByIdQueryHandler
         {
             Id = s.Id,
             CategoryId = s.CategoryId,
-            SubcategoryCode = s.Code,
-            SubcategoryName = s.Name,
+            SubcategoryCode = s.SubcategoryCode,
+            SubcategoryName = s.SubcategoryName,
             DefaultGst = s.DefaultGst,
             Description = s.Description,
             IsActive = s.IsActive

@@ -11,4 +11,8 @@ public interface IPriceListRepository
 
     Task<PriceList?> GetByIdAsync(Guid id);
     Task<List<PriceList>> GetAllAsync();
+    IQueryable<PriceList> Query();
+    void DeleteRange(List<PriceList> subcategories);
+    Task<List<PriceList>> GetByIdsAsync(List<Guid> ids);
+    Task<bool> HasPriceListAsync(List<Guid> pricelistIds);
 }

@@ -1,6 +1,8 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Subcategories.DTOs;
+using Inventory.Domain.Entities;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 internal sealed class GetSubcategoriesByCategoryQueryHandler
     : IRequestHandler<GetSubcategoriesByCategoryQuery, List<SubcategoryDto>>
@@ -17,15 +19,17 @@ internal sealed class GetSubcategoriesByCategoryQueryHandler
         GetSubcategoriesByCategoryQuery request,
         CancellationToken cancellationToken)
     {
-        var subcategories = await _repository.GetByCategoryIdAsync(request.CategoryId);
+        var list = await _repository.GetByCategoryIdAsync(request.CategoryId);
 
-        return subcategories.Select(s => new SubcategoryDto
+        return list.Select(s => new SubcategoryDto
         {
             Id = s.Id,
             CategoryId = s.CategoryId,
             CategoryName = s.Category.CategoryName,
-            SubcategoryName = s.Name,
+            SubcategoryCode = s.SubcategoryCode,
+            SubcategoryName = s.SubcategoryName,
             DefaultGst = s.DefaultGst,
+            Description = s.Description,
             IsActive = s.IsActive
         }).ToList();
     }
