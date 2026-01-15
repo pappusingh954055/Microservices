@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Inventory.Application.Subcategories.Queries.Searching
 {
     internal sealed class GetSubcategoriesPagedHandler
-     : IRequestHandler<GetSubcategoriesPagedQuery, GridResponse<SubcategoryDto>>
+        : IRequestHandler<GetSubcategoriesPagedQuery, GridResponse<SubcategoryDto>>
     {
         private readonly ISubcategoryRepository _repository;
 
@@ -20,16 +20,64 @@ namespace Inventory.Application.Subcategories.Queries.Searching
             GetSubcategoriesPagedQuery request,
             CancellationToken cancellationToken)
         {
-            var query = _repository.Query();
+            // Base query + Category join (required for categoryName filter & sort)
+            var query = _repository
+                .Query()
+                .Include(x => x.Category)
+                .AsQueryable();
 
-            // 🔍 SEARCH
+            // ============================
+            // 🔍 GLOBAL SEARCH
+            // ============================
             if (!string.IsNullOrWhiteSpace(request.Query.Search))
             {
+                var search = request.Query.Search.ToLower();
+
                 query = query.Where(x =>
-                    x.SubcategoryName.Contains(request.Query.Search));
+                    x.SubcategoryName.ToLower().Contains(search) ||
+                    x.SubcategoryCode.ToLower().Contains(search) ||
+                    x.Category.CategoryName.ToLower().Contains(search));
             }
 
+            // ============================
+            // 🎯 COLUMN FILTERS (FIX)
+            // ============================
+            // 🎯 COLUMN FILTERS
+            if (request.Query.Filters != null && request.Query.Filters.Any())
+            {
+                foreach (var filter in request.Query.Filters)
+                {
+                    var value = filter.Value?.ToLower();
+
+                    if (string.IsNullOrWhiteSpace(value))
+                        continue;
+
+                    query = filter.Key switch
+                    {
+                        "subcategoryName" =>
+                            query.Where(x => x.SubcategoryName.ToLower().Contains(value)),
+
+                        "subcategoryCode" =>
+                            query.Where(x => x.SubcategoryCode.ToLower().Contains(value)),
+
+                        "categoryName" =>
+                            query.Where(x => x.Category.CategoryName.ToLower().Contains(value)),
+
+                        "defaultGst" =>
+                            query.Where(x => x.DefaultGst.ToString().Contains(value)),
+
+                        "isActive" =>
+                            query.Where(x => x.IsActive == (value == "true" || value == "yes")),
+
+                        _ => query
+                    };
+                }
+            }
+
+
+            // ============================
             // 🔃 SORTING
+            // ============================
             query = request.Query.SortBy switch
             {
                 "subcategoryName" =>
@@ -52,26 +100,35 @@ namespace Inventory.Application.Subcategories.Queries.Searching
                         ? query.OrderBy(x => x.DefaultGst)
                         : query.OrderByDescending(x => x.DefaultGst),
 
-                _ => query.OrderByDescending(x => x.CreatedOn),
+                "createdOn" =>
+                    request.Query.SortDirection == "asc"
+                        ? query.OrderBy(x => x.CreatedOn)
+                        : query.OrderByDescending(x => x.CreatedOn),
 
-            
+                _ => query.OrderByDescending(x => x.CreatedOn)
             };
 
+            // ============================
+            // 📊 COUNT (AFTER FILTERS)
+            // ============================
             var totalCount = await query.CountAsync(cancellationToken);
 
+            // ============================
+            // 📄 PAGING + PROJECTION
+            // ============================
             var items = await query
                 .Skip((request.Query.PageNumber - 1) * request.Query.PageSize)
                 .Take(request.Query.PageSize)
                 .Select(x => new SubcategoryDto
                 {
                     Id = x.Id,
-                    CategoryName=x.Category.CategoryName,
+                    CategoryName = x.Category.CategoryName,
                     SubcategoryName = x.SubcategoryName,
                     SubcategoryCode = x.SubcategoryCode,
-                    CreatedOn = x.CreatedOn,
-                    CreatedBy = x.CreatedBy,
                     DefaultGst = x.DefaultGst,
-                    IsActive = x.IsActive
+                    IsActive = x.IsActive,
+                    CreatedOn = x.CreatedOn,
+                    CreatedBy = x.CreatedBy
                 })
                 .ToListAsync(cancellationToken);
 

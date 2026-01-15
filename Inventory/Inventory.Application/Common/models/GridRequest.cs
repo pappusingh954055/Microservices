@@ -7,5 +7,6 @@ public sealed class GridRequest
 
     public string? Search { get; set; }
     public string? SortBy { get; set; }
+    public Dictionary<string, string> Filters { get; set; } = new();
     public string SortDirection { get; set; } = "desc";
 }
