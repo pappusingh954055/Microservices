@@ -20,7 +20,6 @@ namespace Inventory.Application.Subcategories.Queries.Searching
             GetSubcategoriesPagedQuery request,
             CancellationToken cancellationToken)
         {
-            // Base query + Category join (required for categoryName filter & sort)
             var query = _repository
                 .Query()
                 .Include(x => x.Category)
@@ -31,37 +30,38 @@ namespace Inventory.Application.Subcategories.Queries.Searching
             // ============================
             if (!string.IsNullOrWhiteSpace(request.Query.Search))
             {
-                var search = request.Query.Search.ToLower();
+                var search = $"%{request.Query.Search.Trim()}%";
 
                 query = query.Where(x =>
-                    x.SubcategoryName.ToLower().Contains(search) ||
-                    x.SubcategoryCode.ToLower().Contains(search) ||
-                    x.Category.CategoryName.ToLower().Contains(search));
+                    EF.Functions.Like(x.SubcategoryName, search) ||
+                    EF.Functions.Like(x.SubcategoryCode, search) ||
+                    EF.Functions.Like(x.Category.CategoryName, search)
+                );
             }
 
             // ============================
-            // 🎯 COLUMN FILTERS (FIX)
+            // 🎯 COLUMN FILTERS (FIXED)
             // ============================
-            // 🎯 COLUMN FILTERS
             if (request.Query.Filters != null && request.Query.Filters.Any())
             {
                 foreach (var filter in request.Query.Filters)
                 {
-                    var value = filter.Value?.ToLower();
-
-                    if (string.IsNullOrWhiteSpace(value))
+                    var value = filter.Value?.Trim();
+                    if (string.IsNullOrEmpty(value))
                         continue;
+
+                    var likeValue = $"%{value}%";
 
                     query = filter.Key switch
                     {
                         "subcategoryName" =>
-                            query.Where(x => x.SubcategoryName.ToLower().Contains(value)),
+                            query.Where(x => EF.Functions.Like(x.SubcategoryName, likeValue)),
 
                         "subcategoryCode" =>
-                            query.Where(x => x.SubcategoryCode.ToLower().Contains(value)),
+                            query.Where(x => EF.Functions.Like(x.SubcategoryCode, likeValue)),
 
                         "categoryName" =>
-                            query.Where(x => x.Category.CategoryName.ToLower().Contains(value)),
+                            query.Where(x => EF.Functions.Like(x.Category.CategoryName, likeValue)),
 
                         "defaultGst" =>
                             query.Where(x => x.DefaultGst.ToString().Contains(value)),
@@ -73,7 +73,6 @@ namespace Inventory.Application.Subcategories.Queries.Searching
                     };
                 }
             }
-
 
             // ============================
             // 🔃 SORTING
@@ -109,12 +108,12 @@ namespace Inventory.Application.Subcategories.Queries.Searching
             };
 
             // ============================
-            // 📊 COUNT (AFTER FILTERS)
+            // 📊 COUNT
             // ============================
             var totalCount = await query.CountAsync(cancellationToken);
 
             // ============================
-            // 📄 PAGING + PROJECTION
+            // 📄 PAGING + DTO
             // ============================
             var items = await query
                 .Skip((request.Query.PageNumber - 1) * request.Query.PageSize)

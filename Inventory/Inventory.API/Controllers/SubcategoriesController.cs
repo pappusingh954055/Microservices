@@ -91,9 +91,9 @@ namespace Inventory.API.Controllers
             return Ok(result);
         }
 
-        [HttpGet("paged")]
+        [HttpPost("paged")]
         public async Task<IActionResult> GetPaged(
-            [FromQuery] GridRequest request)
+            [FromBody] GridRequest request)
         {
             var result = await _mediator.Send(
                 new GetSubcategoriesPagedQuery(request)
