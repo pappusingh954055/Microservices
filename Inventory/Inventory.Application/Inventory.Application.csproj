@@ -1,12 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="12.1.1" />
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="MediatR" Version="14.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Inventory.Domain\Inventory.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="PurchaseOrders\Commands\ReceivedPO\" />
+    <Folder Include="PurchaseOrders\Commands\UpdatePO\" />
+    <Folder Include="PurchaseOrders\Queries\GetPOById\" />
+    <Folder Include="PurchaseOrders\Queries\GetPOsPaged\" />
   </ItemGroup>
 
   <PropertyGroup>

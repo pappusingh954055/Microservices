@@ -1,7 +1,5 @@
 ﻿using Inventory.Application.Categories.DTOs;
-using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Common.Models;
-using Inventory.Application.Subcategories.DTOs;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,19 +14,62 @@ internal sealed class GetCategoriesPagedQueryHandler
     }
 
     public async Task<GridResponse<CategoryDto>> Handle(
-        GetCategoriesPagedQuery request,
-        CancellationToken cancellationToken)
+           GetCategoriesPagedQuery request,
+           CancellationToken cancellationToken)
     {
-        var query = _repository.Query();
+        var query = _repository
+            .Query()
+            .AsQueryable();
 
-        // 🔍 SEARCH
+        // ============================
+        // 🔍 GLOBAL SEARCH
+        // ============================
         if (!string.IsNullOrWhiteSpace(request.Query.Search))
         {
+            var search = $"%{request.Query.Search.Trim()}%";
+
             query = query.Where(x =>
-                x.CategoryName.Contains(request.Query.Search));
+                EF.Functions.Like(x.CategoryName, search) ||
+                EF.Functions.Like(x.CategoryCode, search) ||
+                EF.Functions.Like(x.Description, search)
+            );
         }
 
+        // ============================
+        // 🎯 COLUMN FILTERS (FIXED)
+        // ============================
+        if (request.Query.Filters != null && request.Query.Filters.Any())
+        {
+            foreach (var filter in request.Query.Filters)
+            {
+                var value = filter.Value?.Trim();
+                if (string.IsNullOrEmpty(value))
+                    continue;
+
+                var likeValue = $"%{value}%";
+
+                query = filter.Key switch
+                {
+                    "categoryName" =>
+                        query.Where(x => EF.Functions.Like(x.CategoryName, likeValue)),
+
+                    "categoryCode" =>
+                        query.Where(x => EF.Functions.Like(x.CategoryCode, likeValue)),                   
+
+                    "description" =>
+                        query.Where(x => x.Description.ToString().Contains(value)),
+
+                    "isActive" =>
+                        query.Where(x => x.IsActive == (value == "true" || value == "yes")),
+
+                    _ => query
+                };
+            }
+        }
+
+        // ============================
         // 🔃 SORTING
+        // ============================
         query = request.Query.SortBy switch
         {
             "categoryName" =>
@@ -40,12 +81,29 @@ internal sealed class GetCategoriesPagedQueryHandler
                 request.Query.SortDirection == "asc"
                     ? query.OrderBy(x => x.CategoryCode)
                     : query.OrderByDescending(x => x.CategoryCode),
+           
+
+            "description" =>
+                request.Query.SortDirection == "asc"
+                    ? query.OrderBy(x => x.Description)
+                    : query.OrderByDescending(x => x.Description),
+
+            "createdOn" =>
+                request.Query.SortDirection == "asc"
+                    ? query.OrderBy(x => x.CreatedOn)
+                    : query.OrderByDescending(x => x.CreatedOn),
 
             _ => query.OrderByDescending(x => x.CreatedOn)
         };
 
+        // ============================
+        // 📊 COUNT
+        // ============================
         var totalCount = await query.CountAsync(cancellationToken);
 
+        // ============================
+        // 📄 PAGING + DTO
+        // ============================
         var items = await query
             .Skip((request.Query.PageNumber - 1) * request.Query.PageSize)
             .Take(request.Query.PageSize)
@@ -53,9 +111,12 @@ internal sealed class GetCategoriesPagedQueryHandler
             {
                 Id = x.Id,
                 CategoryName = x.CategoryName,
+               
                 CategoryCode = x.CategoryCode,
                 DefaultGst = x.DefaultGst,
-                IsActive = x.IsActive
+                IsActive = x.IsActive,
+                Description = x.Description,
+          
             })
             .ToListAsync(cancellationToken);
 

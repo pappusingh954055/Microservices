@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.PriceLists;
+﻿using Inventory.Domain.Entities;
+using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Application.Common.Interfaces
@@ -7,6 +8,9 @@ namespace Inventory.Application.Common.Interfaces
     {
         DbSet<PriceList> PriceLists { get; }
         DbSet<PriceListItem> PriceListItems { get; }
+
+        public DbSet<PurchaseOrder> PurchaseOrders {  get; }
+        public DbSet<PurchaseOrderItem> PurchaseOrderItems {  get; }
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
     }
