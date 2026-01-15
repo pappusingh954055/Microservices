@@ -42,9 +42,21 @@ namespace Inventory.Application.PriceLists.Queries.Paged
                     ? query.OrderBy(x => x.Code)
                     : query.OrderByDescending(x => x.Code),
 
-                "validFrom" => request.Request.SortDirection == "asc"
+                "validfrom" => request.Request.SortDirection == "asc"
                     ? query.OrderBy(x => x.ValidFrom)
                     : query.OrderByDescending(x => x.ValidFrom),
+
+                "validto" => request.Request.SortDirection == "asc"
+                    ? query.OrderBy(x => x.ValidTo)
+                    : query.OrderByDescending(x => x.ValidTo),
+
+                "description" => request.Request.SortDirection == "asc"
+                    ? query.OrderBy(x => x.Description)
+                    : query.OrderByDescending(x => x.Description),
+
+                "createdon" => request.Request.SortDirection == "asc"
+                    ? query.OrderBy(x => x.CreatedOn)
+                    : query.OrderByDescending(x => x.CreatedOn),
 
                 _ => query.OrderByDescending(x => x.CreatedOn)
             };

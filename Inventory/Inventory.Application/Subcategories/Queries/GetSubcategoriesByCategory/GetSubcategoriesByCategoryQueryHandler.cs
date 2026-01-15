@@ -1,8 +1,6 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Subcategories.DTOs;
-using Inventory.Domain.Entities;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 
 internal sealed class GetSubcategoriesByCategoryQueryHandler
     : IRequestHandler<GetSubcategoriesByCategoryQuery, List<SubcategoryDto>>

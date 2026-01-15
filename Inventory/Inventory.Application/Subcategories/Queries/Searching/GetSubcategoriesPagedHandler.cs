@@ -42,6 +42,16 @@ namespace Inventory.Application.Subcategories.Queries.Searching
                         ? query.OrderBy(x => x.SubcategoryCode)
                         : query.OrderByDescending(x => x.SubcategoryCode),
 
+                "categoryName" =>
+                    request.Query.SortDirection == "asc"
+                        ? query.OrderBy(x => x.Category.CategoryName)
+                        : query.OrderByDescending(x => x.Category.CategoryName),
+
+                "defaultGst" =>
+                    request.Query.SortDirection == "asc"
+                        ? query.OrderBy(x => x.DefaultGst)
+                        : query.OrderByDescending(x => x.DefaultGst),
+
                 _ => query.OrderByDescending(x => x.CreatedOn),
 
             
