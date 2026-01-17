@@ -1,0 +1,26 @@
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Extensions.Configuration;
+namespace Identity.Infrastructure.Persistence;
+
+public class IdentityDbContextFactory
+    : IDesignTimeDbContextFactory<IdentityDbContext>
+{
+    public IdentityDbContext CreateDbContext(string[] args)
+    {
+        var configuration = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.json", optional: true)
+            .AddJsonFile("appsettings.Development.json", optional: true)
+            .AddEnvironmentVariables()
+            .Build();
+
+        var optionsBuilder = new DbContextOptionsBuilder<IdentityDbContext>();
+
+        optionsBuilder.UseSqlServer(
+            configuration.GetConnectionString("IdentityDb")
+            ?? "Server=LAPTOP-MM46D5U5;Database=IdentityDb;Trusted_Connection=True;TrustServerCertificate=True");
+
+        return new IdentityDbContext(optionsBuilder.Options);
+    }
+}
