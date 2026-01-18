@@ -21,29 +21,34 @@ public class JwtService : IJwtService
     {
         var jwt = _config.GetSection("Jwt");
 
+        // 1. Basic User Claims
         var claims = new List<Claim>
         {
+            new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new Claim(JwtRegisteredClaimNames.Email, user.Email!),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.UserName)
+            new Claim(ClaimTypes.Name, user.UserName!)
         };
 
-        claims.AddRange(
-            roles.Select(role => new Claim(ClaimTypes.Role, role))
-        );
+        // 2. Roles add karna using Foreach Loop (Verified Method)
+        // Isse Inventory API ko har role alag se Authorize karne mein asani hogi
+        foreach (var role in roles)
+        {
+            if (!string.IsNullOrEmpty(role))
+            {
+                claims.Add(new Claim(ClaimTypes.Role, role));
+            }
+        }
 
-        var key = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwt["Key"]!)
-        );
+        // 3. Security Key aur Credentials setup
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var creds = new SigningCredentials(
-            key, SecurityAlgorithms.HmacSha256
-        );
+        // 4. Expiration Logic (Exactly 1 Minute as per your setting)
+        var expires = DateTime.UtcNow.AddMinutes(double.Parse(jwt["AccessTokenMinutes"]!));
 
-        var expires = DateTime.UtcNow.AddMinutes(
-            double.Parse(jwt["AccessTokenMinutes"]!)
-        );
-
+        // 5. Token Object Creation
         var token = new JwtSecurityToken(
             issuer: jwt["Issuer"],
             audience: jwt["Audience"],
@@ -52,10 +57,16 @@ public class JwtService : IJwtService
             signingCredentials: creds
         );
 
+        // 6. Token Serialization
+        var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+
+        // Refresh Token generate karna (Ise DB mein save zaroor karein)
+        var refreshToken = Guid.NewGuid().ToString("N");
+
         return new AuthResponse
         {
-            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-            RefreshToken = Guid.NewGuid().ToString("N"),
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
             ExpiresAt = expires,
             Roles = roles
         };

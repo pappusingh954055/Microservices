@@ -3,7 +3,6 @@ using FluentValidation.AspNetCore;
 using Identity.API.Extensions;
 using Identity.Application.Interfaces;
 using Identity.Infrastructure;
-using Identity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +26,13 @@ builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 builder.Services.AddScoped<IAuthService, AuthService>();
 
+builder.Services.AddCors(o => o.AddPolicy("AllowAngularDev", p =>
+{
+    p.AllowAnyHeader()
+     .AllowAnyMethod()
+     .AllowAnyOrigin()
+     .WithExposedHeaders("Content-Disposition"); // <-- important
+}));
 
 // -------------------- JWT Authentication --------------
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -36,7 +42,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            RoleClaimType = ClaimTypes.Role, // 🔴 REQUIRED
+            RoleClaimType = ClaimTypes.Role,
             NameClaimType = ClaimTypes.NameIdentifier,
 
             ValidateIssuer = true,
@@ -44,9 +50,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwt["Issuer"],
-            ValidAudience = jwt["Audience"],
+            ValidAudience = jwt["Audience"],            
             IssuerSigningKey = new SymmetricSecurityKey(
-            System.Text.Encoding.UTF8.GetBytes(jwt["Key"]!))
+            System.Text.Encoding.ASCII.GetBytes(jwt["Key"]!)),
+            ClockSkew = TimeSpan.Zero,
         };
     });
 
@@ -56,6 +63,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
+app.UseCors("AllowAngularDev");
 
 if (app.Environment.IsDevelopment())
 {
@@ -67,11 +75,11 @@ app.UseAuthorization();
 
 app.UseHttpsRedirection();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    db.Database.Migrate(); // applies migrations, creates DB if not exists
-}
+//using (var scope = app.Services.CreateScope())
+//{
+//    var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+//    db.Database.Migrate(); // applies migrations, creates DB if not exists
+//}
 
 
 app.MapControllers();

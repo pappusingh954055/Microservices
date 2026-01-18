@@ -9,6 +9,7 @@ using Inventory.Application.PriceLists.Queries.Paged;
 using Inventory.Application.Subcategories.Commands.Delete;
 using Inventory.Application.Subcategories.Queries.Searching;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -25,6 +26,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Create(CreatePriceListCommand command)
         {
             var id = await _mediator.Send(command);
@@ -36,6 +38,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Update(
                     Guid id,
                     UpdatePriceListCommand command)
@@ -56,6 +59,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -69,7 +73,7 @@ namespace Inventory.API.Controllers
             );
         }
 
-
+        [Authorize(Roles = "Manager, Admin")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -78,6 +82,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetPriceListsQuery());
@@ -85,6 +90,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("paged")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] GridRequest request)
         {
@@ -96,6 +102,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-delete")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             try

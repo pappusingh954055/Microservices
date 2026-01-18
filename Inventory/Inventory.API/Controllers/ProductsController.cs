@@ -5,6 +5,7 @@ using Inventory.Application.Products.Commands.UpdateProduct;
 using Inventory.Application.Products.Queries.GetProductById;
 using Inventory.Application.Products.Queries.GetProducts;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -21,6 +22,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Create(CreateProductCommand command)
         {
             var id = await _mediator.Send(command);
@@ -32,9 +34,10 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Update(
-    Guid id,
-    UpdateProductCommand command)
+        Guid id,
+        UpdateProductCommand command)
         {
             if (id != command.Id)
                 return BadRequest(
@@ -52,6 +55,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -67,6 +71,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("{id:guid}")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _mediator.Send(new GetProductByIdQuery(id));
@@ -81,6 +86,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("paged")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] GridRequest request)
         {
@@ -92,6 +98,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-delete")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             try

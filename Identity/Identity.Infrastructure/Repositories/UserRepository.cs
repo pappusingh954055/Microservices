@@ -25,8 +25,21 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email)
     {
+        // Login ke waqt bhi roles lagte hain, isliye include yahan bhi hona chahiye
         return await _context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
             .FirstOrDefaultAsync(u => u.Email == email);
+    }
+
+    // ✅ FIXED: Is method mein roles aur tokens dono include kar diye hain
+    public async Task<User?> GetByIdAsync(Guid id)
+    {
+        return await _context.Users
+            .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+            .Include(u => u.RefreshTokens)
+            .FirstOrDefaultAsync(u => u.Id == id);
     }
 
     public async Task<User?> GetWithRolesByEmailAsync(string email)
@@ -34,18 +47,11 @@ public class UserRepository : IUserRepository
         return await _context.Users
             .Include(u => u.UserRoles)
                 .ThenInclude(ur => ur.Role)
-                .Include(u=>u.RefreshTokens)
+            .Include(u => u.RefreshTokens)
             .FirstOrDefaultAsync(u => u.Email == email);
     }
 
-    public async Task<User?> GetByIdAsync(Guid id)
-    {
-        return await _context.Users.FindAsync(id);
-    }
-
- 
-
-    // ✅ FIXED: refresh token lookup
+    // ✅ Already Correct: Ye method sahi tha, roles load kar raha tha
     public async Task<User?> GetByRefreshTokenAsync(string refreshToken)
     {
         return await _context.Users
