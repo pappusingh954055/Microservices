@@ -15,4 +15,8 @@ public interface IPriceListRepository
     void DeleteRange(List<PriceList> subcategories);
     Task<List<PriceList>> GetByIdsAsync(List<Guid> ids);
     Task<bool> HasPriceListAsync(List<Guid> pricelistIds);
+
+    Task AddAsync(PriceList priceList, CancellationToken ct);
+    Task SaveChangesAsync(CancellationToken ct);
+
 }

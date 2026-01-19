@@ -48,15 +48,7 @@ namespace Inventory.Application.PriceLists.Queries.Paged
 
                 "validto" => request.Request.SortDirection == "asc"
                     ? query.OrderBy(x => x.ValidTo)
-                    : query.OrderByDescending(x => x.ValidTo),
-
-                "description" => request.Request.SortDirection == "asc"
-                    ? query.OrderBy(x => x.Description)
-                    : query.OrderByDescending(x => x.Description),
-
-                "createdon" => request.Request.SortDirection == "asc"
-                    ? query.OrderBy(x => x.CreatedOn)
-                    : query.OrderByDescending(x => x.CreatedOn),
+                    : query.OrderByDescending(x => x.ValidTo),   
 
                 _ => query.OrderByDescending(x => x.CreatedOn)
             };
@@ -71,9 +63,7 @@ namespace Inventory.Application.PriceLists.Queries.Paged
                     id = x.Id,
                     Name = x.Name,
                     Code = x.Code,
-                    CreatedOn = x.CreatedOn,
                     pricetype=x.PriceType,
-                    description=x.Description,
                     validfrom = x.ValidFrom,
                     validto = x.ValidTo,
                     isactive = x.IsActive

@@ -67,23 +67,23 @@ internal sealed class GetProductsPagedQueryHandler
             .Take(request.Request.PageSize)
             .Select(p => new ProductDto
             {
-                Id = p.Id,
-                CategoryId = p.CategoryId,               
-                CategoryName= p.Category.CategoryName,
-                SubcategoryId = p.SubcategoryId,
-                SubcategoryName=p.Subcategory.SubcategoryName,
-                Sku = p.Sku,
-                ProductName = p.Name,
-                Unit = p.Unit,
-                HsnCode = p.HSNCode,
-                MinStock = p.MinStock,
-                DefaultGst = p.DefaultGst,
-                Description = p.Description,
-                CreatedBy = p.CreatedBy,
-                CreatedOn = p.CreatedOn,
-                ModifiedBy = p.ModifiedBy,
-                ModifiedOn= p.ModifiedOn,   
-                TrackInventory = p.TrackInventory
+                id = p.Id,
+                categoryId = p.CategoryId,               
+                categoryName= p.Category.CategoryName,
+                subcategoryId = p.SubcategoryId,
+                subcategoryName=p.Subcategory.SubcategoryName,
+                sku = p.Sku,
+                productName = p.Name,
+                unit = p.Unit,
+                hsnCode = p.HSNCode,
+                minStock = p.MinStock,
+                defaultGst = p.DefaultGst,
+                description = p.Description,
+                createdBy = p.CreatedBy,
+                createdOn = p.CreatedOn,
+                modifiedBy = p.ModifiedBy,
+                modifiedOn= p.ModifiedOn,   
+                trackInventory = p.TrackInventory
             })
             .ToListAsync(cancellationToken);
 

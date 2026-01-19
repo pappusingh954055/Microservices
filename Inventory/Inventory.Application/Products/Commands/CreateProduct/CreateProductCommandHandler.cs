@@ -23,16 +23,23 @@ public sealed class CreateProductCommandHandler
         var product = new Product(
             request.categoryid,
             request.subcategoryid,
-            request.sku,
             request.productname,
+            request.sku,
+            request.brand,
             request.unit,
             request.hsncode,
-            request.minstock,
+            request.basepurchaseprice,
+            request.mrp,
             request.defaultgst,
+            request.minstock,
+            request.trackinventory,
+            request.isactive,
             request.description,
-            request.trackinventory
-        );
+            request.createdby
+        )
+        {
 
+        };
         await _repository.AddAsync(product);
 
         await _context.SaveChangesAsync(cancellationToken);  

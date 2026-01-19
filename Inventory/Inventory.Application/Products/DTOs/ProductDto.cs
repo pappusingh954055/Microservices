@@ -2,25 +2,26 @@
 
 public sealed class ProductDto
 {
-    public Guid Id { get; set; }
+    public Guid id { get; set; }
+    public Guid categoryId { get; set; }    
+    public Guid subcategoryId { get; set; }
+    public string categoryName { get; set; } = string.Empty;
+    public string subcategoryName { get; set; } = string.Empty;
 
-    public Guid CategoryId { get; set; }
-    
-    public Guid SubcategoryId { get; set; }
-    public string CategoryName { get; set; } = string.Empty;
-    public string SubcategoryName { get; set; } = string.Empty;
-    public int? CreatedBy { get; set; }
-
-    public DateTime? CreatedOn { get; set; } = DateTime.Now;
-    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
-    public int? ModifiedBy { get; set; }
-    public string Sku { get; set; } = string.Empty;
-    public string ProductName { get; set; } = string.Empty;
-    public string Unit { get; set; } = string.Empty;
-    public string HsnCode { get; set; }
-    public int MinStock { get; set; }
-
-    public decimal? DefaultGst { get; set; }
-    public string? Description { get; set; }
-    public bool TrackInventory { get; set; }
+    public string productName { get; set; } = string.Empty;
+    public string? sku { get;  set; }
+    public string? brand { get; set; }
+    public string unit { get; set; } = string.Empty;
+    public decimal? basePurchasePrice { get; set; }
+    public decimal? mrp { get; set; }
+    public string? hsnCode { get; set; }
+    public decimal? defaultGst { get; set; }
+    public int minStock { get; set; }
+    public bool trackInventory { get; set; }
+    public bool? isActive { get; set; }
+    public string? description { get; set; }
+    public string? createdBy { get; set; }
+    public DateTime? createdOn { get; set; } = DateTime.Now;
+    public DateTime? modifiedOn { get; set; } = DateTime.UtcNow;
+    public string? modifiedBy { get; set; }
 }

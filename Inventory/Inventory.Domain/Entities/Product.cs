@@ -7,70 +7,98 @@ public class Product
     public Category Category { get; private set; }
     public Guid SubcategoryId { get; private set; }
     public Subcategory Subcategory { get; private set; }
-
-    public string Sku { get; private set; } = null!;
     public string Name { get; private set; } = null!;
+    public string? Sku { get; private set; }
+    public string? Brand { get; private set; } 
+
     public string Unit { get; private set; } = null!;
+
+    public decimal BasePurchasePrice { get; set; }=0;
+    public decimal MRP { get; set; }=0;
+    public decimal? DefaultGst { get; set; }
     public string HSNCode { get; private set; } = null!;
-    public int MinStock { get; private set; }
-
-    public decimal? DefaultGst { get; private set; }
+    public int MinStock { get;  set; } = 0; 
+    
+    public bool TrackInventory { get; private set; }    
+    public bool IsActive { get;  set; }
     public string? Description { get; private set; }
-    public bool TrackInventory { get; private set; }
-
-    public int? CreatedBy { get; set; }
+    public string? CreatedBy { get; set; }
     public DateTime? CreatedOn { get; set; } = DateTime.Now;
     public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
-    public int? ModifiedBy { get; set; }
+    public string? ModifiedBy { get; set; }
 
     private Product() { }
 
     public Product(
         Guid categoryid,
         Guid subcategoryid,
+        string productname,
         string sku,
-        string name,
+        string brand,
         string unit,
         string hsncode,
+        decimal basepurchaseprice,
+        decimal mrp,
+        decimal defaultgst,
         int minstock,
-        decimal? defaultgst,
+        bool trackinventory,
+        bool isactive,
         string? description,
-        bool trackinventory)
+        string createdby
+        )
     {
         Id = Guid.NewGuid();
         CategoryId = categoryid;
         SubcategoryId = subcategoryid;
+        Name = productname;
         Sku = sku;
-        Name = name;
+        Brand = brand;
         Unit = unit;
-        HSNCode = hsncode;  
+        HSNCode = hsncode; 
+        BasePurchasePrice = basepurchaseprice;
+        MRP = mrp;
         DefaultGst = defaultgst;
-        Description = description;
+        MinStock = minstock;        
         TrackInventory = trackinventory;
+        IsActive = isactive;
+        Description = description;
+        CreatedBy = createdby;
     }
 
-    public void Update(
-        string sku,
-        string name,
+    public void Update(        
         Guid categoryid,
         Guid subcategoryid,
+        string name,
+        string sku,
+        string brand,
         string unit,
         string hsncode,
+        decimal basepurchaseprice,
+        decimal mrp,
+        decimal defaultGst,
         int minstock,
-        decimal? defaultGst,
+        bool trackinventory,
+        bool isactive,
         string? description,
-        bool trackinventory
+        string updatedby,
+        DateTime? modifiedon = null 
         )
     {
-        Sku = sku;
-        Name = name;
         CategoryId = categoryid;
         SubcategoryId = subcategoryid;
+        Name = name;
+        Sku = sku;
+        Brand = brand;        
         Unit = unit;
         HSNCode = hsncode;
-        MinStock= minstock;
+        BasePurchasePrice = basepurchaseprice;
+        MRP = mrp;
         DefaultGst = defaultGst;
-        Description = description;
+        MinStock = minstock;
         TrackInventory = trackinventory;
+        IsActive = isactive;
+        Description = description;    
+        ModifiedBy = updatedby;
+        ModifiedOn = modifiedon ?? DateTime.UtcNow;
     }
 }

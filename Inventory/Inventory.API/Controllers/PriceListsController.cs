@@ -25,16 +25,24 @@ namespace Inventory.API.Controllers
             _mediator = mediator;
         }
 
+        //[HttpPost]
+        //[Authorize(Roles = "Manager, Admin")]
+        //public async Task<IActionResult> Create(CreatePriceListCommand command)
+        //{
+        //    var id = await _mediator.Send(command);
+        //    return Ok(
+        //   ApiResponse<Guid>.Ok(
+        //       id,
+        //       "Price list created successfully"
+        //   ));
+        //}
+
         [HttpPost]
-        [Authorize(Roles = "Manager, Admin")]
-        public async Task<IActionResult> Create(CreatePriceListCommand command)
+        public async Task<IActionResult> Create([FromBody] CreatePriceListCommand command)
         {
-            var id = await _mediator.Send(command);
-            return Ok(
-           ApiResponse<Guid>.Ok(
-               id,
-               "Price list created successfully"
-           ));
+            var resultId = await _mediator.Send(command);
+            // Success object bhejien taaki frontend 'res.message' padh sake
+            return Ok(new { success = true, message = "Price List saved successfully", id = resultId });
         }
 
         [HttpPut("{id}")]

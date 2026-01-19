@@ -201,7 +201,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("Subcategories", (string)null);
                 });
 
-            modelBuilder.Entity("Inventory.Domain.PriceLists.PriceList", b =>
+            modelBuilder.Entity("PriceList", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -212,23 +212,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("CreatedOn")
+                    b.Property<DateTime>("CreatedOn")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
-
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ModifiedOn")
-                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -250,32 +238,17 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("PriceLists", (string)null);
                 });
 
-            modelBuilder.Entity("Inventory.Domain.PriceLists.PriceListItem", b =>
+            modelBuilder.Entity("PriceListItem", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("CreatedOn")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.Property<int?>("MaxQty")
+                    b.Property<int>("MaxQty")
                         .HasColumnType("int");
 
                     b.Property<int>("MinQty")
                         .HasColumnType("int");
-
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("ModifiedOn")
-                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("Price")
                         .HasPrecision(18, 2)
@@ -300,11 +273,17 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<decimal>("BasePurchasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Brand")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("int");
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("CreatedOn")
                         .HasColumnType("datetime2");
@@ -321,11 +300,17 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal>("MRP")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("MinStock")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("int");
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime?>("ModifiedOn")
                         .HasColumnType("datetime2");
@@ -393,10 +378,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Navigation("Category");
                 });
 
-            modelBuilder.Entity("Inventory.Domain.PriceLists.PriceListItem", b =>
+            modelBuilder.Entity("PriceListItem", b =>
                 {
-                    b.HasOne("Inventory.Domain.PriceLists.PriceList", null)
-                        .WithMany("Items")
+                    b.HasOne("PriceList", null)
+                        .WithMany("PriceListItems")
                         .HasForeignKey("PriceListId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -426,9 +411,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Navigation("Items");
                 });
 
-            modelBuilder.Entity("Inventory.Domain.PriceLists.PriceList", b =>
+            modelBuilder.Entity("PriceList", b =>
                 {
-                    b.Navigation("Items");
+                    b.Navigation("PriceListItems");
                 });
 #pragma warning restore 612, 618
         }

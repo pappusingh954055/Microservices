@@ -128,5 +128,13 @@ namespace Inventory.API.Controllers
                 });
             }
         }
+
+        [HttpGet("search")]
+        public async Task<IActionResult> Search([FromQuery] string term)
+        {
+            // Mediator query ko Handler tak pahuchayega
+            var result = await _mediator.Send(new GetProductSearchQuery(term));
+            return Ok(result);
+        }
     }
 }

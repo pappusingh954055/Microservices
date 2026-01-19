@@ -8,7 +8,7 @@ public sealed class PriceListDto
 
     public int? CreatedBy { get; set; }
 
-    public DateTime? CreatedOn { get; set; } = DateTime.Now;
+    public DateTime CreatedOn { get; set; } = DateTime.Now;
     public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
     public int? ModifiedBy { get; set; }
     public DateTime? validfrom { get; set; }

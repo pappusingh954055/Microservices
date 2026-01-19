@@ -27,16 +27,21 @@ internal sealed class UpdateProductCommandHandler
             throw new KeyNotFoundException("Product not found");
 
         product.Update(
-            request.Sku,
-            request.Name,            
-            request.CategoryId,
-            request.SubCategoryId,
-            request.Unit,
+            request.categoryid,
+            request.subcategoryid,
+            request.productname,
+            request.sku,                     
+            request.brand,
+            request.unit,
             request.hsncode,
+            request.basepurchaseprice,
+            request.mrp,
+            request.defaultgst,
             request.minstock,
-            request.DefaultGst,
-            request.Description,
-            request.TrackInventory
+            request.trackinventory,
+            request.isactive,
+            request.description,
+            request.updatedby    
         );
 
         await _context.SaveChangesAsync(cancellationToken);

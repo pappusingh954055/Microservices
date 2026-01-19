@@ -22,17 +22,22 @@ public sealed class GetProductByIdQueryHandler
 
         return new ProductDto
         {
-            Id = p.Id,
-            CategoryId = p.CategoryId,
-            SubcategoryId = p.SubcategoryId,
-            Sku = p.Sku,
-            ProductName = p.Name,
-            Unit = p.Unit,  
-            HsnCode=p.HSNCode,
-            MinStock=p.MinStock,
-            DefaultGst = p.DefaultGst,
-            Description = p.Description,
-            TrackInventory = p.TrackInventory
+            id = p.Id,
+            categoryId = p.CategoryId,
+            subcategoryId = p.SubcategoryId,
+            productName = p.Name,
+            sku = p.Sku,
+            brand = p.Brand,
+            unit = p.Unit,  
+            hsnCode=p.HSNCode,
+            basePurchasePrice = p.BasePurchasePrice,
+            mrp = p.MRP,
+            defaultGst = p.DefaultGst,
+            minStock =p.MinStock,
+            trackInventory = p.TrackInventory,
+            isActive = p.IsActive,
+            description = p.Description,
+            createdBy = p.CreatedBy,
         };
     }
 }

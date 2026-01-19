@@ -83,4 +83,13 @@ public sealed class ProductRepository : IProductRepository
         return await _db.Products
            .AnyAsync(x => ProductsIds.Contains(x.Id));
     }
+
+    public async Task<List<Product>> SearchActiveProductsAsync(string term)
+    {
+        return await _db.Products
+         .AsNoTracking() // Read-only query optimization
+         .Where(p => p.IsActive && p.Name.Contains(term)) // Sirf Name par search lagayein
+         .Take(20)
+         .ToListAsync();
+    }
 }

@@ -2,13 +2,18 @@
 
 public sealed record CreateProductCommand(
     Guid categoryid,
-    Guid subcategoryid,
-    string sku,
+    Guid subcategoryid,    
     string productname,
+    string sku,
+    string brand,
     string unit,
-    decimal? defaultgst,
-    string hsncode,
+    string hsncode,   
+    decimal basepurchaseprice,
+    decimal mrp,
+    decimal defaultgst,
     int minstock,
     bool trackinventory,
-    string? description
+    bool isactive,
+    string? description,
+    string createdby
 ) : IRequest<Guid>;

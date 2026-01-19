@@ -20,7 +20,5 @@ public class PriceListItemConfiguration : IEntityTypeConfiguration<PriceListItem
 
         builder.Property(x => x.MaxQty);
 
-        builder.Property(x => x.IsActive)
-               .IsRequired();
     }
 }

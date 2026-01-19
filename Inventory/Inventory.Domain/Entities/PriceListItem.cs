@@ -8,7 +8,7 @@ public class PriceListItem
     public decimal Price { get; private set; }
 
     public int MinQty { get; private set; }
-    public int? MaxQty { get; private set; }
+    public int MaxQty { get; private set; }
     public bool IsActive { get; private set; }
     public int? CreatedBy { get; set; }
 
@@ -17,14 +17,14 @@ public class PriceListItem
     public int? ModifiedBy { get; set; }
     private PriceListItem() { } // EF Core
 
-    internal PriceListItem(
-        Guid id,
-        Guid priceListId,
-        Guid productId,
-        decimal price,
-        int minQty,
-        int maxQty,
-        bool isActive)
+    public PriceListItem(
+       Guid id,              // 1
+       Guid priceListId,     // 2
+       Guid productId,       // 3
+       decimal price,        // 4
+       int minQty,           // 5
+       int maxQty,          // 6 (Aapne int? rakha hai upar, yahan bhi same rakhein)
+       bool isActive)        // 7
     {
         Id = id;
         PriceListId = priceListId;

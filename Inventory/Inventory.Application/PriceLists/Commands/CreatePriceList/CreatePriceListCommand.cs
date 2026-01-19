@@ -1,15 +1,11 @@
 ﻿using MediatR;
 
-namespace Inventory.Application.PriceLists.Commands.CreatePriceList
-{
-    public sealed record CreatePriceListCommand(
+public record CreatePriceListCommand(
     string name,
+    string priceType,
     string code,
-    string pricetype,
-    DateTime validfrom,
-    DateTime validto,
-    string description,
-    Boolean isactive
+    DateTime validFrom,
+    DateTime? validTo,
+    bool isActive,
+    List<PriceListItemDto> priceListItems // Angular ke array name se match karein
 ) : IRequest<Guid>;
-
-}

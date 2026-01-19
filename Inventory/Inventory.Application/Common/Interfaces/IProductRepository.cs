@@ -19,4 +19,6 @@ public interface IProductRepository
     void DeleteRange(List<Product> product);
     Task<List<Product>> GetByIdsAsync(List<Guid> ids);
     Task<bool> HasPriceListAsync(List<Guid> productIds);
+
+    Task<List<Product>> SearchActiveProductsAsync(string term);
 }

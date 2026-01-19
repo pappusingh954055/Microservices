@@ -1,65 +1,51 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Inventory.Domain.PriceLists;
-
+﻿// PriceList.cs (Aggregate Root)
 public class PriceList
 {
     public Guid Id { get; private set; }
-    public string Name { get; private set; } = default!;
-    public string PriceType { get; private set; } =string.Empty;
-    public string Code { get; private set; } = default!;
+    public string Name { get; private set; }
+    public string Code { get; private set; }
+    public string PriceType { get; private set; }
     public DateTime ValidFrom { get; private set; }
+    public DateTime CreatedOn { get; private set; }
     public DateTime? ValidTo { get; private set; }
-    public string? Description { get; private set; }
     public bool IsActive { get; private set; }
 
-    public int? CreatedBy { get; set; }
+    // Relationship: One-to-Many
+    public List<PriceListItem> PriceListItems { get; private set; } = new();
 
-    public DateTime? CreatedOn { get; set; } = DateTime.Now;
-    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
-    public int? ModifiedBy { get; set; }
-    public ICollection<PriceListItem> Items { get; private set; } = new List<PriceListItem>();
+    private PriceList() { } // For EF Core
 
-    private PriceList() { } // EF Core
-
-    public PriceList(
-       
-        string name,
-        string code,
-        string pricetype,
-        DateTime validfrom,
-        DateTime? validto,
-        string description,
-        bool isactive)
+    public PriceList(string name, string code, string priceType, DateTime validFrom, DateTime? validTo, bool isActive)
     {
         Id = Guid.NewGuid();
         Name = name;
         Code = code;
-        PriceType = pricetype;  
-        ValidFrom = validfrom;
-        ValidTo = validto;
-        Description = description;
-        IsActive = isactive;
-    }
-
-    public void AddItem(Guid productId, decimal price, int minqty, int maxqty, bool isactive)
-    {
-        Items.Add(new PriceListItem(Guid.NewGuid(), Id, productId, price, minqty,maxqty, isactive));
-    }
-
-    public void Update(
-    string name,
-    string code,
-    DateTime validFrom,
-    DateTime? validTo,
-    bool isActive)
-    {
-        Name = name;
-        Code = code;
+        PriceType = priceType;
         ValidFrom = validFrom;
         ValidTo = validTo;
         IsActive = isActive;
     }
+}
 
+// PriceListItem.cs
+public class PriceListItem
+{
+    public Guid Id { get; private set; }
+    public Guid PriceListId { get; private set; }
+    public Guid ProductId { get; private set; }
+    public decimal Price { get; private set; }
+    public int MinQty { get; private set; }
+    public int MaxQty { get; private set; }
+
+    private PriceListItem() { }
+
+    public PriceListItem(Guid priceListId, Guid productId, decimal price, int minQty, int maxQty)
+    {
+        Id = Guid.NewGuid();
+        PriceListId = priceListId;
+        ProductId = productId;
+        Price = price;
+        MinQty = minQty;
+        MaxQty = maxQty;
+    }
 }

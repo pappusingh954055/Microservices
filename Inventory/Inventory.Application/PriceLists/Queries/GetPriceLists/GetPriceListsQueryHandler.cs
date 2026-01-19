@@ -25,8 +25,7 @@ public sealed class GetPriceListsQueryHandler
             id = pl.Id,
             Name = pl.Name,
             Code = pl.Code,
-            pricetype=pl.PriceType,
-            description= pl.Description,    
+            pricetype=pl.PriceType,   
             validfrom = pl.ValidFrom,
             validto = pl.ValidTo,
             isactive = pl.IsActive

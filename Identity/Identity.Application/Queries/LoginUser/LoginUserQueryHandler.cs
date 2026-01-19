@@ -30,8 +30,8 @@ public class LoginUserQueryHandler
     }
 
     public async Task<Result<AuthResponse>> Handle(
-        LoginUserQuery request,
-        CancellationToken ct)
+    LoginUserQuery request,
+    CancellationToken ct)
     {
         var user = await _users.GetWithRolesByEmailAsync(request.Dto.Email);
         if (user == null)
@@ -52,7 +52,12 @@ public class LoginUserQueryHandler
             .Select(r => r.Role.RoleName)
             .ToList();
 
+        // 1. Generate Auth object (Yahan check karein ki Generate method ID set karta hai ya nahi)
         var auth = _jwt.Generate(user, roles);
+
+        // 2. Explicitly mapping UserId (AGAR auth.UserId zero/empty aa raha hai toh ye line zaroori hai)
+        auth.UserId = user.Id;
+        // Agar user.Id pehle se string/guid hai toh seedha set karein: auth.UserId = user.Id;
 
         await _tokens.AddAsync(
             new RefreshToken(
@@ -62,6 +67,7 @@ public class LoginUserQueryHandler
 
         await _uow.SaveChangesAsync(ct);
 
+        // 3. Return the fully mapped response
         return Result<AuthResponse>.Success(auth);
     }
 }

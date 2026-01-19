@@ -34,14 +34,14 @@ internal sealed class PriceListRepository : IPriceListRepository
     public async Task<PriceList?> GetByIdAsync(Guid id)
     {
         return await _context.PriceLists
-            .Include(x => x.Items)
+            .Include(x => x.PriceListItems)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
     public async Task<List<PriceList>> GetAllAsync()
     {
         return await _context.PriceLists
-            .Include(x => x.Items)
+            .Include(x => x.PriceListItems)
             .ToListAsync();
     }
     public IQueryable<PriceList> Query()
@@ -64,5 +64,15 @@ internal sealed class PriceListRepository : IPriceListRepository
     {
         return await _context.PriceLists
            .AnyAsync(x => pricelistIds.Contains(x.Id));
+    }
+
+    public async Task AddAsync(PriceList priceList, CancellationToken ct)
+    {
+        await _context.PriceLists.AddAsync(priceList, ct);
+    }
+    public async Task SaveChangesAsync(CancellationToken ct)
+    {
+        // Actual SQL 'INSERT' command yahan chalegi
+        await _context.SaveChangesAsync(ct);
     }
 }

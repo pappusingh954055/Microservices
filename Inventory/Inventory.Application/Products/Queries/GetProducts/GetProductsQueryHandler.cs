@@ -21,17 +21,25 @@ public sealed class GetProductsQueryHandler
 
         return list.Select(p => new ProductDto
         {
-            Id = p.Id,
-            CategoryId = p.CategoryId,
-            SubcategoryId = p.SubcategoryId,
-            Sku = p.Sku,
-            ProductName = p.Name,
-            Unit = p.Unit,
-            HsnCode=p.HSNCode,
-            MinStock=p.MinStock,
-            DefaultGst = p.DefaultGst,
-            Description = p.Description,
-            TrackInventory = p.TrackInventory
+            id = p.Id,
+            categoryId = p.CategoryId,
+            subcategoryId = p.SubcategoryId,
+            sku = p.Sku,
+            brand = p.Brand,
+            productName = p.Name,
+            unit = p.Unit,
+            hsnCode=p.HSNCode,
+            basePurchasePrice = p.BasePurchasePrice,
+            mrp = p.MRP,
+            minStock =p.MinStock,
+            defaultGst = p.DefaultGst,
+            description = p.Description,
+            trackInventory = p.TrackInventory,
+            isActive = p.IsActive,
+            createdBy = p.CreatedBy,
+            createdOn = p.CreatedOn,
+            modifiedBy = p.ModifiedBy,
+            modifiedOn = p.ModifiedOn,
         }).ToList();
     }
 }

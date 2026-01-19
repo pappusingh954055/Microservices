@@ -4,15 +4,19 @@ namespace Inventory.Application.Products.Commands.UpdateProduct;
 
 public sealed record UpdateProductCommand(
     Guid Id,
-    string Name,
-    string Sku,
-    Guid CategoryId,
-    Guid SubCategoryId,
-    string Unit,
+    Guid categoryid,
+    Guid subcategoryid,
+    string productname,
+    string sku,
+    string brand,
+    string unit,
     string hsncode,
+    decimal basepurchaseprice,
+    decimal mrp,
+    decimal defaultgst,
     int minstock,
-    decimal DefaultPrice,
-    decimal DefaultGst,
-    string Description,
-    bool TrackInventory
+    bool trackinventory,
+    bool isactive,
+    string? description,
+    string updatedby
 ) : IRequest<Guid>;
