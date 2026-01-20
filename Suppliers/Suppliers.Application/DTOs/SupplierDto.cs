@@ -1,15 +1,20 @@
 ﻿public record SupplierDto(
-    int Id,
-    string Name,
-    string Phone,
-    string? GstIn,
-    string? Address,
-    bool? IsActive,
-    string? CreatedBy);
+    int id,
+    string name,
+    string phone,
+    string? gstIn,
+    string? address,
+    bool? isActive,
+    string? createdBy,
+    Guid? defaultpricelistId
+);
 
 public record CreateSupplierDto(
-    string Name,
-    string Phone,
-    string? GstIn,
-    string? Address,
-    string? CreatedBy);
+    string name,
+    string phone,
+    string? gstIn,
+    string? address,
+    string? createdBy,
+    Guid? defaultpricelistId,
+    bool isActive
+);

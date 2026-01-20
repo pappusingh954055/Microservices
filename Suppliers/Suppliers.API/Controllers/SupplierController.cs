@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Suppliers.Application.Features.Suppliers.Queries;
 
 namespace Suppliers.API.Controllers
 {
@@ -54,6 +55,25 @@ namespace Suppliers.API.Controllers
         {
             var result = await _mediator.Send(new DeleteSupplierCommand(id));
             return result ? NoContent() : NotFound();
+        }
+
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Manager,User")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            // 1. Query create karna
+            var query = new GetSupplierByIdQuery(id);
+
+            // 2. Mediator ke through handler ko call karna
+            var result = await _mediator.Send(query);
+
+            // 3. Agar supplier nahi mila toh 404, warna data ke saath 200 OK
+            if (result == null)
+            {
+                return NotFound(new { message = "Supplier not found" });
+            }
+
+            return Ok(result);
         }
     }
 }

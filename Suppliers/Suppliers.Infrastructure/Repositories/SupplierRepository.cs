@@ -12,8 +12,13 @@ public class SupplierRepository : ISupplierRepository
     public async Task<IEnumerable<Supplier>> GetAllAsync() =>
         await _context.Suppliers.AsNoTracking().ToListAsync();
 
-    public async Task<Supplier> GetByIdAsync(int id) =>
-        await _context.Suppliers.FindAsync(id);
+    public async Task<Supplier?> GetByIdAsync(int id)
+    {
+        // AsNoTracking performance ke liye behtar hai read operations mein
+        return await _context.Suppliers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.Id == id);
+    }
 
     public async Task AddAsync(Supplier supplier)
     {
@@ -26,6 +31,9 @@ public class SupplierRepository : ISupplierRepository
         _context.Suppliers.Update(supplier);
         await _context.SaveChangesAsync();
     }
-
+    public async Task<bool> ExistsAsync(int id)
+    {
+        return await _context.Suppliers.AnyAsync(s => s.Id == id);
+    }
     public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
 }

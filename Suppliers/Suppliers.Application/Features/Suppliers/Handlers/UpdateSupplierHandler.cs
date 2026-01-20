@@ -17,10 +17,10 @@ public class UpdateSupplierHandler : IRequestHandler<UpdateSupplierCommand, bool
 
         // DDD: Entity method call
         supplier.UpdateDetails(
-            request.SupplierData.Name,
-            request.SupplierData.Phone,
-            request.SupplierData.GstIn,
-            request.SupplierData.Address);
+            request.SupplierData.name,
+            request.SupplierData.phone,
+            request.SupplierData.gstIn,
+            request.SupplierData.address);
 
         await _repository.UpdateAsync(supplier);
         return true;

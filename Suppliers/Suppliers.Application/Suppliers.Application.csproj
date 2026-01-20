@@ -15,4 +15,8 @@
     <ProjectReference Include="..\Suppliers.Domain\Suppliers.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Command\" />
+  </ItemGroup>
+
 </Project>

@@ -12,11 +12,14 @@ public class CreateSupplierHandler : IRequestHandler<CreateSupplierCommand, int>
     public async Task<int> Handle(CreateSupplierCommand request, CancellationToken cancellationToken)
     {
         var supplier = new Supplier(
-            request.SupplierData.Name,
-            request.SupplierData.Phone,
-            request.SupplierData.GstIn,
-            request.SupplierData.Address,
-            request.SupplierData.CreatedBy
+            request.SupplierData.name,
+            request.SupplierData.phone,
+            request.SupplierData.gstIn,
+            request.SupplierData.address,
+            request.SupplierData.createdBy,
+            request.SupplierData.isActive,
+            request.SupplierData.defaultpricelistId
+            
         );
 
         await _repository.AddAsync(supplier);

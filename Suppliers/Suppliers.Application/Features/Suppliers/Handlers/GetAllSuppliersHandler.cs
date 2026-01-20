@@ -21,7 +21,8 @@ public class GetAllSuppliersHandler : IRequestHandler<GetAllSuppliersQuery, IEnu
             s.GstIn,
             s.Address,
             s.IsActive,
-            s.CreatetedBy
+            s.CreatetedBy,
+            s.DefaultPriceListId
         ));
     }
 }

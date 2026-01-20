@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Suppliers.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(SupplierDbContext))]
-    [Migration("20260118132628_SuppliersCreate")]
-    partial class SuppliersCreate
+    [Migration("20260120183626_SupplierCreate")]
+    partial class SupplierCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,6 +40,9 @@ namespace Suppliers.Infrastructure.Data.Migrations
 
                     b.Property<string>("CreatetedBy")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("DefaultPriceListId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("GstIn")
                         .HasColumnType("nvarchar(max)");

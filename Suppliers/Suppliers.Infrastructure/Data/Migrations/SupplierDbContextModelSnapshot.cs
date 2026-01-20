@@ -38,6 +38,9 @@ namespace Suppliers.Infrastructure.Data.Migrations
                     b.Property<string>("CreatetedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid?>("DefaultPriceListId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("GstIn")
                         .HasColumnType("nvarchar(max)");
 
