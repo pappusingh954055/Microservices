@@ -109,13 +109,12 @@ internal sealed class GetCategoriesPagedQueryHandler
             .Take(request.Query.PageSize)
             .Select(x => new CategoryDto
             {
-                Id = x.Id,
-                CategoryName = x.CategoryName,
-               
-                CategoryCode = x.CategoryCode,
-                DefaultGst = x.DefaultGst,
-                IsActive = x.IsActive,
-                Description = x.Description,
+                id = x.Id,
+                categoryName = x.CategoryName,               
+                categoryCode = x.CategoryCode,
+                defaultGst = x.DefaultGst,
+                isActive = x.IsActive,
+                description = x.Description,
           
             })
             .ToListAsync(cancellationToken);

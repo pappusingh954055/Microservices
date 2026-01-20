@@ -1,54 +1,56 @@
-﻿using Inventory.Application.Common.Interfaces;
-using Inventory.Application.Common.Models;
-using Inventory.Domain.Entities;
+﻿using Domain.Entities;
+using Inventory.Application.Common.Interfaces;
 using MediatR;
 
-internal sealed class CreatePurchaseOrderCommandHandler
-    : IRequestHandler<CreatePurchaseOrderCommand, Result<Guid>>
+namespace Application.Features.PurchaseOrders.Handlers;
+
+public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderCommand, Guid>
 {
     private readonly IPurchaseOrderRepository _repository;
-    private readonly IInventoryDbContext _context;
+    private readonly IUnitOfWork _unitOfWork;
 
-    public CreatePurchaseOrderCommandHandler(
-        IPurchaseOrderRepository repository, IInventoryDbContext context)
+    public CreatePurchaseOrderHandler(IPurchaseOrderRepository repository, IUnitOfWork unitOfWork)
     {
         _repository = repository;
-        _context = context;
+        _unitOfWork = unitOfWork;
     }
 
-    public async Task<Result<Guid>> Handle(
-        CreatePurchaseOrderCommand request,
-        CancellationToken cancellationToken)
+    public async Task<Guid> Handle(CreatePurchaseOrderCommand request, CancellationToken ct)
     {
-        if (request.SupplierId == Guid.Empty)
-            return Result<Guid>.Failure("Supplier is required");
+        // 1. Calculate Grand Total from DTO items
+        decimal grandTotal = request.Items.Sum(x => x.total);
 
-        if (request.Items.Count == 0)
-            return Result<Guid>.Failure("At least one item is required");
-
-        var poNumber = $"PO-{DateTime.UtcNow:yyyyMMddHHmmss}";
-
-        var po = new PurchaseOrder(
+        // 2. Map Command to Domain Aggregate Root
+        var purchaseOrder = new PurchaseOrder(
+            request.PoNumber,
             request.SupplierId,
             request.PoDate,
-            poNumber
+            request.ExpectedDeliveryDate,
+            request.ReferenceNumber,
+            request.Remarks,
+            grandTotal
         );
 
+        // 3. Add Items to the Aggregate Root
         foreach (var item in request.Items)
         {
-            po.AddItem(
-                item.ProductId,
-                item.Quantity,
-                item.UnitPrice,
-                item.DiscountPercent,
-                item.GstPercent
+            purchaseOrder.AddItem(
+                item.productId,
+                item.qty,
+                item.price,
+                item.discountPercent,
+                item.gstPercent,
+                item.total
             );
         }
 
-        await _repository.AddAsync(po, cancellationToken);
+        // 4. Persist using Repository
+        await _repository.AddAsync(purchaseOrder, ct);
 
-        await _context.SaveChangesAsync(cancellationToken);  
+        // 5. Commit Transaction (SaveChangesAsync)
+        // Note: Ise bhulna mat, warna 400 error aayega!
+        await _unitOfWork.SaveChangesAsync(ct);
 
-        return Result<Guid>.Success(po.Id);
+        return purchaseOrder.Id;
     }
 }

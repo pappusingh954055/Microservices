@@ -28,14 +28,17 @@ internal sealed class GetProductLookupsQueryHandler
             Categories = categories.Select(c => new CategoryLookupDto
             {
                 Id = c.Id,
-                Name = c.CategoryName
+                Name = c.CategoryName,
+                categoryCode = c.CategoryCode
+
             }).ToList(),
 
             Subcategories = subcategories.Select(s => new SubcategoryLookupDto
             {
                 Id = s.Id,
                 CategoryId = s.CategoryId,
-                Name = s.SubcategoryName
+                Name = s.SubcategoryName               
+
             }).ToList()
         };
     }

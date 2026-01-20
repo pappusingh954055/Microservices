@@ -26,6 +26,7 @@ namespace Inventory.Infrastructure
             services.AddScoped<IPriceListRepository, PriceListRepository>();
 
             services.AddScoped<IPurchaseOrderRepository, PurchaseOrderRepository>();
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());

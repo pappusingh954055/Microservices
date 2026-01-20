@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Security.Claims;
+using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 // Add services to the container.
@@ -15,6 +16,12 @@ builder.Services.AddApplication();
 
 // Infrastructure (DB)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options => {
+        // Taaki dates aur complex objects sahi se serialize hon
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 
 // Add services to the container.
 builder.Services.AddCors(o => o.AddPolicy("AllowAngularDev", p =>

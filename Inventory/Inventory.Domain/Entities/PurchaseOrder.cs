@@ -1,51 +1,46 @@
-﻿
+﻿namespace Domain.Entities;
 
-using Inventory.Domain.Common;
-using Inventory.Domain.Enums;
-
-namespace Inventory.Domain.Entities;
-
-public sealed class PurchaseOrder : BaseAuditableEntity
+public class PurchaseOrder
 {
+    public Guid Id { get; private set; }
+    public string PoNumber { get; private set; } //
+    public int SupplierId { get; private set; } //
+    public DateTime PoDate { get; private set; } //
+    public DateTime? ExpectedDeliveryDate { get; private set; } // Added as per requirement
+    public string? ReferenceNumber { get; private set; } // Added as per requirement
+    public string? Remarks { get; private set; } // Added as per requirement
+    public decimal GrandTotal { get; private set; } //
+    public string Status { get; private set; } // e.g., "Draft", "Pending", "Received"
+
+    // Navigation Property for Details
     private readonly List<PurchaseOrderItem> _items = new();
-
-    private PurchaseOrder() { } // EF
-
-    public PurchaseOrder(
-        Guid supplierId,
-        DateTime poDate,
-        string poNumber)
-    {
-        SupplierId = supplierId;
-        PoDate = poDate;
-        PoNumber = poNumber;
-        Status = PurchaseOrderStatus.Draft;
-    }
-
-    public Guid SupplierId { get; private set; }
-    public DateTime PoDate { get; private set; }
-    public string PoNumber { get; private set; }
-    public PurchaseOrderStatus Status { get; private set; }
-
     public IReadOnlyCollection<PurchaseOrderItem> Items => _items.AsReadOnly();
 
-    public decimal TotalAmount => _items.Sum(x => x.TotalAmount);
+    private PurchaseOrder() { } // EF Core ke liye
 
-    public void AddItem(
-        Guid productId,
-        decimal quantity,
-        decimal unitPrice,
-        decimal discountPercent,
-        decimal gstPercent)
+    public PurchaseOrder(
+        string poNumber,
+        int supplierId,
+        DateTime poDate,
+        DateTime? expectedDeliveryDate,
+        string? referenceNumber,
+        string? remarks,
+        decimal grandTotal)
     {
-        var item = new PurchaseOrderItem(
-            productId,
-            quantity,
-            unitPrice,
-            discountPercent,
-            gstPercent
-        );
+        Id = Guid.NewGuid();
+        PoNumber = poNumber;
+        SupplierId = supplierId;
+        PoDate = poDate;
+        ExpectedDeliveryDate = expectedDeliveryDate;
+        ReferenceNumber = referenceNumber;
+        Remarks = remarks;
+        GrandTotal = grandTotal;
+        Status = "Draft"; // Initial status
+    }
 
+    public void AddItem(Guid productId, int qty, decimal price, decimal discountPercent, decimal gstPercent, decimal total)
+    {
+        var item = new PurchaseOrderItem(Id, productId, qty, price, discountPercent, gstPercent, total);
         _items.Add(item);
     }
 }

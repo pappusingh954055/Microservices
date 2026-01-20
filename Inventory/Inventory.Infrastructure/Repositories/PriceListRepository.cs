@@ -75,4 +75,18 @@ internal sealed class PriceListRepository : IPriceListRepository
         // Actual SQL 'INSERT' command yahan chalegi
         await _context.SaveChangesAsync(ct);
     }
+
+    public async Task<PriceList?> GetByIdWithItemsAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return await _context.PriceLists
+            .Include(p => p.PriceListItems)
+                .ThenInclude(i => i.Product) // Ye line zaroori hai
+            .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+    public async Task UpdatePriceListAsync(PriceList entity, CancellationToken cancellationToken)
+    {
+        // Existing items ko handle karne ke liye context ka use karein
+        _context.PriceLists.Update(entity);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
 }

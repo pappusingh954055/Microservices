@@ -22,12 +22,12 @@ public sealed class GetCategoryByIdQueryHandler
 
         return new CategoryDto
         {
-            Id = c.Id,
-            CategoryName = c.CategoryName,
-            CategoryCode = c.CategoryCode,
-            DefaultGst = c.DefaultGst,
-            Description = c.Description,
-            IsActive = c.IsActive
+            id = c.Id,
+            categoryName = c.CategoryName,
+            categoryCode = c.CategoryCode,
+            defaultGst = c.DefaultGst,
+            description = c.Description,
+            isActive = c.IsActive
         };
     }
 }

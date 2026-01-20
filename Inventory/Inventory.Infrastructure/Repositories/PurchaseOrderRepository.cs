@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using Domain.Entities;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -12,10 +13,10 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         _context = context;
     }
 
-    public async Task AddAsync(PurchaseOrder purchaseOrder, CancellationToken cancellationToken)
+    public async Task AddAsync(PurchaseOrder po, CancellationToken ct)
     {
-        await _context.PurchaseOrders.AddAsync(purchaseOrder);
-        await _context.SaveChangesAsync();
+        // EF Core automatically handles adding child Items because they are part of the Aggregate
+        await _context.PurchaseOrders.AddAsync(po, ct);
     }
 
     public async Task<string> GetLastPoNumberAsync()

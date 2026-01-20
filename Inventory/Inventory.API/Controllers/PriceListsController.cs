@@ -1,13 +1,10 @@
 ﻿using Inventory.API.Common;
 using Inventory.Application.Common.Models;
-using Inventory.Application.PriceLists.Commands.CreatePriceList;
 using Inventory.Application.PriceLists.Commands.DeletePriceList;
 using Inventory.Application.PriceLists.Commands.UpdatePriceList;
 using Inventory.Application.PriceLists.Queries.GetPriceListById;
 using Inventory.Application.PriceLists.Queries.GetPriceLists;
 using Inventory.Application.PriceLists.Queries.Paged;
-using Inventory.Application.Subcategories.Commands.Delete;
-using Inventory.Application.Subcategories.Queries.Searching;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,19 +22,10 @@ namespace Inventory.API.Controllers
             _mediator = mediator;
         }
 
-        //[HttpPost]
-        //[Authorize(Roles = "Manager, Admin")]
-        //public async Task<IActionResult> Create(CreatePriceListCommand command)
-        //{
-        //    var id = await _mediator.Send(command);
-        //    return Ok(
-        //   ApiResponse<Guid>.Ok(
-        //       id,
-        //       "Price list created successfully"
-        //   ));
-        //}
+        
 
         [HttpPost]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Create([FromBody] CreatePriceListCommand command)
         {
             var resultId = await _mediator.Send(command);
@@ -45,24 +33,14 @@ namespace Inventory.API.Controllers
             return Ok(new { success = true, message = "Price List saved successfully", id = resultId });
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id:guid}")]
         [Authorize(Roles = "Manager, Admin")]
-        public async Task<IActionResult> Update(
-                    Guid id,
-                    UpdatePriceListCommand command)
+        public async Task<IActionResult> Update(Guid id, UpdatePriceListCommand command)
         {
-            if (id != command.Id)
-                return BadRequest(
-                    ApiResponse<string>.Fail("Id mismatch"));
+            if (id != command.id) return BadRequest("ID Mismatch");
 
             var result = await _mediator.Send(command);
-
-            return Ok(
-                ApiResponse<Guid>.Ok(
-                    result,
-                    "Price list updated successfully"
-                )
-            );
+            return result ? Ok(new { message = "Updated successfully" }) : NotFound();
         }
 
 

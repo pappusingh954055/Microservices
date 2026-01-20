@@ -61,12 +61,12 @@ namespace Inventory.Application.PriceLists.Queries.Paged
                 .Select(x => new PriceListDto
                 {
                     id = x.Id,
-                    Name = x.Name,
-                    Code = x.Code,
-                    pricetype=x.PriceType,
-                    validfrom = x.ValidFrom,
-                    validto = x.ValidTo,
-                    isactive = x.IsActive
+                    name = x.Name,
+                    code = x.Code,
+                    priceType=x.PriceType,
+                    validFrom = x.ValidFrom,
+                    validTo = x.ValidTo,
+                    isActive = x.IsActive
                 })
                 .ToListAsync(cancellationToken);
 

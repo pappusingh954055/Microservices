@@ -1,1 +1,0 @@
-﻿public record PriceListItemDto(Guid productId, decimal price, int minQty, int maxQty);

@@ -18,5 +18,7 @@ public interface IPriceListRepository
 
     Task AddAsync(PriceList priceList, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);
+    Task<PriceList?> GetByIdWithItemsAsync(Guid id, CancellationToken cancellationToken);
 
+    Task UpdatePriceListAsync(PriceList entity, CancellationToken cancellationToken);
 }

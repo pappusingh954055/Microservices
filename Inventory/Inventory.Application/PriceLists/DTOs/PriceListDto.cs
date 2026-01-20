@@ -1,22 +1,42 @@
 ﻿namespace Inventory.Application.PriceLists.DTOs;
 
+// Poore Price List ki detail fetch karne ke liye DTO
 public sealed class PriceListDto
 {
+    // --- Header Details ---
     public Guid id { get; set; }
-    public string Name { get; set; } = string.Empty;
-    public string Code { get; set; } = string.Empty;
+    public string name { get; set; } = string.Empty;
+    public string code { get; set; } = string.Empty;
+    public string priceType { get; set; } = string.Empty;
+    public string applicableGroup { get; set; } = string.Empty; // UI: Apply to Group
+    public string currency { get; set; } = string.Empty;
+    public string? remarks { get; set; } // UI: Description/Remarks
 
-    public int? CreatedBy { get; set; }
+    // --- Dates & Status ---
+    public DateTime validFrom { get; set; }
+    public DateTime? validTo { get; set; }
+    public bool isActive { get; set; }
 
-    public DateTime CreatedOn { get; set; } = DateTime.Now;
-    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
-    public int? ModifiedBy { get; set; }
-    public DateTime? validfrom { get; set; }
-    public DateTime? validto { get; set; }
+    // --- Audit Info ---
+    public DateTime? createdOn { get; set; }
+    public string? createdBy { get; set; }
+    public DateTime? updatedOn { get; set; }
+    public string? updatedBy { get; set; }
 
-    public bool isactive { get; set; }
-    public string? description { get; set; }
-    public string? pricetype { get; set; }
+    // --- Table Items (Details) ---
+    // Niche table ki rows ko collect karne ke liye list
+    public List<PriceListItemDetailDto> items { get; set; } = new();
+}
 
-    public List<PriceListItemDto> Items { get; set; } = new();
+// Table ki single row fetch karne ke liye DTO
+public sealed class PriceListItemDetailDto
+{
+    public Guid id { get; set; }
+    public Guid productId { get; set; }
+    public string productName { get; set; } = string.Empty; // UI mein dikhane ke liye
+    public string unit { get; set; } = string.Empty; // UI: Unit
+    public decimal price { get; set; } // UI: Rate
+    public decimal discountPercent { get; set; } // UI: Disc (%)
+    public int minQty { get; set; }
+    public int maxQty { get; set; }
 }

@@ -1,10 +1,12 @@
-﻿using Inventory.Application.Common.Models;
-using Inventory.Application.PurchaseOrders.Commands.Create;
+﻿using Application.DTOs;
 using MediatR;
 
-public sealed class CreatePurchaseOrderCommand : IRequest<Result<Guid>>
-{
-    public Guid SupplierId { get; init; }
-    public DateTime PoDate { get; init; }
-    public List<CreatePurchaseOrderItemDto> Items { get; init; } = [];
-}
+public record CreatePurchaseOrderCommand(
+    int SupplierId,
+    string PoNumber,
+    DateTime PoDate,
+    DateTime? ExpectedDeliveryDate,
+    string ReferenceNumber,
+    string Remarks,
+    List<PurchaseOrderItemDto> Items
+) : IRequest<Guid>;

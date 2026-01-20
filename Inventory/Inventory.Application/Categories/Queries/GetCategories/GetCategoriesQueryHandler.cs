@@ -22,8 +22,12 @@ namespace Inventory.Application.Categories.Queries.GetCategories
 
             return list.Select(s => new CategoryDto
             {
-                Id = s.Id,
-                CategoryName = s.CategoryName,               
+                id = s.Id,
+                categoryName = s.CategoryName,  
+                categoryCode = s.CategoryCode,  
+                defaultGst = s.DefaultGst,
+                description = s.Description,
+                isActive = s.IsActive
             }).ToList();
         }
     }

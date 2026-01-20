@@ -1,33 +1,27 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿namespace Inventory.Application.PriceLists.DTOs;
 
-namespace Inventory.Application.PriceLists.DTOs
+public sealed class CreatePriceListDto
 {
-    public sealed class CreatePriceListDto
-    {
-        // Id ki zarurat Create ke time nahi hai, Handler generate karega
-        public string name { get; set; } = string.Empty;
-        public string code { get; set; } = string.Empty;
-        public string? priceType { get; set; } // SALES ya PURCHASE
-        public DateTime? validFrom { get; set; }
-        public DateTime? validTo { get; set; }
-        public bool isActive { get; set; }
-        public string? description { get; set; }
+    public string name { get; set; } = string.Empty;
+    public string code { get; set; } = string.Empty;
+    public string priceType { get; set; } = "SALES";
+    public string applicableGroup { get; set; } = "ALL";
+    public string currency { get; set; } = "INR";
+    public DateTime validFrom { get; set; }
+    public DateTime? validTo { get; set; }
+    public string? remarks { get; set; }
+    public bool isActive { get; set; }
+    public string CreatedBy { get; set; }
 
-        // Audit fields (Ye usually BaseEntity ya Handler handle karta hai)
-        public int? createdBy { get; set; }
+    // Angular ke "priceListItems" array se exact match
+    public List<CreatePriceListItemDto> priceListItems { get; set; } = new();
+}
 
-        // Child Items List
-        public List<CreatePriceListItemDto> Items { get; set; } = new();
-    }
-
-    public sealed class CreatePriceListItemDto
-    {
-        public Guid productId { get; set; } // Angular se aane wala GUID
-        public decimal price { get; set; }
-        public int minQty { get; set; }
-        public int? maxQty { get; set; }
-        public bool isActive { get; set; }
-    }
+public sealed class CreatePriceListItemDto
+{
+    public Guid productId { get; set; }
+    public decimal price { get; set; }
+    public decimal discountPercent { get; set; }
+    public int minQty { get; set; }
+    public int maxQty { get; set; }
 }
