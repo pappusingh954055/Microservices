@@ -3,17 +3,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace Inventory.Infrastructure.Persistence.Migrations
+namespace Inventory.Infrastructure.Data.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialPricetestlistCreate : Migration
+    public partial class ColumnsAddPurchaseOrders : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<DateTime>(
-                name: "UpdatedOn",
-                table: "PriceLists",
+                name: "UpdatedDate",
+                table: "PurchaseOrders",
                 type: "datetime2",
                 nullable: true,
                 oldClrType: typeof(DateTime),
@@ -21,15 +21,15 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "UpdatedBy",
-                table: "PriceLists",
+                table: "PurchaseOrders",
                 type: "nvarchar(max)",
                 nullable: true,
                 oldClrType: typeof(string),
                 oldType: "nvarchar(max)");
 
             migrationBuilder.AlterColumn<DateTime>(
-                name: "CreatedOn",
-                table: "PriceLists",
+                name: "CreatedDate",
+                table: "PurchaseOrders",
                 type: "datetime2",
                 nullable: true,
                 oldClrType: typeof(DateTime),
@@ -37,7 +37,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "CreatedBy",
-                table: "PriceLists",
+                table: "PurchaseOrders",
                 type: "nvarchar(max)",
                 nullable: true,
                 oldClrType: typeof(string),
@@ -48,8 +48,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AlterColumn<DateTime>(
-                name: "UpdatedOn",
-                table: "PriceLists",
+                name: "UpdatedDate",
+                table: "PurchaseOrders",
                 type: "datetime2",
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -59,7 +59,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "UpdatedBy",
-                table: "PriceLists",
+                table: "PurchaseOrders",
                 type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "",
@@ -68,8 +68,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                 oldNullable: true);
 
             migrationBuilder.AlterColumn<DateTime>(
-                name: "CreatedOn",
-                table: "PriceLists",
+                name: "CreatedDate",
+                table: "PurchaseOrders",
                 type: "datetime2",
                 nullable: false,
                 defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -79,7 +79,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             migrationBuilder.AlterColumn<string>(
                 name: "CreatedBy",
-                table: "PriceLists",
+                table: "PurchaseOrders",
                 type: "nvarchar(max)",
                 nullable: false,
                 defaultValue: "",

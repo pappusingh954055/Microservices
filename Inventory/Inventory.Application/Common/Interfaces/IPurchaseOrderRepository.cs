@@ -1,15 +1,15 @@
-﻿using Domain.Entities;
-using Inventory.Domain.Entities;
-
-namespace Inventory.Application.Common.Interfaces
+﻿namespace Inventory.Application.Common.Interfaces
 {
     public interface IPurchaseOrderRepository
     {
         Task AddAsync(PurchaseOrder po, CancellationToken ct);
+
+
     }
 
     public interface IUnitOfWork
     {
         Task<int> SaveChangesAsync(CancellationToken ct);
     }
+
 }

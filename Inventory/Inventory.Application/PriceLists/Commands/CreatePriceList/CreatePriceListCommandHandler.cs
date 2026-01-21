@@ -30,6 +30,7 @@ public sealed class CreatePriceListCommandHandler
             request.remarks,
             request.isActive,
             request.createdBy
+            
         );
 
         // 2. Details mapping
@@ -38,7 +39,8 @@ public sealed class CreatePriceListCommandHandler
             var item = new PriceListItem(
                 priceList.Id,
                 itemDto.productId,
-                itemDto.price,
+                itemDto.rate,
+                itemDto.unit,
                 itemDto.discountPercent, // UI column Disc (%) mapping
                 itemDto.minQty,
                 itemDto.maxQty

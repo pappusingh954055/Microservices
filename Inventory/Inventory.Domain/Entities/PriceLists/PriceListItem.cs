@@ -11,16 +11,18 @@ public class PriceListItem
     public decimal DiscountPercent { get;  set; } // UI: Disc (%)
     public int MinQty { get;  set; }
     public int MaxQty { get;  set; }
+    public decimal Rate { get; set; }
 
     public PriceListItem() { }
 
-    public PriceListItem(Guid priceListId, Guid productId, decimal price,
+    public PriceListItem(Guid priceListId, Guid productId, decimal rate, string unit,
                          decimal discountPercent, int minQty, int maxQty)
     {
         Id = Guid.NewGuid();
         PriceListId = priceListId;
         ProductId = productId;
-        Price = price;
+        Rate = rate;
+        Unit = unit;
         DiscountPercent = discountPercent;
         MinQty = minQty;
         MaxQty = maxQty;

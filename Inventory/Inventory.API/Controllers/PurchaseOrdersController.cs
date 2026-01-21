@@ -23,29 +23,17 @@ namespace Inventory.API.Controllers
             var result = await _mediator.Send(new GetNextPoNumberQuery());
             return Ok(new { poNumber = result });
         }
-        [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderCommand command)
+
+        [HttpPost("save-po")]
+        public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
-            if (command == null) return BadRequest("Invalid payload");
+           
+            var result = await _mediator.Send(new CreatePurchaseOrderCommand(dto));
 
-            try
-            {
-                // Mediator command ko handler tak bhejega
-                var resultId = await _mediator.Send(command);
+            if (result)
+                return Ok(new { success = true, message = "Purchase Order Draft saved successfully!" });
 
-                // Response structure jo Angular expect kar raha hai
-                return Ok(new
-                {
-                    success = true,
-                    message = "Purchase Order created successfully!",
-                    id = resultId
-                });
-            }
-            catch (Exception ex)
-            {
-                // Logging yahan karein
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
+            return BadRequest(new { success = false, message = "Failed to save PO." });
         }
     }
 }

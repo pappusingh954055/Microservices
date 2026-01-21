@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Inventory.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class InitialsCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -39,33 +39,20 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PriceType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ApplicableGroup = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Currency = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Remarks = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ValidTo = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    UpdatedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PriceLists", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PurchaseOrders",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PoNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    SupplierId = table.Column<int>(type: "int", nullable: false),
-                    PoDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ExpectedDeliveryDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ReferenceNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Remarks = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    GrandTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrders", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -96,49 +83,31 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "PriceListItems",
+                name: "PurchaseOrders",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PriceListId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    MinQty = table.Column<int>(type: "int", nullable: false),
-                    MaxQty = table.Column<int>(type: "int", nullable: false)
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PoNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    PriceListId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    PoDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TotalTax = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    GrandTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    UpdatedBy = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_PriceListItems", x => x.Id);
+                    table.PrimaryKey("PK_PurchaseOrders", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PriceListItems_PriceLists_PriceListId",
+                        name: "FK_PurchaseOrders_PriceLists_PriceListId",
                         column: x => x.PriceListId,
                         principalTable: "PriceLists",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "PurchaseOrderItems",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    PurchaseOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Qty = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
-                    DiscountPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    GstPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Total = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PurchaseOrderItems", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PurchaseOrderItems_PurchaseOrders_PurchaseOrderId",
-                        column: x => x.PurchaseOrderId,
-                        principalTable: "PurchaseOrders",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -182,6 +151,68 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "PriceListItems",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PriceListId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    Unit = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DiscountPercent = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    MinQty = table.Column<int>(type: "int", nullable: false),
+                    MaxQty = table.Column<int>(type: "int", nullable: false),
+                    Rate = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PriceListItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PriceListItems_PriceLists_PriceListId",
+                        column: x => x.PriceListId,
+                        principalTable: "PriceLists",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PriceListItems_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PurchaseOrderItems",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PurchaseOrderId = table.Column<int>(type: "int", nullable: false),
+                    ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Qty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Unit = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Rate = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    TaxAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Total = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PurchaseOrderItems", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderItems_Products_ProductId",
+                        column: x => x.ProductId,
+                        principalTable: "Products",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_PurchaseOrderItems_PurchaseOrders_PurchaseOrderId",
+                        column: x => x.PurchaseOrderId,
+                        principalTable: "PurchaseOrders",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_Categories_CategoryCode",
                 table: "Categories",
@@ -192,6 +223,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                 name: "IX_PriceListItems_PriceListId",
                 table: "PriceListItems",
                 column: "PriceListId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PriceListItems_ProductId",
+                table: "PriceListItems",
+                column: "ProductId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Products_CategoryId",
@@ -210,9 +246,19 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                 column: "SubcategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrderItems_ProductId",
+                table: "PurchaseOrderItems",
+                column: "ProductId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PurchaseOrderItems_PurchaseOrderId",
                 table: "PurchaseOrderItems",
                 column: "PurchaseOrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PurchaseOrders_PriceListId",
+                table: "PurchaseOrders",
+                column: "PriceListId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subcategories_CategoryId",
@@ -233,19 +279,19 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                 name: "PriceListItems");
 
             migrationBuilder.DropTable(
-                name: "Products");
-
-            migrationBuilder.DropTable(
                 name: "PurchaseOrderItems");
 
             migrationBuilder.DropTable(
-                name: "PriceLists");
+                name: "Products");
+
+            migrationBuilder.DropTable(
+                name: "PurchaseOrders");
 
             migrationBuilder.DropTable(
                 name: "Subcategories");
 
             migrationBuilder.DropTable(
-                name: "PurchaseOrders");
+                name: "PriceLists");
 
             migrationBuilder.DropTable(
                 name: "Categories");

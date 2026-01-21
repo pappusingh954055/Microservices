@@ -1,56 +1,61 @@
-﻿using Domain.Entities;
-using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using MediatR;
 
-namespace Application.Features.PurchaseOrders.Handlers;
-
-public class CreatePurchaseOrderHandler : IRequestHandler<CreatePurchaseOrderCommand, Guid>
+public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseOrderCommand, bool>
 {
-    private readonly IPurchaseOrderRepository _repository;
-    private readonly IUnitOfWork _unitOfWork;
+    private readonly IInventoryDbContext _context;
+    private readonly IPurchaseOrderRepository _repo;
+    private readonly IMediator _mediator;
 
-    public CreatePurchaseOrderHandler(IPurchaseOrderRepository repository, IUnitOfWork unitOfWork)
+    public CreatePurchaseOrderCommandHandler(IInventoryDbContext context, IPurchaseOrderRepository repo, IMediator mediator)
     {
-        _repository = repository;
-        _unitOfWork = unitOfWork;
+        _context = context;
+        _repo = repo;
+        _mediator = mediator;
     }
 
-    public async Task<Guid> Handle(CreatePurchaseOrderCommand request, CancellationToken ct)
+    public async Task<bool> Handle(CreatePurchaseOrderCommand request, CancellationToken ct)
     {
-        // 1. Calculate Grand Total from DTO items
-        decimal grandTotal = request.Items.Sum(x => x.total);
-
-        // 2. Map Command to Domain Aggregate Root
-        var purchaseOrder = new PurchaseOrder(
-            request.PoNumber,
-            request.SupplierId,
-            request.PoDate,
-            request.ExpectedDeliveryDate,
-            request.ReferenceNumber,
-            request.Remarks,
-            grandTotal
-        );
-
-        // 3. Add Items to the Aggregate Root
-        foreach (var item in request.Items)
+        // Fix: Ensure IInventoryDbContext has Database property
+        using var transaction = await _context.Database.BeginTransactionAsync(ct);
+        try
         {
-            purchaseOrder.AddItem(
-                item.productId,
-                item.qty,
-                item.price,
-                item.discountPercent,
-                item.gstPercent,
-                item.total
-            );
+            var dto = request.PoData;
+
+            // Calling your existing PO generation logic
+            string generatedPoNumber = await _mediator.Send(new GetNextPoNumberQuery(), ct);
+
+            var po = new PurchaseOrder
+            {
+                PoNumber = generatedPoNumber,
+                SupplierId = dto.SupplierId,
+                PriceListId = dto.PriceListId,
+                PoDate = dto.PoDate,
+                TotalTax = dto.TotalTax,
+                GrandTotal = dto.GrandTotal,
+                CreatedBy = dto.CreatedBy,
+                Items = dto.Items.Select(i => new PurchaseOrderItem
+                {
+                    ProductId = i.ProductId,
+                    Qty = i.Qty,
+                    Unit = i.Unit,
+                    Rate = i.Rate,
+                    DiscountPercent = i.DiscountPercent,
+                    GstPercent = i.GstPercent,
+                    Total = i.Total
+                }).ToList()
+            };
+
+            await _repo.AddAsync(po, ct);
+            await _context.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return true;
         }
-
-        // 4. Persist using Repository
-        await _repository.AddAsync(purchaseOrder, ct);
-
-        // 5. Commit Transaction (SaveChangesAsync)
-        // Note: Ise bhulna mat, warna 400 error aayega!
-        await _unitOfWork.SaveChangesAsync(ct);
-
-        return purchaseOrder.Id;
+        catch
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
     }
 }

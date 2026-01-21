@@ -1,6 +1,4 @@
-﻿using Domain.Entities;
-using Inventory.Application.Common.Interfaces;
-using Inventory.Domain.Entities;
+﻿using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
 
@@ -47,7 +45,7 @@ public sealed class InventoryDbContext : DbContext,
         modelBuilder.Entity<PurchaseOrderItem>(builder =>
         {
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Price).HasPrecision(18, 2); //
+            builder.Property(x => x.Rate).HasPrecision(18, 2); //
             builder.Property(x => x.Total).HasPrecision(18, 2); //
         });
     }

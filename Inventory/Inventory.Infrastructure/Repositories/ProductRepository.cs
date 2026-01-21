@@ -92,4 +92,14 @@ public sealed class ProductRepository : IProductRepository
          .Take(20)
          .ToListAsync();
     }
+    public async Task<decimal> GetProductRateAsync(Guid productId, Guid priceListId)
+    {
+        // PriceListItems table par filter lagakar Rate nikalna
+        var priceItem = await _db.PriceListItems
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.ProductId == productId && x.PriceListId == priceListId);
+
+        // Agar price define nahi hai toh 0 return karein
+        return priceItem?.Rate ?? 0;
+    }
 }

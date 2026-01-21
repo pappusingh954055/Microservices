@@ -21,4 +21,5 @@ public interface IProductRepository
     Task<bool> HasPriceListAsync(List<Guid> productIds);
 
     Task<List<Product>> SearchActiveProductsAsync(string term);
+    Task<decimal> GetProductRateAsync(Guid productId, Guid priceListId);
 }

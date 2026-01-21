@@ -2,6 +2,7 @@
 using Inventory.Application.Common.Models;
 using Inventory.Application.Products.Commands.DeleteProduct;
 using Inventory.Application.Products.Commands.UpdateProduct;
+using Inventory.Application.Products.DTOs;
 using Inventory.Application.Products.Queries.GetProductById;
 using Inventory.Application.Products.Queries.GetProducts;
 using MediatR;
@@ -130,10 +131,21 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("search")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Search([FromQuery] string term)
         {
             // Mediator query ko Handler tak pahuchayega
             var result = await _mediator.Send(new GetProductSearchQuery(term));
+            return Ok(result);
+        }
+
+        [HttpGet("rate")]
+        [Authorize(Roles = "Manager, Admin")]  
+        public async Task<IActionResult> GetRate([FromQuery] Guid productId, [FromQuery] Guid priceListId)
+        {
+
+            var query = new GetProductRateQuery(productId, priceListId);
+            var result = await _mediator.Send(query);
             return Ok(result);
         }
     }
