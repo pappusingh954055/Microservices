@@ -1,6 +1,6 @@
 ﻿using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using MediatR;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -17,6 +17,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("next-number")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> GetNextNumber()
         {
             // MediatR command bhej raha hai handler ko
@@ -25,6 +26,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("save-po")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
            
@@ -34,6 +36,15 @@ namespace Inventory.API.Controllers
                 return Ok(new { success = true, message = "Purchase Order Draft saved successfully!" });
 
             return BadRequest(new { success = false, message = "Failed to save PO." });
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Manager, Admin")]
+        public async Task<ActionResult> GetOrders([FromQuery] GetPurchaseOrdersQuery query)
+        {
+            // Ensure 'query' is not null
+            var result = await _mediator.Send(query);
+            return Ok(result);
         }
     }
 }

@@ -17,6 +17,8 @@ builder.Services.AddApplication();
 // Infrastructure (DB)
 builder.Services.AddInfrastructure(builder.Configuration);
 
+
+
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
         // Taaki dates aur complex objects sahi se serialize hon
