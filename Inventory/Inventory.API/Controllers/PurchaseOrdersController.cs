@@ -1,4 +1,6 @@
-﻿using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
+﻿using Inventory.Application.Features.PurchaseOrders.Queries;
+using Inventory.Application.PurchaseOrders.DTOs;
+using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -45,6 +47,26 @@ namespace Inventory.API.Controllers
             // Ensure 'query' is not null
             var result = await _mediator.Send(query);
             return Ok(result);
+        }
+
+        [HttpPost("query")]
+        public async Task<IActionResult> GetOrders([FromBody] GetPurchaseOrdersRequest request)
+        {
+            var query = new GetDateRangePurchaseOrdersQuery(request);
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpPost("get-paged-orders")]
+        public async Task<IActionResult> GetPagedOrders([FromBody] GetPurchaseOrdersRequest request)
+        {
+            // Frontend se aane wale request DTO ko query mein wrap kar rahe hain
+            var query = new GetDateRangePurchaseOrdersQuery(request);
+
+            // Mediator isse sahi Handler tak pahuchayega
+            var response = await _mediator.Send(query);
+
+            return Ok(response);
         }
     }
 }

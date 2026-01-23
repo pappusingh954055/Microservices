@@ -1,4 +1,6 @@
-﻿namespace Inventory.Application.Common.Interfaces
+﻿using Inventory.Application.PurchaseOrders.DTOs;
+
+namespace Inventory.Application.Common.Interfaces
 {
     public interface IPurchaseOrderRepository
     {
@@ -9,6 +11,8 @@
           string sortField,
           string sortOrder,
           string filter);
+
+        Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request);
 
     }
 

@@ -1,7 +1,8 @@
 ﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-
+using Inventory.Application.Common.DTOs;
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
     private readonly InventoryDbContext _context;
@@ -14,7 +15,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     public async Task AddAsync(PurchaseOrder po, CancellationToken ct)
     {
         await _context.PurchaseOrders.AddAsync(po, ct);
-    }
+    }    
 
     public async Task<string?> GetLastPoNumberAsync()
     {
@@ -86,5 +87,68 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    public async Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request)
+    {
+        // 1. Base Query with Nested Include
+        var query = _context.PurchaseOrders
+            .Include(x => x.Items)
+                .ThenInclude(i => i.Product)
+            .AsQueryable();
+
+        // 2. GLOBAL SEARCH FIX: Search PO No, Supplier Name, or Status
+        if (!string.IsNullOrWhiteSpace(request.Filter))
+        {
+            var searchTerm = request.Filter.Trim().ToLower();
+            query = query.Where(x =>
+                x.PoNumber.ToLower().Contains(searchTerm) ||
+                x.SupplierName.ToLower().Contains(searchTerm) ||
+                x.Status.ToLower().Contains(searchTerm)
+            );
+        }
+
+        // 3. Global Date Range Filter
+        if (request.FromDate.HasValue)
+        {
+            query = query.Where(x => x.PoDate >= request.FromDate.Value);
+        }
+        if (request.ToDate.HasValue)
+        {
+            // Pure din ka data lene ke liye end of day logic
+            var endOfToDate = request.ToDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(x => x.PoDate <= endOfToDate);
+        }
+
+        // 4. Column Specific Filters (Advanced Grid Filters)
+        if (request.Filters != null && request.Filters.Any())
+        {
+            foreach (var f in request.Filters)
+            {
+                if (string.IsNullOrEmpty(f.Value)) continue;
+                var val = f.Value.ToLower();
+
+                query = f.Field.ToLower() switch
+                {
+                    "ponumber" => query.Where(x => x.PoNumber.ToLower().Contains(val)),
+                    "suppliername" => query.Where(x => x.SupplierName.ToLower().Contains(val)),
+                    "status" => query.Where(x => x.Status.ToLower().Contains(val)),
+                    _ => query
+                };
+            }
+        }
+
+        // 5. Total Count (Filtering ke baad count lena zaroori hai)
+        var total = await query.CountAsync();
+
+        // 6. Dynamic Sorting & Pagination Execution
+        // Note: OrderBy hamesha Pagination se pehle karein
+        var data = await query
+            .OrderByDescending(x => x.PoDate)
+            .Skip(request.PageIndex * request.PageSize)
+            .Take(request.PageSize)
+            .ToListAsync();
+
+        return (data, total);
     }
 }
