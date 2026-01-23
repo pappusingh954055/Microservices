@@ -1,7 +1,6 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Inventory.Domain.Entities; // Ensure this is present
 
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
@@ -34,32 +33,39 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     }
 
     public async Task<(IEnumerable<PurchaseOrder> Items, int TotalCount)> GetPagedOrdersAsync(
-        int pageIndex, int pageSize, string? sortField, string? sortOrder, string? filter)
+    int pageIndex, int pageSize, string? sortField, string? sortOrder, string? filter)
     {
-        // 1. Base Query with Includes
+        // 1. Base Query with Eager Loading for Items and Products
         var query = _context.PurchaseOrders
             .Include(x => x.Items)
-            .AsNoTracking() // Performance ke liye behtar hai read-only queries mein
+                .ThenInclude(i => i.Product) // Product data load karega taaki null error na aaye
+            .AsSplitQuery()
+            .AsNoTracking()
             .AsQueryable();
 
-        // 2. Filtering Logic
+        // 2. Filtering Logic (Multi-column search)
         if (!string.IsNullOrWhiteSpace(filter))
         {
-            query = query.Where(x => x.PoNumber.Contains(filter) || x.Status.Contains(filter));
+            var cleanFilter = filter.Trim();
+
+            query = query.Where(x =>
+                EF.Functions.Like(x.PoNumber, $"%{cleanFilter}%") ||
+                EF.Functions.Like(x.Status, $"%{cleanFilter}%") ||
+                EF.Functions.Like(x.SupplierName, $"%{cleanFilter}%") // Direct DB column search
+            );
         }
 
-        // 3. Sorting Logic (Fixing the "poNumber" vs "PoNumber" case issue)
+        // 3. Sorting Logic
         if (!string.IsNullOrEmpty(sortField))
         {
-            // Angular camelCase bhejta hai, EF Core PascalCase mangta hai
             string mappedField = sortField.ToLower() switch
             {
                 "ponumber" => "PoNumber",
                 "podate" => "PoDate",
                 "grandtotal" => "GrandTotal",
                 "status" => "Status",
-                "supplierid" => "SupplierId",
-                _ => "PoDate" // Default sort column
+                "suppliername" => "SupplierName",
+                _ => "PoDate"
             };
 
             query = (sortOrder?.ToLower() == "desc")
@@ -68,10 +74,10 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         }
         else
         {
-            query = query.OrderByDescending(x => x.PoDate); // Default ordering
+            query = query.OrderByDescending(x => x.PoDate);
         }
 
-        // 4. Execution (Sequential to avoid DataReader errors)
+        // 4. Execution
         var totalCount = await query.CountAsync();
 
         var items = await query

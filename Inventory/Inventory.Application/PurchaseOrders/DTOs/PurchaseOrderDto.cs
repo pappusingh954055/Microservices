@@ -3,6 +3,7 @@
     public int Id { get; set; }
     public string PoNumber { get; set; }
     public int SupplierId { get; set; }
+    public string SupplierName { get; set; }
     public Guid PriceListId { get; set; }
     public DateTime PoDate { get; set; }
     public decimal TotalTax { get; set; }
@@ -24,6 +25,7 @@
             Id = entity.Id,
             PoNumber = entity.PoNumber,
             SupplierId = entity.SupplierId,
+            SupplierName = entity.SupplierName,
             PriceListId = entity.PriceListId,
             PoDate = entity.PoDate,
             TotalTax = entity.TotalTax,

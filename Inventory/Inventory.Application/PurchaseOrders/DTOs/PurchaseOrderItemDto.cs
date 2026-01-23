@@ -3,6 +3,7 @@
     public int Id { get; set; }
     public int PurchaseOrderId { get; set; }
     public Guid ProductId { get; set; }
+    public string ProductName { get; set; }
     public decimal Qty { get; set; }
     public string Unit { get; set; }
     public decimal Rate { get; set; }
@@ -19,6 +20,7 @@
             Id = entity.Id,
             PurchaseOrderId = entity.PurchaseOrderId,
             ProductId = entity.ProductId,
+            ProductName = entity.Product.Name?? "NA",
             Qty = entity.Qty,
             Unit = entity.Unit,
             Rate = entity.Rate,
