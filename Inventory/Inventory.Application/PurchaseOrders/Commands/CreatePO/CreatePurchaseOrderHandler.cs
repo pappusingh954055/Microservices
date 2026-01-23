@@ -30,6 +30,7 @@ public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseO
             {
                 PoNumber = generatedPoNumber,
                 SupplierId = dto.SupplierId,
+                SupplierName= dto.SupplierName,
                 PriceListId = dto.PriceListId,
                 PoDate = dto.PoDate,
                 TotalTax = dto.TotalTax,
@@ -43,6 +44,7 @@ public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseO
                     Rate = i.Rate,
                     DiscountPercent = i.DiscountPercent,
                     GstPercent = i.GstPercent,
+                    TaxAmount = i.TaxAmount,
                     Total = i.Total
                 }).ToList()
             };
