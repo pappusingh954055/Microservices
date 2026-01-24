@@ -1,6 +1,8 @@
 ﻿using Inventory.Application.Features.PurchaseOrders.Queries;
+using Inventory.Application.PurchaseOrders.Commands.Update;
 using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
+using Inventory.Application.PurchaseOrders.Queries.GetPurchaseOrder;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,7 +21,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("next-number")]
-        [Authorize(Roles = "Manager, Admin")]
+        //[Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> GetNextNumber()
         {
             // MediatR command bhej raha hai handler ko
@@ -28,7 +30,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("save-po")]
-        [Authorize(Roles = "Manager, Admin")]
+        //[Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
            
@@ -41,7 +43,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Manager, Admin")]
+        //[Authorize(Roles = "Manager, Admin")]
         public async Task<ActionResult> GetOrders([FromQuery] GetPurchaseOrdersQuery query)
         {
             // Ensure 'query' is not null
@@ -68,5 +70,58 @@ namespace Inventory.API.Controllers
 
             return Ok(response);
         }
+
+        [HttpGet("{id}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetById(int id)
+        {
+            // MediatR ke through Query ko Handler tak bhejna
+            var query = new GetPurchaseOrderByIdQuery(id);
+            var result = await _mediator.Send(query);
+
+            if (result == null)
+            {
+                return NotFound(new
+                {
+                    status = "error",
+                    message = $"Purchase Order with ID {id} not found."
+                });
+            }
+
+            return Ok(result);
+        }
+
+        [HttpPut("{id}")] //
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdatePurchaseOrderDto dto)
+        {
+            // 1. Validation: URL ID aur Body ID match honi chahiye
+            if (id != dto.Id)
+            {
+                return BadRequest(new { message = "ID mismatch between URL and body." });
+            }
+
+            // 2. Command Create karna
+            var command = new UpdatePurchaseOrderCommand(dto);
+
+            // 3. Mediator ke through handler ko call karna
+            var result = await _mediator.Send(command);
+
+            if (!result)
+            {
+                return NotFound(new { message = $"Purchase Order with ID {id} not found or update failed." });
+            }
+
+            // 4. Success Response
+            return Ok(new
+            {
+                status = "success",
+                message = "Purchase Order updated successfully"
+            });
+        }
     }
 }
+

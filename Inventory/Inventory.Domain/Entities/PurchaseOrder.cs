@@ -6,9 +6,11 @@ public class PurchaseOrder
     public string PoNumber { get; set; } // PO/26-27/0001
     public int SupplierId { get; set; }
     public string? SupplierName { get; set; }
-    public Guid? PriceListId { get; set; }
+    public Guid PriceListId { get; set; }
     public PriceList? PriceList { get; set; }
     public DateTime PoDate { get; set; }
+    public DateTime? ExpectedDeliveryDate { get; set; }
+    public string ? Remarks { get; set; }
     public decimal TotalTax { get; set; } //
     public decimal GrandTotal { get; set; } //
     public string Status { get; set; } = "Draft";

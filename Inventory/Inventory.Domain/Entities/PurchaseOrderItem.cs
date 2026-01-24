@@ -7,8 +7,9 @@ public class PurchaseOrderItem
     public Guid ProductId { get; set; } //
     public Product? Product { get; set; } //
 
-    [NotMapped]
-    public string ProductName { get; set; } = string.Empty;
+    //[NotMapped]
+    //public string ProductName { get; set; } = string.Empty;
+ 
     public decimal Qty { get; set; } //
     public string Unit { get; set; } //
     public decimal Rate { get; set; } //

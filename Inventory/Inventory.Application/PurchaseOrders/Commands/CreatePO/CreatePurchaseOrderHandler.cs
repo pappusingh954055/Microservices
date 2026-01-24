@@ -36,6 +36,8 @@ public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseO
                 TotalTax = dto.TotalTax,
                 GrandTotal = dto.GrandTotal,
                 CreatedBy = dto.CreatedBy,
+                Remarks = dto.Remarks,
+                ExpectedDeliveryDate = dto.ExpectedDeliveryDate,
                 Items = dto.Items.Select(i => new PurchaseOrderItem
                 {
                     ProductId = i.ProductId,

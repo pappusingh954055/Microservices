@@ -14,6 +14,10 @@
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
 
+    public string? Remarks { get; set; }
+
+    public DateTime? ExpectedDeliveryDate { get; set; } 
+
     // Child items list for Hierarchical Grid
     public List<PurchaseOrderItemDto> Items { get; set; } = new();
 

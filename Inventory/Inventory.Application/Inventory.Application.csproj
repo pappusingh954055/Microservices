@@ -14,8 +14,6 @@
 
   <ItemGroup>
     <Folder Include="PurchaseOrders\Commands\ReceivedPO\" />
-    <Folder Include="PurchaseOrders\Commands\UpdatePO\" />
-    <Folder Include="PurchaseOrders\Queries\GetPOById\" />
   </ItemGroup>
 
   <PropertyGroup>

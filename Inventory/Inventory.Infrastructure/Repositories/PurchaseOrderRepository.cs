@@ -151,4 +151,16 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
         return (data, total);
     }
+    public async Task<PurchaseOrder?> GetByIdWithItemsAsync(int id, CancellationToken ct)
+    {
+      var data= await _context.PurchaseOrders
+            .Include(x => x.Items) // Yeh child table 'PurchaseOrderItems' se data layega
+            .ThenInclude(i => i.Product)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+        return data;
+    }
+
+    public void Update(PurchaseOrder po) => _context.PurchaseOrders.Update(po);
+
+    public void RemoveItem(PurchaseOrderItem item) => _context.PurchaseOrderItems.Remove(item);
 }

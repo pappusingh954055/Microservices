@@ -13,7 +13,9 @@ namespace Inventory.Application.Common.Interfaces
           string filter);
 
         Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request);
-
+        Task<PurchaseOrder?> GetByIdWithItemsAsync(int id, CancellationToken ct);
+        void Update(PurchaseOrder po);
+        void RemoveItem(PurchaseOrderItem item);
     }
 
     public interface IUnitOfWork

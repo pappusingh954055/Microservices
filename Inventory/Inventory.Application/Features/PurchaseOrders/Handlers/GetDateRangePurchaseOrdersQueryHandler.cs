@@ -21,6 +21,7 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
 
             var dtos = result.Data.Select(x => new PurchaseOrderDto
             {
+                Id = x.Id,
                 PoNumber = x.PoNumber,
                 SupplierName = x.SupplierName,
                 PoDate = x.PoDate,

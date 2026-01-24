@@ -1,7 +1,7 @@
 ﻿public record CreatePurchaseOrderDto(
     int SupplierId,
     string SupplierName,
-    Guid? PriceListId,
+    Guid PriceListId,
     DateTime PoDate,
     DateTime? ExpectedDeliveryDate,
     string Remarks,
