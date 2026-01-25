@@ -1,4 +1,4 @@
-﻿// Products.Application/Handlers/GetProductRateHandler.cs
+﻿
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Products.DTOs;
 using Inventory.Application.Products.Queries.GetProductById;
@@ -13,11 +13,17 @@ public class GetProductRateHandler : IRequestHandler<GetProductRateQuery, Produc
         _repository = repository;
     }
 
-    public async Task<ProductRateDto> Handle(GetProductRateQuery request, CancellationToken ct)
+    public async Task<ProductRateDto> Handle(GetProductRateQuery request, CancellationToken cancellationToken)
     {
-        var rate = await _repository.GetProductRateAsync(request.ProductId, request.PriceListId);
+        // 1. Repository se poora data fetch karein (PriceList + Master details)
+        var result = await _repository.GetProductRateAsync(request.ProductId, request.PriceListId);
 
-        // Yahan request ki IDs ko wapas assign karein taaki response mein 000-000 na aaye
-        return new ProductRateDto(request.ProductId, request.PriceListId, rate);
+        if (result == null)
+        {
+            throw new Exception("Product data or rate not found.");
+        }
+
+        // 2. Direct result return karein, kyunki ye pehle se hi ProductRateDto hai
+        return result;
     }
 }

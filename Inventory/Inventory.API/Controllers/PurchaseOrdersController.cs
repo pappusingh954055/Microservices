@@ -1,10 +1,10 @@
 ﻿using Inventory.Application.Features.PurchaseOrders.Queries;
+using Inventory.Application.PurchaseOrders.Commands.Delete;
 using Inventory.Application.PurchaseOrders.Commands.Update;
 using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using Inventory.Application.PurchaseOrders.Queries.GetPurchaseOrder;
 using MediatR;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -122,6 +122,78 @@ namespace Inventory.API.Controllers
                 message = "Purchase Order updated successfully"
             });
         }
+
+
+
+        /// <summary>
+        /// URL: DELETE /api/PurchaseOrders/{id}
+        /// ye single record delete karega
+        /// Frontend call: this.http.delete(`${this.apiUrl}/PurchaseOrders/${poId}`)
+        /// </summary>
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                // 1. Mediator ke through Command bhej rahe hain Handler ko
+                var result = await _mediator.Send(new DeletePurchaseOrderCommand(id));
+
+                if (!result)
+                {
+                    return NotFound(new { success = false, message = "This PO is not found in database." });
+                }
+
+                // 2. Agar success hua toh 200 OK
+                return Ok(new { success = true, message = "Purchase Order deleted successfully." });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // 3. Domain Rule fail hua (e.g., Status 'Received' tha)
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                // 4. Koi aur technical error
+                return StatusCode(500, new { success = false, message = "Internal server error: " + ex.Message });
+            }
+        }
+
+
+        // --- 2. BULK PARENT DELETE ---
+        // URL: POST /api/PurchaseOrders/bulk-delete
+        // Frontend call: this.http.post(`${this.apiUrl}/PurchaseOrders/bulk-delete`, { ids })
+        [HttpPost("bulk-delete-orders")] // Name easily identifiable
+        public async Task<IActionResult> BulkDeleteOrders([FromBody] BulkDeletePurchaseOrderCommand command)
+        {
+            try
+            {
+                var result = await _mediator.Send(command);
+                return Ok(new { success = true, message = "Selected orders is deleted!" });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // --- 3. BULK CHILD ITEMS DELETE ---
+        [HttpPost("bulk-delete-items")] // Easily identifiable name
+        public async Task<IActionResult> BulkDeleteItems([FromBody] BulkDeletePOItemsCommand command)
+        {
+            try
+            {
+                var result = await _mediator.Send(command);
+                if (!result) return NotFound(new { success = false, message = "Did not found PO items." });
+
+                return Ok(new { success = true, message = "Selected items successfully removed!" });
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Agar status "Received" nikla toh ye error throw karega
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
     }
 }
+
 

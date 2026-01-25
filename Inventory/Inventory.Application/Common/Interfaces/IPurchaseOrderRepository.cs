@@ -16,6 +16,13 @@ namespace Inventory.Application.Common.Interfaces
         Task<PurchaseOrder?> GetByIdWithItemsAsync(int id, CancellationToken ct);
         void Update(PurchaseOrder po);
         void RemoveItem(PurchaseOrderItem item);
+        Task<bool> DeleteItemAsync(int itemId);
+        public Task<bool> BulkDeleteItemsAsync(List<int> itemIds);
+        Task UpdatePOTotalsAsync(int poId);
+        Task<PurchaseOrder> GetByIdAsync(int id);
+        void Delete(PurchaseOrder po);
+        Task<List<PurchaseOrder>> GetByIdsAsync(List<int> ids);
+
     }
 
     public interface IUnitOfWork

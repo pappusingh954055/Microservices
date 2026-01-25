@@ -30,7 +30,9 @@ namespace Inventory.Application.PurchaseOrders.Queries.GetPurchaseOrder
                 ExpectedDeliveryDate = po.ExpectedDeliveryDate,
                 Remarks = po.Remarks,
                 TotalTax = po.TotalTax,
+                SubTotal= po.SubTotal,
                 GrandTotal = po.GrandTotal,
+                Status = po.Status,
                 // .Select mapping ensures each item is converted properly
                 Items = po.Items.Select(i => new PurchaseOrderItemDto
                 {

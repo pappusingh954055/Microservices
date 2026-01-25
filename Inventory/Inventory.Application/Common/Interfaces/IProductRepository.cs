@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.Entities;
+﻿using Inventory.Application.Products.DTOs;
+using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 
 namespace Inventory.Application.Common.Interfaces;
@@ -21,5 +22,5 @@ public interface IProductRepository
     Task<bool> HasPriceListAsync(List<Guid> productIds);
 
     Task<List<Product>> SearchActiveProductsAsync(string term);
-    Task<decimal> GetProductRateAsync(Guid productId, Guid priceListId);
+    Task<ProductRateDto> GetProductRateAsync(Guid productId, Guid? priceListId);
 }

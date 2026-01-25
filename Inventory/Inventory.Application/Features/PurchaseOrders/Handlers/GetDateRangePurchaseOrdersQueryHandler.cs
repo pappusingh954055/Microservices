@@ -27,6 +27,7 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                 PoDate = x.PoDate,
                 TotalTax = x.TotalTax,
                 GrandTotal = x.GrandTotal,
+                SubTotal = x.SubTotal,
                 Status = x.Status,
 
                 // Items mapping with ProductName from Included Product table

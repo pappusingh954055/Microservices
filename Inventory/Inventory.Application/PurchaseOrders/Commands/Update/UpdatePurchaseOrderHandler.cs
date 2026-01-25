@@ -17,24 +17,31 @@ namespace Inventory.Application.PurchaseOrders.Commands.Update
         public async Task<bool> Handle(UpdatePurchaseOrderCommand request, CancellationToken ct)
         {
             var dto = request.Dto;
-            // Repo items ke sath data la raha hai
+
+            // 1. Fetch existing PO with child items using Repository
             var po = await _repo.GetByIdWithItemsAsync(dto.Id, ct);
 
             if (po == null) return false;
 
-            // 1. Update Header (Do not update po.Id as it is the Primary Key)
+            // 2. Update Header Fields
             po.SupplierId = dto.SupplierId;
             po.SupplierName = dto.SupplierName;
-            po.PriceListId = dto.PriceList.Id; // Simplified mapping
+
+            // Safety check for nested PriceList object
+            po.PriceListId = dto.PriceList != null ? dto.PriceList.Id : dto.PriceListId;
+
             po.PoDate = dto.PoDate;
             po.ExpectedDeliveryDate = dto.ExpectedDeliveryDate;
             po.Remarks = dto.Remarks;
             po.PoNumber = dto.PoNumber;
             po.TotalTax = dto.TotalTax;
             po.GrandTotal = dto.GrandTotal;
-            po.UpdatedDate = DateTime.UtcNow;
 
-            // 2. Syncing Logic: Delete removed items
+            // Audit tracking: Update updated fields, leave CreatedBy unchanged
+            po.UpdatedDate = DateTime.UtcNow;
+            po.UpdatedBy = dto.UpdatedBy;
+
+            // 3. Syncing Logic: Identify items that were removed in UI
             var itemsToRemove = po.Items
                 .Where(existing => !dto.Items.Any(d => d.Id == existing.Id))
                 .ToList();
@@ -44,15 +51,15 @@ namespace Inventory.Application.PurchaseOrders.Commands.Update
                 _repo.RemoveItem(item);
             }
 
-            // 3. Update or Add Items
+            // 4. Update existing items or Add new ones
             foreach (var itemDto in dto.Items)
             {
-                // Existing item check (Id must not be 0)
+                // Existing item check (assuming Id > 0 for existing items)
                 var existingItem = po.Items.FirstOrDefault(i => i.Id == itemDto.Id && i.Id != 0);
 
                 if (existingItem != null)
                 {
-                    // Update existing item fields
+                    // Update existing record fields
                     existingItem.ProductId = itemDto.ProductId;
                     existingItem.Qty = itemDto.Qty;
                     existingItem.Unit = itemDto.Unit;
@@ -64,11 +71,11 @@ namespace Inventory.Application.PurchaseOrders.Commands.Update
                 }
                 else
                 {
-                    // Add new item to the collection
+                    // Add new item to the collection (EF will handle ID generation)
                     po.Items.Add(new PurchaseOrderItem
                     {
-                        PurchaseOrderId = po.Id, // Link to the current PO Header
-                        ProductId = itemDto.ProductId, // Guid from UI
+                        PurchaseOrderId = po.Id, // Foreign Key link
+                        ProductId = itemDto.ProductId,
                         Qty = itemDto.Qty,
                         Unit = itemDto.Unit,
                         Rate = itemDto.Rate,
@@ -76,13 +83,16 @@ namespace Inventory.Application.PurchaseOrders.Commands.Update
                         GstPercent = itemDto.GstPercent,
                         TaxAmount = itemDto.TaxAmount,
                         Total = itemDto.Total
+                        // Note: Agar PurchaseOrderItem mein bhi UpdatedBy hai, toh yahan add karein
                     });
                 }
             }
 
+            // 5. Inform Repository and Commit using Unit of Work
             _repo.Update(po);
 
-            // Unit of Work pattern ensure atomicity
+            // 
+            // Returns true if database reflects one or more changes
             return await _uow.SaveChangesAsync(ct) > 0;
         }
     }

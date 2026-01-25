@@ -34,6 +34,7 @@ public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseO
                 PriceListId = dto.PriceListId,
                 PoDate = dto.PoDate,
                 TotalTax = dto.TotalTax,
+                SubTotal= dto.SubTotal,
                 GrandTotal = dto.GrandTotal,
                 CreatedBy = dto.CreatedBy,
                 Remarks = dto.Remarks,

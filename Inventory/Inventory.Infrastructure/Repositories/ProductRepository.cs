@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.Products.DTOs;
 using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 using Inventory.Infrastructure.Persistence;
@@ -92,14 +93,32 @@ public sealed class ProductRepository : IProductRepository
          .Take(20)
          .ToListAsync();
     }
-    public async Task<decimal> GetProductRateAsync(Guid productId, Guid priceListId)
+    public async Task<ProductRateDto> GetProductRateAsync(Guid productId, Guid? priceListId)
     {
-        // PriceListItems table par filter lagakar Rate nikalna
-        var priceItem = await _db.PriceListItems
-            .AsNoTracking()
-            .FirstOrDefaultAsync(x => x.ProductId == productId && x.PriceListId == priceListId);
+        // Products table se shuru karein taaki humein base details mil sakein
+        var query = from p in _db.Products.AsNoTracking()
+                    where p.Id == productId
+                    select new ProductRateDto(
+                        p.Id,
+                        priceListId,
+                        // Subquery to get PriceList Rate (agar priceListId null nahi hai toh)
+                        _db.PriceListItems
+                            .Where(pli => pli.ProductId == productId && pli.PriceListId == priceListId)
+                            .Select(pli => pli.Rate)
+                            .FirstOrDefault(), // Agar nahi mila toh 0.0m aayega
+                        p.BasePurchasePrice, // Product Master wala base price
+                        p.Unit ?? "PCS",     // Fallback Unit
+                        p.DefaultGst ?? 0m,        // Default GST %
+                        p.HSNCode            // HSN Code
+                    );
 
-        // Agar price define nahi hai toh 0 return karein
-        return priceItem?.Rate ?? 0;
+        var result = await query.FirstOrDefaultAsync();
+
+        if (result == null)
+        {
+            throw new Exception("Product not found in Master.");
+        }
+
+        return result;
     }
 }

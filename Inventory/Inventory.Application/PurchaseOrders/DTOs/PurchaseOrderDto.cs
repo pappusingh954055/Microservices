@@ -8,6 +8,7 @@
     public DateTime PoDate { get; set; }
     public decimal TotalTax { get; set; }
     public decimal GrandTotal { get; set; }
+    public decimal SubTotal { get; set; }
     public string Status { get; set; }
     public string CreatedBy { get; set; }
     public string UpdatedBy { get; set; }

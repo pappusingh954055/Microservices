@@ -6,6 +6,7 @@
     DateTime? ExpectedDeliveryDate,
     string Remarks,
     decimal TotalTax,
+    decimal SubTotal,
     decimal GrandTotal,
     string CreatedBy,
     List<PoItemDto> Items);

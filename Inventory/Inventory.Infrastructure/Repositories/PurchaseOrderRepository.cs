@@ -3,6 +3,7 @@ using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Inventory.Application.Common.DTOs;
+
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
     private readonly InventoryDbContext _context;
@@ -163,4 +164,69 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     public void Update(PurchaseOrder po) => _context.PurchaseOrders.Update(po);
 
     public void RemoveItem(PurchaseOrderItem item) => _context.PurchaseOrderItems.Remove(item);
+
+    public async Task<bool> DeleteItemAsync(int itemId)
+    {
+        var item = await _context.PurchaseOrderItems.FindAsync(itemId);
+        if (item == null) return false;
+
+        _context.PurchaseOrderItems.Remove(item);
+        return await _context.SaveChangesAsync() > 0;
+    }
+
+    public async Task UpdatePOTotalsAsync(int poId)
+    {
+        var items = await _context.PurchaseOrderItems
+                                  .Where(x => x.PurchaseOrderId == poId)
+                                  .ToListAsync();
+
+        var po = await _context.PurchaseOrders.FindAsync(poId);
+
+        if (po != null)
+        {
+            // 1. SubTotal hamesha (Total - TaxAmount) hona chahiye agar aapke DB mein Total inclusive hai
+            // Ya phir agar aapke paas TaxableAmount ka alag column hai toh wo use karein.
+            po.SubTotal = items.Sum(x => x.Total - x.TaxAmount);
+
+            // 2. TotalTax bilkul sahi hai
+            po.TotalTax = items.Sum(x => x.TaxAmount);
+
+            // 3. GrandTotal ab accurate aayega
+            po.GrandTotal = po.SubTotal + po.TotalTax;
+
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task<bool> BulkDeleteItemsAsync(List<int> itemIds)
+    {
+        var items = await _context.PurchaseOrderItems
+                                  .Where(x => itemIds.Contains(x.Id))
+                                  .ToListAsync();
+
+        if (!items.Any()) return false;
+
+        _context.PurchaseOrderItems.RemoveRange(items);
+        return await _context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<PurchaseOrder> GetByIdAsync(int id)
+    {
+        // .Include() tab use karein agar delete se pehle Items ka status check karna ho
+        return await _context.PurchaseOrders
+            .Include(p => p.Items)
+            .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public void Delete(PurchaseOrder po)
+    {
+        _context.PurchaseOrders.Remove(po);
+    }
+
+    public async Task<List<PurchaseOrder>> GetByIdsAsync(List<int> ids)
+    {
+        return await _context.PurchaseOrders
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
+    }
 }
