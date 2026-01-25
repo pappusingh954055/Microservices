@@ -52,6 +52,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
             query = query.Where(x =>
                 EF.Functions.Like(x.PoNumber, $"%{cleanFilter}%") ||
+                EF.Functions.Like(x.Id.ToString(), $"%{cleanFilter}%") ||
                 EF.Functions.Like(x.Status, $"%{cleanFilter}%") ||
                 EF.Functions.Like(x.SupplierName, $"%{cleanFilter}%") // Direct DB column search
             );
@@ -66,6 +67,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                 "podate" => "PoDate",
                 "grandtotal" => "GrandTotal",
                 "status" => "Status",
+                "id" => "Id",
                 "suppliername" => "SupplierName",
                 _ => "PoDate"
             };

@@ -36,7 +36,7 @@ namespace Inventory.Application.PurchaseOrders.Commands.Update
             po.PoNumber = dto.PoNumber;
             po.TotalTax = dto.TotalTax;
             po.GrandTotal = dto.GrandTotal;
-
+            po.SubTotal = dto.SubTotal;
             // Audit tracking: Update updated fields, leave CreatedBy unchanged
             po.UpdatedDate = DateTime.UtcNow;
             po.UpdatedBy = dto.UpdatedBy;
