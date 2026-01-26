@@ -24,7 +24,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager,Admin, User")]
         public async Task<IActionResult> Create(CreateCategoryCommand command)
         {
             var id = await _mediator.Send(command);
@@ -36,7 +36,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(
             Guid id,
             UpdateCategoryCommand command)
@@ -57,7 +57,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             try
@@ -90,7 +90,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpPost("bulk-delete")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             try
@@ -123,7 +123,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _mediator.Send(new GetCategoryByIdQuery(id));
@@ -132,7 +132,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpPost("paged")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetCategories(
             [FromBody] GridRequest query)
         {
@@ -143,7 +143,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetCategoriesQuery());

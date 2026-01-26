@@ -20,9 +20,12 @@ namespace Inventory.Application.Common.Interfaces
         public Task<bool> BulkDeleteItemsAsync(List<int> itemIds);
         Task UpdatePOTotalsAsync(int poId);
         Task<PurchaseOrder> GetByIdAsync(int id);
+        Task<PurchaseOrder> GetByIdAsyncForUpdateStatus(int id);
         void Delete(PurchaseOrder po);
         Task<List<PurchaseOrder>> GetByIdsAsync(List<int> ids);
-
+        Task UpdateAsync(PurchaseOrder po);
+        Task<bool> UpdatePOStatusAsync(int id, string status);
+        Task<bool> SaveChangesAsync();
     }
 
     public interface IUnitOfWork

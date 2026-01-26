@@ -1,0 +1,22 @@
+﻿using Inventory.Domain.Common;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Inventory.Domain.Entities
+{
+    public class GRNHeader: BaseAuditableEntity
+    {
+        public int Id { get; set; }
+        public string GRNNumber { get; set; }
+        public int POHeaderId { get; set; } // Reference to PO [cite: 2026-01-22]
+        public int SupplierId { get; set; }
+        public DateTime ReceivedDate { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } // 'Completed' or 'Partial' [cite: 2026-01-22]
+        public string Remarks { get; set; }
+        public string CreatedBy { get; set; }
+
+        public List<GRNDetail> GRNItems { get; set; } // Child Items [cite: 2026-01-22]
+    }
+}

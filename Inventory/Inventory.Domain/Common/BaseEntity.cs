@@ -6,6 +6,6 @@ namespace Inventory.Domain.Common
 {
     public class BaseEntity
     {
-        public Guid Id { get; protected set; }
+        //public Guid Id { get; protected set; }
     }
 }

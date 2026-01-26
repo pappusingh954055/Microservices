@@ -52,7 +52,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
             query = query.Where(x =>
                 EF.Functions.Like(x.PoNumber, $"%{cleanFilter}%") ||
-                EF.Functions.Like(x.Id.ToString(), $"%{cleanFilter}%") ||
+                EF.Functions.Like(Convert.ToString(x.Id), $"%{cleanFilter}%") ||
                 EF.Functions.Like(x.Status, $"%{cleanFilter}%") ||
                 EF.Functions.Like(x.SupplierName, $"%{cleanFilter}%") // Direct DB column search
             );
@@ -136,6 +136,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                     "ponumber" => query.Where(x => x.PoNumber.ToLower().Contains(val)),
                     "suppliername" => query.Where(x => x.SupplierName.ToLower().Contains(val)),
                     "status" => query.Where(x => x.Status.ToLower().Contains(val)),
+                    "id" => query.Where(x => x.Id.ToString().Contains(val)),
                     _ => query
                 };
             }
@@ -230,5 +231,38 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         return await _context.PurchaseOrders
             .Where(x => ids.Contains(x.Id))
             .ToListAsync();
+    }
+
+    /// <summary>
+    /// /////////
+    /// </summary>
+    /// <param name="po"></param>
+    /// <returns></returns>
+    public Task UpdateAsync(PurchaseOrder po)
+    {
+        _context.PurchaseOrders.Attach(po);
+        _context.Entry(po).Property(x => x.Status).IsModified = true;
+        return Task.CompletedTask;
+    }
+
+    public async Task<bool> SaveChangesAsync()
+    {
+        // Agar 1 ya usse zyada rows affect hui hain toh true return karega
+        return (await _context.SaveChangesAsync()) > 0;
+    }
+    public async Task<PurchaseOrder> GetByIdAsyncForUpdateStatus(int id)
+    {
+        // PO ke saath uske items ko bhi load karna behtar hota hai (Optional)
+        return await _context.PurchaseOrders
+                             .FirstOrDefaultAsync(p => p.Id == id);
+    }
+
+    public async Task<bool> UpdatePOStatusAsync(int id, string status)
+    {
+        var po = await _context.PurchaseOrders.FindAsync(id);
+        if (po == null) return false;
+
+        po.Status = status; // String value save hogi (e.g., "Submitted")
+        return await _context.SaveChangesAsync() > 0;
     }
 }

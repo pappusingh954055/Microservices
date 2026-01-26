@@ -16,7 +16,11 @@ public sealed class InventoryDbContext : DbContext,
     public DbSet<PriceList> PriceLists => Set<PriceList>();
     public DbSet<PriceListItem> PriceListItems => Set<PriceListItem>();
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>(); 
-    public DbSet<PurchaseOrderItem> PurchaseOrderItems => Set<PurchaseOrderItem>();    
+    public DbSet<PurchaseOrderItem> PurchaseOrderItems => Set<PurchaseOrderItem>();  
+    
+    public DbSet<GRNHeader> GRNHeaders => Set<GRNHeader>(); 
+
+    public DbSet<GRNDetail> GRNDetails => Set<GRNDetail>(); 
    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

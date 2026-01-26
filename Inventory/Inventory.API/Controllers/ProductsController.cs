@@ -23,7 +23,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> Create(CreateProductCommand command)
         {
             var id = await _mediator.Send(command);
@@ -35,7 +35,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Update(
         Guid id,
         UpdateProductCommand command)
@@ -56,7 +56,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -72,7 +72,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _mediator.Send(new GetProductByIdQuery(id));
@@ -80,6 +80,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetProductsQuery());
@@ -87,7 +88,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("paged")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] GridRequest request)
         {
@@ -131,7 +132,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("search")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> Search([FromQuery] string term)
         {
             // Mediator query ko Handler tak pahuchayega
@@ -140,7 +141,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("rate")]
-        [Authorize(Roles = "Manager, Admin")]  
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetRate([FromQuery] Guid productId, [FromQuery] Guid priceListId)
         {
 

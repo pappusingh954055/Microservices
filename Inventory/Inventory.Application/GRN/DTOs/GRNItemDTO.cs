@@ -1,0 +1,14 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Inventory.Application.GRN.DTOs
+{
+    public class GRNItemDTO
+    {
+        public Guid ProductId { get; set; } // Based on your DB schema
+        public decimal OrderedQty { get; set; }
+        public decimal ReceivedQty { get; set; }
+        public decimal UnitRate { get; set; }
+    }
+}

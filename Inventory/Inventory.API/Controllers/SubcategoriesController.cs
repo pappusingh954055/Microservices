@@ -24,7 +24,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> Create(CreateSubcategoryCommand command)
         {
             var id = await _mediator.Send(command);
@@ -36,7 +36,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Update(
           Guid id,
           UpdateSubcategoryCommand command)
@@ -57,7 +57,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -73,7 +73,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _mediator.Send(new GetSubcategoryByIdQuery(id));
@@ -81,7 +81,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetSubcategoriesQuery());
@@ -89,7 +89,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("by-category/{categoryId}")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> GetByCategory(Guid categoryId)
         {
             var result = await _mediator.Send(
@@ -99,7 +99,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("paged")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetPaged(
             [FromBody] GridRequest request)
         {

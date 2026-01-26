@@ -4,8 +4,11 @@ using Inventory.Application.PurchaseOrders.Commands.Update;
 using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using Inventory.Application.PurchaseOrders.Queries.GetPurchaseOrder;
+using Inventory.Domain.Enums;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 
 namespace Inventory.API.Controllers
 {
@@ -21,7 +24,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("next-number")]
-        //[Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin, User, Manager")]
         public async Task<IActionResult> GetNextNumber()
         {
             // MediatR command bhej raha hai handler ko
@@ -30,7 +33,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("save-po")]
-        //[Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
            
@@ -52,6 +55,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("query")]
+        [Authorize(Roles = "Manager, Admin,User")]
         public async Task<IActionResult> GetOrders([FromBody] GetPurchaseOrdersRequest request)
         {
             var query = new GetDateRangePurchaseOrdersQuery(request);
@@ -60,6 +64,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("get-paged-orders")]
+        [Authorize(Roles = "Admin, User,Manager")]
         public async Task<IActionResult> GetPagedOrders([FromBody] GetPurchaseOrdersRequest request)
         {
             // Frontend se aane wale request DTO ko query mein wrap kar rahe hain
@@ -71,6 +76,7 @@ namespace Inventory.API.Controllers
             return Ok(response);
         }
 
+        [Authorize(Roles = "Admin, User,Manager")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -92,6 +98,7 @@ namespace Inventory.API.Controllers
             return Ok(result);
         }
 
+        [Authorize(Roles = "Manager, Admin,User")]
         [HttpPut("{id}")] //
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -131,6 +138,7 @@ namespace Inventory.API.Controllers
         /// Frontend call: this.http.delete(`${this.apiUrl}/PurchaseOrders/${poId}`)
         /// </summary>
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -163,6 +171,7 @@ namespace Inventory.API.Controllers
         // URL: POST /api/PurchaseOrders/bulk-delete
         // Frontend call: this.http.post(`${this.apiUrl}/PurchaseOrders/bulk-delete`, { ids })
         [HttpPost("bulk-delete-orders")] // Name easily identifiable
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> BulkDeleteOrders([FromBody] BulkDeletePurchaseOrderCommand command)
         {
             try
@@ -178,6 +187,7 @@ namespace Inventory.API.Controllers
 
         // --- 3. BULK CHILD ITEMS DELETE ---
         [HttpPost("bulk-delete-items")] // Easily identifiable name
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> BulkDeleteItems([FromBody] BulkDeletePOItemsCommand command)
         {
             try
@@ -192,6 +202,28 @@ namespace Inventory.API.Controllers
                 // Agar status "Received" nikla toh ye error throw karega
                 return BadRequest(new { success = false, message = ex.Message });
             }
+        }
+
+        /// <summary>
+        /// Update status
+        /// </summary>
+        /// <param name="dto"></param>
+        /// <returns></returns>
+
+        [HttpPut("UpdateStatus")]
+        [Authorize(Roles = "User,Manager")]
+        public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusDTO dto)
+        {
+            if (dto == null || string.IsNullOrEmpty(dto.Status))
+                return BadRequest("Data sahi nahi hai");
+
+            var command = new UpdatePOStatusCommand(dto.Id, dto.Status);
+            var result = await _mediator.Send(command);
+
+            if (result)
+                return Ok(new { message = "Status Updated to " + dto.Status });
+
+            return NotFound("PO nahi mila");
         }
     }
 }
