@@ -26,6 +26,10 @@ namespace Inventory.Application.Common.Interfaces
         Task UpdateAsync(PurchaseOrder po);
         Task<bool> UpdatePOStatusAsync(int id, string status);
         Task<bool> SaveChangesAsync();
+        
+        Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync();
+
+        Task<IEnumerable<POItemForGRNDto>> GetPOItemsForGRNAsync(int poId);
     }
 
     public interface IUnitOfWork

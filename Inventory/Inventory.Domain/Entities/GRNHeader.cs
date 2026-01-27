@@ -18,6 +18,6 @@ namespace Inventory.Domain.Entities
         public string Remarks { get; set; }
         public string CreatedBy { get; set; }
 
-        public List<GRNDetail> GRNItems { get; set; } // Child Items [cite: 2026-01-22]
+        public List<GRNDetail>? GRNItems { get; set; } // Child Items [cite: 2026-01-22]
     }
 }

@@ -39,6 +39,18 @@ namespace Inventory.API.Controllers
             var data = await _mediator.Send(new GetPOForGRNQuery(poId));
             return data != null ? Ok(data) : NotFound("PO Not Found");
         }
+
+        [HttpGet("grn-list")]
+        public async Task<IActionResult> GetGRNList(
+    [FromQuery] string? search = "",
+    [FromQuery] string? sortField = "id", // Default value rakhein
+    [FromQuery] string? sortOrder = "desc",
+    [FromQuery] int pageIndex = 0,
+    [FromQuery] int pageSize = 10)
+        {
+            var result = await _mediator.Send(new GetGRNListQuery(search ?? "", sortField ?? "id", sortOrder ?? "desc", pageIndex, pageSize));
+            return Ok(result);
+        }
     }
 
 }

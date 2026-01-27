@@ -225,6 +225,20 @@ namespace Inventory.API.Controllers
 
             return NotFound("PO nahi mila");
         }
+
+        [HttpGet("pending-pos")]
+        public async Task<IActionResult> GetPendingPOs()
+        {
+            var result = await _mediator.Send(new GetPendingPOQuery());
+            return Ok(result);
+        }
+
+        [HttpGet("po-items/{poId}")]
+        public async Task<IActionResult> GetPOItemsForGRN(int poId)
+        {
+            var result = await _mediator.Send(new GetPOItemsForGRNQuery(poId));
+            return Ok(result);
+        }
     }
 }
 

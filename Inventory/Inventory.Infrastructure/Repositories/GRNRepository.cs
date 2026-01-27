@@ -113,5 +113,55 @@ namespace Inventory.Infrastructure.Repositories
                     }).ToList()
                 }).FirstOrDefaultAsync();
         }
+
+        public async Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
+        {
+            // 1. Initial Query with Joins (Entity se data nikalne ke liye)
+            var query = _context.GRNHeaders.AsQueryable();
+
+            // 2. Projection: DTO mein map karein
+            var projectedQuery = query.Select(g => new GRNListDto
+            {
+                Id = g.Id,
+                GRNNo = g.GRNNumber,
+                RefPO = g.PurchaseOrder.PoNumber,
+                SupplierName = g.PurchaseOrder.SupplierName,
+                ReceivedDate = g.ReceivedDate,
+                Status = g.Status
+            });
+
+            // 3. Searching
+            if (!string.IsNullOrEmpty(search))
+            {
+                string s = search.ToLower();
+                projectedQuery = projectedQuery.Where(x =>
+                    x.GRNNo.ToLower().Contains(s) ||
+                    x.RefPO.ToLower().Contains(s) ||
+                    x.SupplierName.ToLower().Contains(s));
+            }
+
+            // 4. FIXED Dynamic Sorting
+            // Note: 'sortField' exactly match hona chahiye aapke displayedColumns se
+            bool isDesc = sortOrder?.ToLower() == "desc";
+
+            projectedQuery = (sortField?.ToLower()) switch
+            {
+                "grnnumber" => isDesc ? projectedQuery.OrderByDescending(x => x.GRNNo) : projectedQuery.OrderBy(x => x.GRNNo),
+                "refpo" => isDesc ? projectedQuery.OrderByDescending(x => x.RefPO) : projectedQuery.OrderBy(x => x.RefPO),
+                "suppliername" => isDesc ? projectedQuery.OrderByDescending(x => x.SupplierName) : projectedQuery.OrderBy(x => x.SupplierName),
+                "receiveddate" => isDesc ? projectedQuery.OrderByDescending(x => x.ReceivedDate) : projectedQuery.OrderBy(x => x.ReceivedDate),
+                "status" => isDesc ? projectedQuery.OrderByDescending(x => x.Status) : projectedQuery.OrderBy(x => x.Status),
+                _ => isDesc ? projectedQuery.OrderByDescending(x => x.Id) : projectedQuery.OrderByDescending(x => x.Id)
+            };
+
+            // 5. Execution [cite: 2026-01-22]
+            var totalCount = await projectedQuery.CountAsync();
+            var items = await projectedQuery
+                .Skip(pageIndex * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new GRNPagedResponseDto { Items = items, TotalCount = totalCount };
+        }
     }
 }

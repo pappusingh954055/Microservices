@@ -11,5 +11,6 @@ namespace Inventory.Application.Common.Interfaces
         Task<POForGRNDTO> GetPODataForGRN(int poId);
         Task<string> GenerateGRNNumber();
         Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details);
+        Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize);
     }
 }

@@ -1,8 +1,9 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Common.DTOs;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.PurchaseOrders.DTOs;
+using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
-using Inventory.Application.Common.DTOs;
 
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
@@ -269,5 +270,39 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
         po.Status = status; // String value save hogi (e.g., "Submitted")
         return await _context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync()
+    {
+        return await _context.PurchaseOrders
+            // Condition ko "Approved" ke liye update karein
+            .Where(po => po.Status == "Approved" || po.Status == "Pending" || po.Status == "Partial")
+            .Select(po => new PendingPODto
+            {
+                Id = po.Id,
+                PoNumber = po.PoNumber,
+                SupplierName = po.SupplierName, // Table column ke mutabiq
+                PoDate = po.PoDate,
+                Status = po.Status
+            })
+            .OrderByDescending(po => po.Id)
+            .ToListAsync();
+    }
+    public async Task<IEnumerable<POItemForGRNDto>> GetPOItemsForGRNAsync(int poId)
+    {
+        return await _context.PurchaseOrderItems
+            .Where(poi => poi.PurchaseOrderId == poId)
+            .Select(poi => new POItemForGRNDto
+            {
+                ProductId = poi.ProductId,
+                ProductName = poi.Product.Name,
+                OrderedQty = poi.Qty, // image_161d13.png mein 'Qty' hai
+                UnitPrice = poi.Rate, // image_161d13.png mein 'Rate' hai
+
+                // Yahan GRNDetail use karein kyunki aapki entity ka naam wahi hai [cite: 2026-01-28]
+                AlreadyReceivedQty = _context.Set<GRNDetail>()
+                    .Where(gi => gi.GRNHeader.PurchaseOrderId == poId && gi.ProductId == poi.ProductId)
+                    .Sum(gi => (decimal?)gi.ReceivedQty) ?? 0
+            }).ToListAsync();
     }
 }
