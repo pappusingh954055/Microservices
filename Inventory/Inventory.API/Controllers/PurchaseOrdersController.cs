@@ -64,7 +64,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("get-paged-orders")]
-        [Authorize(Roles = "Admin, User,Manager")]
+        [Authorize(Roles = "Admin,Manager, Warehouse,User")]
         public async Task<IActionResult> GetPagedOrders([FromBody] GetPurchaseOrdersRequest request)
         {
             // Frontend se aane wale request DTO ko query mein wrap kar rahe hain

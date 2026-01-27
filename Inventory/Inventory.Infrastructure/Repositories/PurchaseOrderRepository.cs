@@ -92,12 +92,19 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         return (items, totalCount);
     }
 
+    /// <summary>
+    /// bind main grid polist
+    /// </summary>
+    /// <param name="request"></param>
+    /// <returns></returns>
     public async Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request)
     {
-        // 1. Base Query with Nested Include
+        // 1. Base Query with Nested Include + GRNHeaders Link
+        // HUMNE YAHAN .Include(x => x.GrnHeaders) ADD KIYA HAI
         var query = _context.PurchaseOrders
             .Include(x => x.Items)
                 .ThenInclude(i => i.Product)
+            .Include(x => x.GrnHeaders) // <--- Sabse important update yahi hai
             .AsQueryable();
 
         // 2. GLOBAL SEARCH FIX: Search PO No, Supplier Name, or Status
@@ -118,12 +125,11 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         }
         if (request.ToDate.HasValue)
         {
-            // Pure din ka data lene ke liye end of day logic
             var endOfToDate = request.ToDate.Value.Date.AddDays(1).AddTicks(-1);
             query = query.Where(x => x.PoDate <= endOfToDate);
         }
 
-        // 4. Column Specific Filters (Advanced Grid Filters)
+        // 4. Column Specific Filters
         if (request.Filters != null && request.Filters.Any())
         {
             foreach (var f in request.Filters)
@@ -142,11 +148,10 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             }
         }
 
-        // 5. Total Count (Filtering ke baad count lena zaroori hai)
+        // 5. Total Count
         var total = await query.CountAsync();
 
         // 6. Dynamic Sorting & Pagination Execution
-        // Note: OrderBy hamesha Pagination se pehle karein
         var data = await query
             .OrderByDescending(x => x.PoDate)
             .Skip(request.PageIndex * request.PageSize)

@@ -18,7 +18,7 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             // Yahan "AUTO-GEN" bhej rahe hain taaki Repo ise generate kare, 
             // ya phir yahan seedha generate karwa lein
             GRNNumber = "AUTO-GEN",
-            POHeaderId = dto.POHeaderId,
+            PurchaseOrderId = dto.POHeaderId,
             SupplierId = dto.SupplierId,
             ReceivedDate = dto.ReceivedDate,
             TotalAmount = dto.TotalAmount,

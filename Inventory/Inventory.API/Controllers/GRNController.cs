@@ -14,7 +14,7 @@ namespace Inventory.API.Controllers
         public GRNController(IMediator mediator) => _mediator = mediator;
 
         [HttpPost("Save")]
-        [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Warehouse")]
         public async Task<IActionResult> Save([FromBody] CreateGRNCommand command)
         {
             // Fix: result ab bool nahi balki string (GRN Number) hai

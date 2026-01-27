@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.PriceLists;
+﻿using Inventory.Domain.Entities;
+using Inventory.Domain.PriceLists;
 using System.Net.NetworkInformation;
 
 public class PurchaseOrder
@@ -21,7 +22,7 @@ public class PurchaseOrder
     public DateTime? CreatedDate { get; set; } = DateTime.Now;
     public DateTime? UpdatedDate { get; set; } = DateTime.Now;
     public virtual ICollection<PurchaseOrderItem> Items { get; set; } = new List<PurchaseOrderItem>();
-
+    public virtual ICollection<GRNHeader> GrnHeaders { get; set; } = new List<GRNHeader>();
     public bool CanBeDeleted()
     {
         // 1. Status Check: Sirf 'Draft' ya 'Pending' status wale PO delete hone chahiye

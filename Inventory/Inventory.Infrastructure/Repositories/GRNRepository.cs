@@ -18,7 +18,7 @@ namespace Inventory.Infrastructure.Repositories
         public async Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details)
         {
             // 1. PO Reference Check
-            if (header.POHeaderId <= 0)
+            if (header.PurchaseOrderId <= 0)
             {
                 throw new Exception("Purchase Order Reference (POHeaderId) is missing. Cannot save GRN.");
             }
@@ -29,8 +29,8 @@ namespace Inventory.Infrastructure.Repositories
                 // 2. Header Setup
                 header.Status = "Received"; // SQL NULL error fix
                 header.CreatedOn = DateTime.Now;
-                header.UpdatedOn = DateTime.Now;
-
+                header.CreatedBy = header.CreatedBy;               
+                header.ModifiedBy = header.ModifiedBy;
                 // Agar UI se AUTO-GEN aaya hai toh naya number generate karein
                 if (string.IsNullOrEmpty(header.GRNNumber) || header.GRNNumber == "AUTO-GEN")
                 {
@@ -59,8 +59,8 @@ namespace Inventory.Infrastructure.Repositories
                     if (product != null)
                     {
                         product.CurrentStock += item.ReceivedQty;
-                        product.ModifiedOn = DateTime.Now;
-                        product.ModifiedBy = header.CreatedBy;
+                        product.CreatedOn = DateTime.Now;
+                        product.CreatedBy = header.CreatedBy;
                         _context.Products.Update(product);
                     }
                 }
@@ -108,7 +108,7 @@ namespace Inventory.Infrastructure.Repositories
 
                         DiscountPercentage = d.DiscountPercent,
                         PendingQty = d.Qty - (_context.GRNDetails
-                            .Where(g => g.ProductId == d.ProductId && g.GRNHeader.POHeaderId == poId)
+                            .Where(g => g.ProductId == d.ProductId && g.GRNHeader.PurchaseOrderId == poId)
                             .Sum(g => (decimal?)g.ReceivedQty) ?? 0)
                     }).ToList()
                 }).FirstOrDefaultAsync();

@@ -9,7 +9,8 @@ namespace Inventory.Domain.Entities
     {
         public int Id { get; set; }
         public string GRNNumber { get; set; }
-        public int POHeaderId { get; set; } // Reference to PO [cite: 2026-01-22]
+        public int PurchaseOrderId { get; set; } 
+        public PurchaseOrder PurchaseOrder { get; set; }    
         public int SupplierId { get; set; }
         public DateTime ReceivedDate { get; set; }
         public decimal TotalAmount { get; set; }
