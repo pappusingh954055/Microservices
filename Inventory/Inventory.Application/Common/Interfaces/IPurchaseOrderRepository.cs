@@ -30,6 +30,8 @@ namespace Inventory.Application.Common.Interfaces
         Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync();
 
         Task<IEnumerable<POItemForGRNDto>> GetPOItemsForGRNAsync(int poId);
+
+        Task<POHeaderDetailsDto?> GetPOHeaderAsync(int lastPurchaseOrderId);
     }
 
     public interface IUnitOfWork

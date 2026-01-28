@@ -10,6 +10,7 @@ namespace Inventory.Application.GRN.DTOs
         public string PONumber { get; set; }
         public int SupplierId { get; set; }
         public string SupplierName { get; set; }
+        public string GrnNumber { get; set; }
         //public decimal DiscountPercent { get; set; }
         public List<POItemForGRNDTO> Items { get; set; }
     }

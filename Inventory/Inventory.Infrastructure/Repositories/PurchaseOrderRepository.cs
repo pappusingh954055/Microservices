@@ -4,6 +4,7 @@ using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
@@ -100,61 +101,66 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     /// <returns></returns>
     public async Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request)
     {
-        // 1. Base Query with Nested Include + GRNHeaders Link
-        // HUMNE YAHAN .Include(x => x.GrnHeaders) ADD KIYA HAI
         var query = _context.PurchaseOrders
-            .Include(x => x.Items)
-                .ThenInclude(i => i.Product)
-            .Include(x => x.GrnHeaders) // <--- Sabse important update yahi hai
+            .Include(x => x.Items).ThenInclude(i => i.Product)
+            .Include(x => x.GrnHeaders)
             .AsQueryable();
 
-        // 2. GLOBAL SEARCH FIX: Search PO No, Supplier Name, or Status
+        // 1. GLOBAL SEARCH FIX (image_ddd1f3.png mark)
         if (!string.IsNullOrWhiteSpace(request.Filter))
         {
             var searchTerm = request.Filter.Trim().ToLower();
             query = query.Where(x =>
-                x.PoNumber.ToLower().Contains(searchTerm) ||
-                x.SupplierName.ToLower().Contains(searchTerm) ||
-                x.Status.ToLower().Contains(searchTerm)
+                (x.PoNumber != null && x.PoNumber.ToLower().Contains(searchTerm)) ||
+                (x.SupplierName != null && x.SupplierName.ToLower().Contains(searchTerm)) ||
+                (x.Status != null && x.Status.ToLower().Contains(searchTerm))
             );
         }
 
-        // 3. Global Date Range Filter
-        if (request.FromDate.HasValue)
-        {
-            query = query.Where(x => x.PoDate >= request.FromDate.Value);
-        }
+        // 2. DATE RANGE
+        if (request.FromDate.HasValue) query = query.Where(x => x.PoDate >= request.FromDate.Value);
         if (request.ToDate.HasValue)
         {
             var endOfToDate = request.ToDate.Value.Date.AddDays(1).AddTicks(-1);
             query = query.Where(x => x.PoDate <= endOfToDate);
         }
 
-        // 4. Column Specific Filters
+        // 3. COLUMN SPECIFIC FILTERS FIX (image_de41f8.jpg mark)
         if (request.Filters != null && request.Filters.Any())
         {
             foreach (var f in request.Filters)
             {
-                if (string.IsNullOrEmpty(f.Value)) continue;
-                var val = f.Value.ToLower();
+                var val = (f.Value ?? "").Trim().ToLower();
+                var field = (f.Field ?? "").Trim().ToLower();
 
-                query = f.Field.ToLower() switch
+                if (string.IsNullOrEmpty(val)) continue;
+
+                query = field switch
                 {
-                    "ponumber" => query.Where(x => x.PoNumber.ToLower().Contains(val)),
-                    "suppliername" => query.Where(x => x.SupplierName.ToLower().Contains(val)),
-                    "status" => query.Where(x => x.Status.ToLower().Contains(val)),
+                    "status" => query.Where(x => x.Status != null && x.Status.ToLower() == val), // Match exactly for status
+                    "ponumber" or "po no." => query.Where(x => x.PoNumber != null && x.PoNumber.ToLower().Contains(val)),
+                    "suppliername" => query.Where(x => x.SupplierName != null && x.SupplierName.ToLower().Contains(val)),
                     "id" => query.Where(x => x.Id.ToString().Contains(val)),
                     _ => query
                 };
             }
         }
 
-        // 5. Total Count
         var total = await query.CountAsync();
 
-        // 6. Dynamic Sorting & Pagination Execution
+        // 4. DYNAMIC SORTING FIX
+        bool isDesc = request.SortOrder?.ToLower() == "desc";
+        string sortField = request.SortField?.ToLower().Trim();
+
+        query = sortField switch
+        {
+            "status" => isDesc ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+            "ponumber" => isDesc ? query.OrderByDescending(x => x.PoNumber) : query.OrderBy(x => x.PoNumber),
+            "suppliername" => isDesc ? query.OrderByDescending(x => x.SupplierName) : query.OrderBy(x => x.SupplierName),
+            _ => isDesc ? query.OrderByDescending(x => x.PoDate) : query.OrderBy(x => x.PoDate)
+        };
+
         var data = await query
-            .OrderByDescending(x => x.PoDate)
             .Skip(request.PageIndex * request.PageSize)
             .Take(request.PageSize)
             .ToListAsync();
@@ -275,13 +281,13 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     public async Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync()
     {
         return await _context.PurchaseOrders
-            // Condition ko "Approved" ke liye update karein
-            .Where(po => po.Status == "Approved" || po.Status == "Pending" || po.Status == "Partial")
+            // Condition: Status 'Approved' ho AUR uska koi GRN na bana ho
+            .Where(po => po.Status == "Approved" && !_context.GRNHeaders.Any(grn => grn.PurchaseOrderId == po.Id))
             .Select(po => new PendingPODto
             {
                 Id = po.Id,
                 PoNumber = po.PoNumber,
-                SupplierName = po.SupplierName, // Table column ke mutabiq
+                SupplierName = po.SupplierName,
                 PoDate = po.PoDate,
                 Status = po.Status
             })
@@ -290,19 +296,44 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     }
     public async Task<IEnumerable<POItemForGRNDto>> GetPOItemsForGRNAsync(int poId)
     {
-        return await _context.PurchaseOrderItems
+        var poItems = await _context.PurchaseOrderItems
             .Where(poi => poi.PurchaseOrderId == poId)
-            .Select(poi => new POItemForGRNDto
-            {
-                ProductId = poi.ProductId,
-                ProductName = poi.Product.Name,
-                OrderedQty = poi.Qty, // image_161d13.png mein 'Qty' hai
-                UnitPrice = poi.Rate, // image_161d13.png mein 'Rate' hai
+            .Include(poi => poi.Product)
+            .ToListAsync();
 
-                // Yahan GRNDetail use karein kyunki aapki entity ka naam wahi hai [cite: 2026-01-28]
-                AlreadyReceivedQty = _context.Set<GRNDetail>()
-                    .Where(gi => gi.GRNHeader.PurchaseOrderId == poId && gi.ProductId == poi.ProductId)
-                    .Sum(gi => (decimal?)gi.ReceivedQty) ?? 0
-            }).ToListAsync();
+        var receivedQuantities = await _context.Set<GRNDetail>() // Entity name check karein
+            .Where(gi => gi.GRNHeader.PurchaseOrderId == poId)
+            .GroupBy(gi => gi.ProductId)
+            .Select(g => new { ProductId = g.Key, Total = g.Sum(x => (decimal?)x.ReceivedQty) ?? 0 })
+            .ToListAsync();
+
+        // '.map' ki jagah '.Select' use karein
+        return poItems.Select(poi => new POItemForGRNDto
+        {
+            ProductId = poi.ProductId,
+            ProductName = poi.Product?.Name,
+            OrderedQty = poi.Qty,
+            UnitPrice = poi.Rate,
+            AlreadyReceivedQty = receivedQuantities.FirstOrDefault(rq => rq.ProductId == poi.ProductId)?.Total ?? 0
+        }).ToList();
+    }
+
+    public async Task<POHeaderDetailsDto?> GetPOHeaderAsync(int lastPurchaseOrderId)
+    {
+        return await _context.PurchaseOrders
+        .Where(x => x.Id == lastPurchaseOrderId)
+        
+        .Select(x => new POHeaderDetailsDto
+        {
+            PurchaseOrderId = x.Id,
+            ExpectedDeliveryDate=x.ExpectedDeliveryDate,
+            SupplierId = x.SupplierId,      // int
+            SupplierName = x.SupplierName,
+            PriceListId = x.PriceListId, 
+            
+            Remarks = x.Remarks,
+            PoNumber = x.PoNumber,
+            PoDate = DateTime.Now           // Hamesha current date rakhein
+        }).FirstOrDefaultAsync();
     }
 }

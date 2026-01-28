@@ -6,6 +6,9 @@ namespace Inventory.Application.GRN.DTOs.Stock
 {
     public class StockSummaryDto
     {
+        public Guid ProductId { get; set; }
+        public int LastSupplierId { get; set; }
+        public  int LastPurchaseOrderId { get; set; }
         public string? ProductName { get; set; }
         public decimal TotalReceived { get; set; } // Sum of ReceivedQty
         public string? Unit { get; set; }

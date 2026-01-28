@@ -13,5 +13,7 @@ namespace Inventory.Application.Common.Interfaces
             string? sortOrder,
             int pageIndex,
             int pageSize);
+
+        Task<StockRefillDetailsDto> GetRefillDetailsAsync(Guid productId);
     }
 }

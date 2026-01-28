@@ -239,6 +239,30 @@ namespace Inventory.API.Controllers
             var result = await _mediator.Send(new GetPOItemsForGRNQuery(poId));
             return Ok(result);
         }
+
+        /// <summary>
+        /// Dashboard se lastPurchaseOrderId (int) lekar Header details fetch karta hai
+        /// </summary>
+        /// <param name="lastPurchaseOrderId">Integer format ID</param>
+        [HttpGet("header-details/{lastPurchaseOrderId:int}")]
+        public async Task<ActionResult<POHeaderDetailsDto>> GetHeaderDetails(int lastPurchaseOrderId)
+        {
+            // 1. Query create karein [cite: 2026-01-22]
+            var query = new GetPOHeaderDetailsQuery(lastPurchaseOrderId);
+
+            // 2. MediatR se Handler trigger karein [cite: 2026-01-22]
+            var result = await _mediator.Send(query);
+
+            // 3. Validation
+            if (result == null)
+            {
+                return NotFound($"Previous Purchase Order with ID {lastPurchaseOrderId} not found.");
+            }
+
+            // 4. POHeaderDetailsDto return karein
+            return Ok(result);
+        }
+
     }
 }
 

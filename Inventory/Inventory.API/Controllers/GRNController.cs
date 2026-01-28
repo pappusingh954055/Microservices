@@ -42,11 +42,11 @@ namespace Inventory.API.Controllers
 
         [HttpGet("grn-list")]
         public async Task<IActionResult> GetGRNList(
-    [FromQuery] string? search = "",
-    [FromQuery] string? sortField = "id", // Default value rakhein
-    [FromQuery] string? sortOrder = "desc",
-    [FromQuery] int pageIndex = 0,
-    [FromQuery] int pageSize = 10)
+        [FromQuery] string? search = "",
+        [FromQuery] string? sortField = "id", // Default value rakhein
+        [FromQuery] string? sortOrder = "desc",
+        [FromQuery] int pageIndex = 0,
+        [FromQuery] int pageSize = 10)
         {
             var result = await _mediator.Send(new GetGRNListQuery(search ?? "", sortField ?? "id", sortOrder ?? "desc", pageIndex, pageSize));
             return Ok(result);
