@@ -42,7 +42,7 @@ public class GetPriceListByIdQueryHandler : IRequestHandler<GetPriceListByIdQuer
                 productId = item.ProductId,
                 productName = item.Product.Name, // Angular search box ke liye
                 unit = item.Unit,
-                price = item.Price,
+                rate = item.Rate,
                 discountPercent = item.DiscountPercent,
                 minQty = item.MinQty,
                 maxQty = item.MaxQty

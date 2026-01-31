@@ -6,12 +6,12 @@ public class PriceListItem
     public Guid PriceListId { get;  set; }
     public Guid ProductId { get;  set; }
     public Product Product { get;  set; }    
-    public decimal Price { get;  set; }
+    public decimal Rate { get;  set; }
     public string Unit { get; set; }
     public decimal DiscountPercent { get;  set; } // UI: Disc (%)
     public int MinQty { get;  set; }
     public int MaxQty { get;  set; }
-    public decimal Rate { get; set; }
+
 
     public PriceListItem() { }
 

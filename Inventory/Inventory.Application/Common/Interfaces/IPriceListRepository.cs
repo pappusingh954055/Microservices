@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.Entities;
+﻿using Inventory.Application.PriceLists.DTOs;
+using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 
 namespace Inventory.Application.Common.Interfaces;
@@ -21,4 +22,7 @@ public interface IPriceListRepository
     Task<PriceList?> GetByIdWithItemsAsync(Guid id, CancellationToken cancellationToken);
 
     Task UpdatePriceListAsync(PriceList entity, CancellationToken cancellationToken);
+
+    Task<List<PriceListItemDto>> GetPriceListItemsAsync(Guid priceListId);
+
 }

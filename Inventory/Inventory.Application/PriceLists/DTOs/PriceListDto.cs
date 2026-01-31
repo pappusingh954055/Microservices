@@ -36,6 +36,7 @@ public sealed class PriceListItemDetailDto
     public string productName { get; set; } = string.Empty; // UI mein dikhane ke liye
     public string unit { get; set; } = string.Empty; // UI: Unit
     public decimal price { get; set; } // UI: Rate
+    public decimal rate { get; set; } // UI: Rate
     public decimal discountPercent { get; set; } // UI: Disc (%)
     public int minQty { get; set; }
     public int maxQty { get; set; }

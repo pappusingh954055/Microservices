@@ -1,7 +1,9 @@
 ﻿using Inventory.API.Common;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Common.Models;
 using Inventory.Application.PriceLists.Commands.DeletePriceList;
 using Inventory.Application.PriceLists.Commands.UpdatePriceList;
+using Inventory.Application.PriceLists.DTOs;
 using Inventory.Application.PriceLists.Queries.GetPriceListById;
 using Inventory.Application.PriceLists.Queries.GetPriceLists;
 using Inventory.Application.PriceLists.Queries.Paged;
@@ -16,16 +18,19 @@ namespace Inventory.API.Controllers
     public class PriceListsController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly IPriceListRepository _priceListRepository;
 
-        public PriceListsController(IMediator mediator)
+
+        public PriceListsController(IMediator mediator,IPriceListRepository price)
         {
             _mediator = mediator;
+            _priceListRepository = price;
         }
 
         
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Create([FromBody] CreatePriceListCommand command)
         {
             var resultId = await _mediator.Send(command);
@@ -34,7 +39,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Update(Guid id, UpdatePriceListCommand command)
         {
             if (id != command.id) return BadRequest("ID Mismatch");
@@ -45,7 +50,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -88,7 +93,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-delete")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             try
@@ -117,6 +122,23 @@ namespace Inventory.API.Controllers
                     message = ex.Message
                 });
             }
+        }
+
+        [HttpGet("price-list-items/{priceListId}")]
+        [Authorize(Roles = "Manager, Admin, User")]
+        public async Task<ActionResult<List<PriceListItemDto>>> GetPriceListItems(Guid priceListId)
+        {
+            // 1. Repository method ko call karein [cite: 2026-01-22]
+            var items = await _priceListRepository.GetPriceListItemsAsync(priceListId);
+
+            // 2. Agar data nahi milta toh empty list bhej dein [cite: 2026-01-22]
+            if (items == null)
+            {
+                return NotFound("No items found for this Price List.");
+            }
+
+            // 3. Status 200 ke saath items return karein [cite: 2026-01-22]
+            return Ok(items);
         }
     }
 }

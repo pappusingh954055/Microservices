@@ -19,5 +19,6 @@ namespace Inventory.Application.GRN.DTOs.Stock
         public int MinStockLevel {  get; set; }
 
         public decimal AvailableStock { get; set; }
+        public decimal TotalRejected { get; set; }
     }
 }

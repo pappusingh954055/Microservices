@@ -7,7 +7,7 @@ namespace Inventory.Application.PriceLists.DTOs
     public record PriceListItemUpdateDto
     {
         public Guid productId { get; init; }
-        public decimal price { get; init; }
+        public decimal rate { get; init; }
         public decimal discountPercent { get; init; }
         public int minQty { get; init; }
         public int maxQty { get; init; }

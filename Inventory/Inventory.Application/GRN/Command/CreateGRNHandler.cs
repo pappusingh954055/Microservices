@@ -33,6 +33,8 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             ProductId = i.ProductId,
             OrderedQty = i.OrderedQty,
             ReceivedQty = i.ReceivedQty,
+            RejectedQty = i.RejectedQty,
+            AcceptedQty = i.AcceptedQty,
             UnitRate = i.UnitRate,
             UpdatedOn = DateTime.Now
         }).ToList();

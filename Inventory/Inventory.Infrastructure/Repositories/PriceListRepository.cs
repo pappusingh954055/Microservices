@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.PriceLists.DTOs;
 using Inventory.Domain.PriceLists;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -88,5 +89,19 @@ internal sealed class PriceListRepository : IPriceListRepository
         // Existing items ko handle karne ke liye context ka use karein
         _context.PriceLists.Update(entity);
         await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task<List<PriceListItemDto>> GetPriceListItemsAsync(Guid priceListId)
+    {
+        return await _context.PriceListItems
+            .Where(x => x.PriceListId == priceListId)
+            .Select(x => new PriceListItemDto
+            {
+                ProductId = x.ProductId,
+                ProductName = x.Product.Name,
+                Rate = x.Rate, // Price list ka current rate
+                Unit = x.Product.Unit
+            })
+            .ToListAsync();
     }
 }

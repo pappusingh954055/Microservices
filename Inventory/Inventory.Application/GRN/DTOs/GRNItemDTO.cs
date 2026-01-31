@@ -9,6 +9,8 @@ namespace Inventory.Application.GRN.DTOs
         public Guid ProductId { get; set; } // Based on your DB schema
         public decimal OrderedQty { get; set; }
         public decimal ReceivedQty { get; set; }
+        public decimal RejectedQty { get; set; }
+        public decimal AcceptedQty { get; set; }
         public decimal UnitRate { get; set; }
     }
 }

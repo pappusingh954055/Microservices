@@ -19,7 +19,7 @@ namespace Suppliers.API.Controllers
 
         // CREATE: POST api/v1/supplier
         [HttpPost]
-       [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Manager, Admin,User")]
         //[AllowAnonymous]
         public async Task<IActionResult> Create([FromBody] CreateSupplierDto dto)
         {

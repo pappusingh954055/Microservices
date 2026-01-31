@@ -35,7 +35,7 @@ public class UpdatePriceListCommandHandler : IRequestHandler<UpdatePriceListComm
             entity.PriceListItems.Add(new PriceListItem
             {
                 ProductId = item.productId,
-                Price = item.price,
+                Rate = item.rate,
                 DiscountPercent = item.discountPercent,
                 MinQty = item.minQty,
                 MaxQty = item.maxQty,

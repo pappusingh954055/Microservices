@@ -12,7 +12,7 @@ public class PriceListItemConfiguration : IEntityTypeConfiguration<PriceListItem
 
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Price)
+        builder.Property(x => x.Rate)
             .HasPrecision(18, 2)
             .IsRequired();
         builder.Property(x => x.MinQty)
