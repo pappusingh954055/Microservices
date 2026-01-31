@@ -1,5 +1,6 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Application.GRN.DTOs;
+using Inventory.Application.GRN.DTOs.Stock;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -84,12 +85,20 @@ namespace Inventory.Infrastructure.Repositories
             return $"GRN-{DateTime.Now.Year}-{new Random().Next(1000, 9999)}";
         }
 
-        public async Task<POForGRNDTO?> GetPODataForGRN(int poId)
+        public async Task<POForGRNDTO?> GetPODataForGRN(int poId, int? grnHeaderId = null)
         {
-            // 1. Aapka existing method call karke naya number lein
-            string nextGrnNumber = await GenerateGRNNumber();
+            // 1. View Mode Logic: Agar poId 0 hai, toh header table se sahi POId nikaalein
+            if (grnHeaderId != null && poId == 0)
+            {
+                poId = await _context.GRNHeaders
+                    .Where(x => x.Id == grnHeaderId)
+                    .Select(x => x.PurchaseOrderId)
+                    .FirstOrDefaultAsync();
 
-            // 2. Query mein 'nextGrnNumber' pass karein
+                if (poId == 0) return null; // Case: GRN record hi nahi mila
+            }
+
+            // 2. Fetch data with items based on mode (View vs New)
             return await _context.PurchaseOrders
                 .Include(h => h.Items)
                 .ThenInclude(i => i.Product)
@@ -98,23 +107,91 @@ namespace Inventory.Infrastructure.Repositories
                 {
                     POHeaderId = h.Id,
                     PONumber = h.PoNumber ?? "",
-                    // Yahan se value bhejenge toh Angular console mein undefined nahi aayega
-                    GrnNumber = nextGrnNumber,
-                    SupplierId = h.SupplierId,
+                    // Saved GRN number bind karein agar view mode hai
+                    GrnNumber = grnHeaderId != null ?
+                                _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.GRNNumber).FirstOrDefault() :
+                                "AUTO-GEN",
                     SupplierName = h.SupplierName ?? "Unknown",
-                    Items = h.Items.Select(d => new POItemForGRNDTO
-                    {
-                        ProductId = d.ProductId,
-                        ProductName = d.Product.Name ?? "N/A",
-                        OrderedQty = d.Qty,
-                        UnitRate = d.Rate - (d.Rate * (d.DiscountPercent / 100)),
-                        DiscountPercentage = d.DiscountPercent,
-                        PendingQty = d.Qty - (_context.GRNDetails
-                            .Where(g => g.ProductId == d.ProductId && g.GRNHeader.PurchaseOrderId == poId)
-                            .Sum(g => (decimal?)g.ReceivedQty) ?? 0)
-                    }).ToList()
+                    Remarks = grnHeaderId != null ?
+                              _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.Remarks).FirstOrDefault() : "",
+
+                    // Problem Solve: Ab PO-47 ke liye DB ke 2 records uthayega, na ki PO ke 3 items
+                    Items = grnHeaderId != null
+                        ? _context.GRNDetails
+                            .Where(g => g.GRNHeaderId == grnHeaderId)
+                            .Select(d => new POItemForGRNDTO
+                            {
+                                ProductId = d.ProductId,
+                                ProductName = d.Product.Name ?? "N/A",
+                                OrderedQty = d.OrderedQty,
+                                ReceivedQty = d.ReceivedQty,
+                                RejectedQty = d.RejectedQty,
+                                AcceptedQty = d.AcceptedQty,
+                                UnitRate = d.UnitRate
+                            }).ToList()
+                        : h.Items.Select(d => new POItemForGRNDTO
+                        {
+                            ProductId = d.ProductId,
+                            ProductName = d.Product.Name ?? "N/A",
+                            OrderedQty = d.Qty,
+                            UnitRate = d.Rate - (d.Rate * (d.DiscountPercent / 100)),
+                            PendingQty = d.Qty - (_context.GRNDetails
+                                    .Where(g => g.ProductId == d.ProductId && g.GRNHeader.PurchaseOrderId == poId)
+                                    .Sum(g => (decimal?)g.AcceptedQty) ?? 0),
+                            ReceivedQty = 0,
+                            RejectedQty = 0,
+                            AcceptedQty = 0
+                        }).ToList()
                 }).FirstOrDefaultAsync();
         }
+
+        //public async Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
+        //{
+        //    var query = _context.GRNHeaders.AsQueryable();
+
+        //    // 1. Searching Logic (Fix: Null checks for safe searching)
+        //    if (!string.IsNullOrWhiteSpace(search))
+        //    {
+        //        string s = search.Trim().ToLower();
+        //        query = query.Where(x =>
+        //            (x.GRNNumber != null && x.GRNNumber.ToLower().Contains(s)) ||
+        //            (x.PurchaseOrder.PoNumber != null && x.PurchaseOrder.PoNumber.ToLower().Contains(s)) ||
+        //            (x.PurchaseOrder.SupplierName != null && x.PurchaseOrder.SupplierName.ToLower().Contains(s)));
+        //    }
+
+        //    // 2. Projection to DTO
+        //    var projectedQuery = query.Select(g => new GRNListDto
+        //    {
+        //        Id = g.Id,
+        //        GRNNo = g.GRNNumber,
+        //        RefPO = g.PurchaseOrder.PoNumber,
+        //        SupplierName = g.PurchaseOrder.SupplierName,
+        //        ReceivedDate = g.ReceivedDate,
+        //        Status = g.Status
+        //    });
+
+        //    // 3. Sorting Fix (Matching with frontend field names)
+        //    bool isDesc = sortOrder?.ToLower() == "desc";
+        //    string field = sortField?.ToLower().Trim();
+
+        //    projectedQuery = field switch
+        //    {
+        //        "grnno" or "grnnumber" => isDesc ? projectedQuery.OrderByDescending(x => x.GRNNo) : projectedQuery.OrderBy(x => x.GRNNo),
+        //        "refpo" => isDesc ? projectedQuery.OrderByDescending(x => x.RefPO) : projectedQuery.OrderBy(x => x.RefPO),
+        //        "suppliername" => isDesc ? projectedQuery.OrderByDescending(x => x.SupplierName) : projectedQuery.OrderBy(x => x.SupplierName),
+        //        "receiveddate" => isDesc ? projectedQuery.OrderByDescending(x => x.ReceivedDate) : projectedQuery.OrderBy(x => x.ReceivedDate),
+        //        _ => isDesc ? projectedQuery.OrderByDescending(x => x.Id) : projectedQuery.OrderByDescending(x => x.Id)
+        //    };
+
+        //    // 4. Final Execution with Pagination [cite: 2026-01-22]
+        //    var totalCount = await projectedQuery.CountAsync();
+        //    var items = await projectedQuery
+        //        .Skip(pageIndex * pageSize) // Page skip logic
+        //        .Take(pageSize)             // Page size logic
+        //        .ToListAsync();
+
+        //    return new GRNPagedResponseDto { Items = items, TotalCount = totalCount };
+        //}
 
         public async Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
         {
@@ -130,7 +207,7 @@ namespace Inventory.Infrastructure.Repositories
                     (x.PurchaseOrder.SupplierName != null && x.PurchaseOrder.SupplierName.ToLower().Contains(s)));
             }
 
-            // 2. Projection to DTO
+            // 2. Projection to DTO (Upgraded for Expansion Logic)
             var projectedQuery = query.Select(g => new GRNListDto
             {
                 Id = g.Id,
@@ -138,7 +215,19 @@ namespace Inventory.Infrastructure.Repositories
                 RefPO = g.PurchaseOrder.PoNumber,
                 SupplierName = g.PurchaseOrder.SupplierName,
                 ReceivedDate = g.ReceivedDate,
-                Status = g.Status
+                Status = g.Status,
+
+                // Expansion ke liye items ka data
+                Items = g.GRNItems.Select(d => new GRNItemSummaryDto
+                {
+                    ProductName = d.Product.Name,
+                    ReceivedQty = d.ReceivedQty,
+                    RejectedQty = d.RejectedQty,
+                    UnitRate = d.UnitRate
+                }).ToList(),
+
+                // Frontend status badge logic ke liye total rejections
+                TotalRejected = g.GRNItems.Sum(d => d.RejectedQty)
             });
 
             // 3. Sorting Fix (Matching with frontend field names)

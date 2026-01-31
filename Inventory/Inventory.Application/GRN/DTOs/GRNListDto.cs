@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Inventory.Application.GRN.DTOs.Stock;
 
 namespace Inventory.Application.GRN.DTOs
 {
@@ -12,6 +10,9 @@ namespace Inventory.Application.GRN.DTOs
         public string SupplierName { get; set; }
         public DateTime ReceivedDate { get; set; }
         public string Status { get; set; } // Completed or Partial
+                                           // Yeh do fields expansion aur badge logic ke liye zaroori hain
+        public decimal TotalRejected { get; set; }
+        public List<GRNItemSummaryDto> Items { get; set; } = new List<GRNItemSummaryDto>();
     }
     // Paged Response [cite: 2026-01-22]
     public class GRNPagedResponseDto

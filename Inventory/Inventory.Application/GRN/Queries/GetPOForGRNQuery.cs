@@ -6,5 +6,5 @@ using System.Text;
 
 namespace Inventory.Application.GRN.Queries
 {
-    public record GetPOForGRNQuery(int POId) : IRequest<POForGRNDTO>;
+    public record GetPOForGRNQuery(int POId, int? GrnHeaderId = null) : IRequest<POForGRNDTO?>;
 }

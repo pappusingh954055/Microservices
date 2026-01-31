@@ -34,9 +34,11 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("GetPOData/{poId}")]
-        public async Task<IActionResult> GetPOData(int poId)
+        public async Task<IActionResult> GetPOData(int poId, [FromQuery] int? grnHeaderId = null)
         {
-            var data = await _mediator.Send(new GetPOForGRNQuery(poId));
+            // Mediator query mein ab do parameters jayenge
+            var data = await _mediator.Send(new GetPOForGRNQuery(poId, grnHeaderId));
+
             return data != null ? Ok(data) : NotFound("PO Not Found");
         }
 

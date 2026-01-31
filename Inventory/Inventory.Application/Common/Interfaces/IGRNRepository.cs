@@ -8,7 +8,7 @@ namespace Inventory.Application.Common.Interfaces
 {
     public interface IGRNRepository
     {
-        Task<POForGRNDTO> GetPODataForGRN(int poId);
+        Task<POForGRNDTO?> GetPODataForGRN(int poId, int? grnHeaderId = null);
         Task<string> GenerateGRNNumber();
         Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details);
         Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize);
