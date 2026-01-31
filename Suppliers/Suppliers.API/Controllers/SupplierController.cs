@@ -41,7 +41,7 @@ namespace Suppliers.API.Controllers
 
         // UPDATE: PUT api/v1/supplier/5
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin,Manager")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateSupplierDto dto)
         {
             var result = await _mediator.Send(new UpdateSupplierCommand(id, dto));
@@ -50,7 +50,7 @@ namespace Suppliers.API.Controllers
 
         // DELETE: DELETE api/v1/supplier/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _mediator.Send(new DeleteSupplierCommand(id));

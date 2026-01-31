@@ -149,9 +149,135 @@ namespace Inventory.Infrastructure.Repositories
         //    return new StockPagedResponseDto { Items = items, TotalCount = totalCount };
         //}
 
+        //public async Task<StockPagedResponseDto> GetCurrentStockAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
+        //{
+        //    // 1. Optimized Base Query with Rejection Logic
+        //    var query = _context.GRNDetails
+        //        .GroupBy(g => new
+        //        {
+        //            ProductId = g.ProductId,
+        //            ProductName = g.Product.Name,
+        //            UnitName = g.Product.Unit,
+        //            MinStock = g.Product.MinStock
+        //        })
+        //        .Select(group => new StockSummaryDto
+        //        {
+        //            ProductId = group.Key.ProductId,
+        //            ProductName = group.Key.ProductName,
+        //            Unit = group.Key.UnitName,
+        //            MinStockLevel = group.Key.MinStock,
+
+        //            // Gate par total kitna maal utra [cite: 2026-01-31]
+        //            TotalReceived = group.Sum(x => x.ReceivedQty),
+
+        //            // TOTAL REJECTED: Jitna maal damage record kiya gaya [cite: 2026-01-31]
+        //            TotalRejected = group.Sum(x => x.RejectedQty),
+
+        //            // AVAILABLE STOCK: Formula badal kar (Received - Rejected) kar diya hai [cite: 2026-01-31]
+        //            // Note: Jab Sales table judegi toh yahan se '- SoldQty' bhi minus hoga.
+        //            AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
+
+        //            // Latest Price: Latest entry se uthayenge
+        //            LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
+
+        //            // Reference IDs: Naya PO banane ke liye zaroori hain
+        //            LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault(),
+        //            LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault()
+        //        });
+
+        //    // 2. Search Logic
+        //    if (!string.IsNullOrEmpty(search))
+        //    {
+        //        query = query.Where(x => x.ProductName.Contains(search));
+        //    }
+
+        //    // 3. Dynamic Sorting
+        //    bool isDesc = sortOrder?.ToLower() == "desc";
+        //    query = sortField?.ToLower() switch
+        //    {
+        //        "productname" => isDesc ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
+        //        "availablestock" => isDesc ? query.OrderByDescending(x => x.AvailableStock) : query.OrderBy(x => x.AvailableStock),
+        //        "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected), // Naya sorting option
+        //        "unitrate" => isDesc ? query.OrderByDescending(x => x.LastRate) : query.OrderBy(x => x.LastRate),
+        //        _ => query.OrderBy(x => x.ProductName)
+        //    };
+
+        //    // 4. Execution
+        //    var totalCount = await query.CountAsync();
+        //    var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+
+        //    return new StockPagedResponseDto { Items = items, TotalCount = totalCount };
+        //}
+
+        //public async Task<StockPagedResponseDto> GetCurrentStockAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
+        //{
+        //    // 1. Optimized Base Query [cite: 2026-01-31]
+        //    var query = _context.GRNDetails
+        //        .GroupBy(g => new
+        //        {
+        //            ProductId = g.ProductId,
+        //            ProductName = g.Product.Name,
+        //            UnitName = g.Product.Unit,
+        //            MinStock = g.Product.MinStock
+        //        })
+        //        .Select(group => new StockSummaryDto
+        //        {
+        //            ProductId = group.Key.ProductId,
+        //            ProductName = group.Key.ProductName,
+        //            Unit = group.Key.UnitName,
+        //            MinStockLevel = group.Key.MinStock,
+
+        //            TotalReceived = group.Sum(x => x.ReceivedQty),
+        //            TotalRejected = group.Sum(x => x.RejectedQty),
+        //            AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
+
+        //            LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
+        //            LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault(),
+        //            LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault(),
+
+        //            // Traceability: Pichli saari rejections aur receipts ka record [cite: 2026-01-31]
+        //            History = group.OrderByDescending(x => x.GRNHeader.ReceivedDate)
+        //                           .Select(h => new StockHistoryDto
+        //                           {
+        //                               ReceivedDate = h.GRNHeader.ReceivedDate,
+        //                               PONumber = h.GRNHeader.PurchaseOrder.PoNumber,
+        //                               SupplierName = h.GRNHeader.PurchaseOrder.SupplierName,
+        //                               ReceivedQty = h.ReceivedQty,
+        //                               RejectedQty = h.RejectedQty
+        //                           }).ToList()
+        //        });
+
+        //    // 2. Search Logic
+        //    if (!string.IsNullOrEmpty(search))
+        //    {
+        //        query = query.Where(x => x.ProductName.Contains(search));
+        //    }
+
+        //    // 3. Dynamic Sorting [cite: 2026-01-31]
+        //    bool isDesc = sortOrder?.ToLower() == "desc";
+        //    query = sortField?.ToLower() switch
+        //    {
+        //        "productname" => isDesc ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
+        //        "availablestock" => isDesc ? query.OrderByDescending(x => x.AvailableStock) : query.OrderBy(x => x.AvailableStock),
+        //        "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected),
+        //        "unitrate" => isDesc ? query.OrderByDescending(x => x.LastRate) : query.OrderBy(x => x.LastRate),
+        //        _ => query.OrderBy(x => x.ProductName)
+        //    };
+
+        //    // 4. Final Execution
+        //    var totalCount = await query.CountAsync();
+        //    var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+
+        //    return new StockPagedResponseDto
+        //    {
+        //        Items = items,
+        //        TotalCount = totalCount
+        //    };
+        //}
+
         public async Task<StockPagedResponseDto> GetCurrentStockAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
         {
-            // 1. Optimized Base Query with Rejection Logic
+            // 1. Optimized Base Query [cite: 2026-01-31]
             var query = _context.GRNDetails
                 .GroupBy(g => new
                 {
@@ -167,22 +293,29 @@ namespace Inventory.Infrastructure.Repositories
                     Unit = group.Key.UnitName,
                     MinStockLevel = group.Key.MinStock,
 
-                    // Gate par total kitna maal utra [cite: 2026-01-31]
                     TotalReceived = group.Sum(x => x.ReceivedQty),
-
-                    // TOTAL REJECTED: Jitna maal damage record kiya gaya [cite: 2026-01-31]
                     TotalRejected = group.Sum(x => x.RejectedQty),
-
-                    // AVAILABLE STOCK: Formula badal kar (Received - Rejected) kar diya hai [cite: 2026-01-31]
-                    // Note: Jab Sales table judegi toh yahan se '- SoldQty' bhi minus hoga.
                     AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
 
-                    // Latest Price: Latest entry se uthayenge
                     LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
-
-                    // Reference IDs: Naya PO banane ke liye zaroori hain
                     LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault(),
-                    LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault()
+                    LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault(),
+
+                    // Traceability: PO ke hisaab se saare products ki details
+                    // Hum yahan us PurchaseOrderId ko pakad rahe hain aur us PO ke saare GRN entries dikha rahe hain
+                    History = group.OrderByDescending(x => x.GRNHeader.ReceivedDate)
+                                   .SelectMany(h => _context.GRNDetails
+                                       .Where(allG => allG.GRNHeaderId == h.GRNHeaderId) // Same PO/GRN ke saare items
+                                       .Select(allG => new StockHistoryDto
+                                       {
+                                           ReceivedDate = allG.GRNHeader.ReceivedDate,
+                                           PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
+                                           SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
+                                           // Yahan hum ProductName bhi add kar rahe hain taaki pata chale kaunsa item tha
+                                           ProductName = allG.Product.Name,
+                                           ReceivedQty = allG.ReceivedQty,
+                                           RejectedQty = allG.RejectedQty
+                                       })).ToList()
                 });
 
             // 2. Search Logic
@@ -191,22 +324,26 @@ namespace Inventory.Infrastructure.Repositories
                 query = query.Where(x => x.ProductName.Contains(search));
             }
 
-            // 3. Dynamic Sorting
+            // 3. Dynamic Sorting [cite: 2026-01-31]
             bool isDesc = sortOrder?.ToLower() == "desc";
             query = sortField?.ToLower() switch
             {
                 "productname" => isDesc ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
                 "availablestock" => isDesc ? query.OrderByDescending(x => x.AvailableStock) : query.OrderBy(x => x.AvailableStock),
-                "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected), // Naya sorting option
+                "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected),
                 "unitrate" => isDesc ? query.OrderByDescending(x => x.LastRate) : query.OrderBy(x => x.LastRate),
                 _ => query.OrderBy(x => x.ProductName)
             };
 
-            // 4. Execution
+            // 4. Final Execution
             var totalCount = await query.CountAsync();
             var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
-            return new StockPagedResponseDto { Items = items, TotalCount = totalCount };
+            return new StockPagedResponseDto
+            {
+                Items = items,
+                TotalCount = totalCount
+            };
         }
     }
 }
