@@ -1,4 +1,5 @@
-﻿using MediatR;
+﻿using Inventory.Application.Common.Interfaces;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -8,7 +9,13 @@ namespace Inventory.API.Controllers
     public class StockController : ControllerBase
     {
         private readonly IMediator _mediator;
-        public StockController(IMediator mediator) => _mediator = mediator;
+        IStockRepository _stockRepo;
+        public StockController(IMediator mediator, IStockRepository stockRepo)
+        {
+            _mediator = mediator;
+            _stockRepo = stockRepo;
+
+        }
         [HttpGet("current-stock")]
         public async Task<IActionResult> GetStock(
             [FromQuery] string? search,
@@ -23,6 +30,30 @@ namespace Inventory.API.Controllers
             var result = await _mediator.Send(command);
 
             return Ok(result);
+        }
+
+        [HttpPost("ExportExcel")]
+        public async Task<IActionResult> ExportExcel([FromBody] List<Guid> productIds)
+        {
+            if (productIds == null || !productIds.Any())
+                return BadRequest("No products selected.");
+
+            try
+            {
+                var fileContent = await _stockRepo.GenerateStockExcel(productIds);
+                string fileName = $"StockReport_{DateTime.Now:yyyyMMdd}.xlsx";
+
+                // File content type for Excel
+                return File(
+                    fileContent,
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    fileName
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal server error: {ex.Message}");
+            }
         }
     }
 }

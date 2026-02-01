@@ -15,5 +15,7 @@ namespace Inventory.Application.Common.Interfaces
             int pageSize);
 
         Task<StockRefillDetailsDto> GetRefillDetailsAsync(Guid productId);
+
+        Task<byte[]> GenerateStockExcel(List<Guid> productIds);
     }
 }
