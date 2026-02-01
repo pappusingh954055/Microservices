@@ -336,4 +336,19 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             PoDate = DateTime.Now           // Hamesha current date rakhein
         }).FirstOrDefaultAsync();
     }
+
+    public async Task<ProductPriceDto?> GetPriceListRateAsync( Guid productId, Guid priceListId)
+    {
+        return await _context.PriceListItems
+            .Where(pi => pi.PriceListId == priceListId && pi.ProductId == productId)
+            .Select(pi => new ProductPriceDto
+            {
+                ProductId = pi.ProductId,
+                Rate = pi.Rate, // From dbo.PriceListItems
+                Unit = pi.Unit, // From dbo.PriceListItems
+                                // From dbo.Products.DefaultGst
+                GstPercent = pi.Product.DefaultGst??0
+            })
+            .FirstOrDefaultAsync();
+    }
 }

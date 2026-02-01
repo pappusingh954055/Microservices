@@ -6,5 +6,7 @@ public record GetCurrentStockCommand(
     string? SortField,
     string? SortOrder,
     int PageIndex,
-    int PageSize
-) : IRequest<StockPagedResponseDto>; // Return type yahan bhi badlega
+    int PageSize,
+    DateTime? StartDate, // Added
+    DateTime? EndDate    // Added
+) : IRequest<StockPagedResponseDto>;

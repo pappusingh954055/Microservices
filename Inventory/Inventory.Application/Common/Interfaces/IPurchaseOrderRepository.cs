@@ -32,6 +32,8 @@ namespace Inventory.Application.Common.Interfaces
         Task<IEnumerable<POItemForGRNDto>> GetPOItemsForGRNAsync(int poId);
 
         Task<POHeaderDetailsDto?> GetPOHeaderAsync(int lastPurchaseOrderId);
+
+        Task<ProductPriceDto?> GetPriceListRateAsync( Guid productId, Guid priceListId);
     }
 
     public interface IUnitOfWork

@@ -19,7 +19,7 @@ namespace Suppliers.API.Controllers
 
         // CREATE: POST api/v1/supplier
         [HttpPost]
-        [Authorize(Roles = "Manager, Admin,User")]
+        [Authorize(Roles = "Manager, Admin,User, Warehouse")]
         //[AllowAnonymous]
         public async Task<IActionResult> Create([FromBody] CreateSupplierDto dto)
         {
@@ -30,7 +30,7 @@ namespace Suppliers.API.Controllers
 
         // READ: GET api/v1/supplier
         [HttpGet]
-        [Authorize(Roles = "Admin,Manager,User")]
+        [Authorize(Roles = "Admin,Manager,User,Warehouse")]
         public async Task<IActionResult> GetAll()
         {
             // Yahan humein GetSuppliersQuery banani hogi (Next Step)

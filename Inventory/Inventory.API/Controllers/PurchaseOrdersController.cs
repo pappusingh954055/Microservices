@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Features.PurchaseOrders.Queries;
+﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.Features.PurchaseOrders.Queries;
 using Inventory.Application.PurchaseOrders.Commands.Delete;
 using Inventory.Application.PurchaseOrders.Commands.Update;
 using Inventory.Application.PurchaseOrders.DTOs;
@@ -18,9 +19,12 @@ namespace Inventory.API.Controllers
     {
         private readonly IMediator _mediator;
 
-        public PurchaseOrdersController(IMediator mediator)
+        private readonly IPurchaseOrderRepository _purchaseOrderRepository;
+
+        public PurchaseOrdersController(IMediator mediator, IPurchaseOrderRepository purchaseOrderRepository)
         {
             _mediator = mediator;
+            _purchaseOrderRepository = purchaseOrderRepository;
         }
 
         [HttpGet("next-number")]
@@ -33,7 +37,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("save-po")]
-        [Authorize(Roles = "Manager, Admin,User")]
+        [Authorize(Roles = "Admin,User,Warehouse")]
         public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
            
@@ -260,6 +264,36 @@ namespace Inventory.API.Controllers
             }
 
             // 4. POHeaderDetailsDto return karein
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// Product select hone par ya Price List change hone par rate fetch karne ke liye
+        /// </summary>
+        [HttpGet("get-product-rate")]
+        public async Task<ActionResult<ProductPriceDto>> GetProductRate(
+            
+            [FromQuery] Guid productId, [FromQuery] Guid priceListId)
+        {
+            // Validation: Dono IDs honi chahiye
+            if (priceListId == Guid.Empty || productId == Guid.Empty)
+            {
+                return BadRequest(new { message = "Invalid PriceList or Product selection." });
+            }
+
+            // Repository call
+            var result = await _purchaseOrderRepository.GetPriceListRateAsync( productId, priceListId);
+
+            if (result == null)
+            {
+                // Agar item price list mein nahi hai
+                return NotFound(new
+                {
+                    message = "This product is not registered in the selected Price List."
+                });
+            }
+
+            // Success: Rate, Unit aur DefaultGst return karega
             return Ok(result);
         }
 

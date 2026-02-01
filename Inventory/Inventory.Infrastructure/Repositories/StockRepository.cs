@@ -22,12 +22,31 @@ namespace Inventory.Infrastructure.Repositories
             throw new NotImplementedException();
         }
 
-        
 
-        public async Task<StockPagedResponseDto> GetCurrentStockAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
+
+        public async Task<StockPagedResponseDto> GetCurrentStockAsync(
+     string? search,
+     string? sortField,
+     string? sortOrder,
+     int pageIndex,
+     int pageSize,
+     DateTime? startDate = null,
+     DateTime? endDate = null)
         {
-            // 1. Optimized Base Query [cite: 2026-01-31]
-            var query = _context.GRNDetails
+            // 1. Base Query on GRNDetails with Date Filters applied first for performance
+            var baseQuery = _context.GRNDetails.AsQueryable();
+
+            if (startDate.HasValue)
+            {
+                baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate >= startDate.Value);
+            }
+            if (endDate.HasValue)
+            {
+                baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
+            }
+
+            // 2. Optimized Grouping Logic
+            var query = baseQuery
                 .GroupBy(g => new
                 {
                     ProductId = g.ProductId,
@@ -50,41 +69,39 @@ namespace Inventory.Infrastructure.Repositories
                     LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault(),
                     LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault(),
 
-                    // Traceability: PO ke hisaab se saare products ki details
-                    // Hum yahan us PurchaseOrderId ko pakad rahe hain aur us PO ke saare GRN entries dikha rahe hain
                     History = group.OrderByDescending(x => x.GRNHeader.ReceivedDate)
                                    .SelectMany(h => _context.GRNDetails
-                                       .Where(allG => allG.GRNHeaderId == h.GRNHeaderId) // Same PO/GRN ke saare items
+                                       .Where(allG => allG.GRNHeaderId == h.GRNHeaderId)
                                        .Select(allG => new StockHistoryDto
                                        {
                                            ReceivedDate = allG.GRNHeader.ReceivedDate,
                                            PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
                                            SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
-                                           // Yahan hum ProductName bhi add kar rahe hain taaki pata chale kaunsa item tha
                                            ProductName = allG.Product.Name,
                                            ReceivedQty = allG.ReceivedQty,
                                            RejectedQty = allG.RejectedQty
                                        })).ToList()
                 });
 
-            // 2. Search Logic
+            // 3. Search Logic
             if (!string.IsNullOrEmpty(search))
             {
                 query = query.Where(x => x.ProductName.Contains(search));
             }
 
-            // 3. Dynamic Sorting [cite: 2026-01-31]
+            // 4. FIXED Dynamic Sorting: Added 'totalreceived' case
             bool isDesc = sortOrder?.ToLower() == "desc";
             query = sortField?.ToLower() switch
             {
                 "productname" => isDesc ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
+                "totalreceived" => isDesc ? query.OrderByDescending(x => x.TotalReceived) : query.OrderBy(x => x.TotalReceived), // Added Fix
                 "availablestock" => isDesc ? query.OrderByDescending(x => x.AvailableStock) : query.OrderBy(x => x.AvailableStock),
                 "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected),
                 "unitrate" => isDesc ? query.OrderByDescending(x => x.LastRate) : query.OrderBy(x => x.LastRate),
                 _ => query.OrderBy(x => x.ProductName)
             };
 
-            // 4. Final Execution
+            // 5. Final Execution with Pagination
             var totalCount = await query.CountAsync();
             var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
@@ -109,9 +126,9 @@ namespace Inventory.Infrastructure.Repositories
                     ProductName = g.Key.ProductName,
                     TotalReceived = g.Sum(x => x.ReceivedQty),
                     TotalRejected = g.Sum(x => x.RejectedQty),
-                    // FIX: AcceptedQty ki jagah direct (Received - Rejected) karein taaki 141 - 2 = 139 aaye
+                    // Correct logic: 141 - 2 = 139
                     AvailableStock = g.Sum(x => x.ReceivedQty) - g.Sum(x => x.RejectedQty),
-                    // Value (Avg) match kar raha hai (₹1,650.00)
+                    // Latest Rate: ₹1,650.00
                     LastRate = g.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
                     MinStockLevel = g.Key.MinLevel
                 })
@@ -121,7 +138,7 @@ namespace Inventory.Infrastructure.Repositories
             {
                 var worksheet = workbook.Worksheets.Add("Current Stock");
 
-                // Header Styling
+                // 1. Header Styling
                 string[] headers = { "Product Name", "Total Received", "Rejected", "Current Stock", "Value (Avg)", "Total Value" };
                 var headerRow = worksheet.Row(1);
                 for (int i = 0; i < headers.Length; i++)
@@ -130,7 +147,8 @@ namespace Inventory.Infrastructure.Repositories
                     cell.Value = headers[i];
                     cell.Style.Font.Bold = true;
                     cell.Style.Font.FontColor = XLColor.White;
-                    cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#3f51b5");
+                    // Background Fix: SetBackgroundColor aur Pattern Solid use karein
+                    cell.Style.Fill.SetBackgroundColor(XLColor.FromHtml("#3f51b5"));
                     cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 }
 
@@ -140,34 +158,46 @@ namespace Inventory.Infrastructure.Repositories
                     worksheet.Cell(row, 1).Value = item.ProductName;
                     worksheet.Cell(row, 2).Value = item.TotalReceived;
                     worksheet.Cell(row, 3).Value = item.TotalRejected;
-                    // Ab ye 139 dikhayega
-                    worksheet.Cell(row, 4).Value = item.AvailableStock;
 
+                    var stockCell = worksheet.Cell(row, 4);
+                    stockCell.Value = item.AvailableStock;
+
+                    // 2. RED COLOR LOGIC: Agar stock MinLevel se kam hai
+                    if (item.AvailableStock <= item.MinStockLevel)
+                    {
+                        stockCell.Style.Font.SetFontColor(XLColor.Red);
+                        stockCell.Style.Font.Bold = true;
+                    }
+
+                    // Rate Column
                     var rateCell = worksheet.Cell(row, 5);
                     rateCell.Value = item.LastRate;
                     rateCell.Style.NumberFormat.Format = "₹ #,##0.00";
 
-                    // Total Value Formula
+                    // Total Value Calculation
                     var totalValCell = worksheet.Cell(row, 6);
                     totalValCell.FormulaA1 = $"=D{row}*E{row}";
                     totalValCell.Style.NumberFormat.Format = "₹ #,##0.00";
 
-                    // Low Stock Highlight
-                    if (item.AvailableStock <= item.MinStockLevel)
+                    // 3. ZEBRA STRIPES: Har alternate row par halka grey color
+                    if (row % 2 != 0)
                     {
-                        worksheet.Cell(row, 4).Style.Font.FontColor = XLColor.Red;
-                        worksheet.Cell(row, 4).Style.Font.Bold = true;
+                        // Range select karke poori row ka color set karein
+                        worksheet.Range(row, 1, row, 6).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#F9FAFB"));
                     }
                     row++;
                 }
 
-                // Grand Total
+                // 4. Grand Total Styling
                 int lastDataRow = row - 1;
                 worksheet.Cell(row, 5).Value = "Total Inventory Value:";
                 worksheet.Cell(row, 5).Style.Font.Bold = true;
-                worksheet.Cell(row, 6).FormulaA1 = $"=SUM(F2:F{lastDataRow})";
-                worksheet.Cell(row, 6).Style.Font.Bold = true;
-                worksheet.Cell(row, 6).Style.NumberFormat.Format = "₹ #,##0.00";
+
+                var grandTotalCell = worksheet.Cell(row, 6);
+                grandTotalCell.FormulaA1 = $"=SUM(F2:F{lastDataRow})";
+                grandTotalCell.Style.Font.Bold = true;
+                grandTotalCell.Style.Fill.SetBackgroundColor(XLColor.FromHtml("#F1F5F9"));
+                grandTotalCell.Style.NumberFormat.Format = "₹ #,##0.00";
 
                 worksheet.Columns().AdjustToContents();
                 using (var stream = new MemoryStream())

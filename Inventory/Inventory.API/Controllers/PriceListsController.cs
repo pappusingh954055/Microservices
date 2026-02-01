@@ -64,7 +64,7 @@ namespace Inventory.API.Controllers
             );
         }
 
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -73,7 +73,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetPriceListsQuery());
@@ -81,7 +81,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("paged")]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] GridRequest request)
         {
@@ -125,7 +125,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("price-list-items/{priceListId}")]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
         public async Task<ActionResult<List<PriceListItemDto>>> GetPriceListItems(Guid priceListId)
         {
             // 1. Repository method ko call karein [cite: 2026-01-22]

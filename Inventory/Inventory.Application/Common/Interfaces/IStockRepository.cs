@@ -12,7 +12,10 @@ namespace Inventory.Application.Common.Interfaces
             string? sortField,
             string? sortOrder,
             int pageIndex,
-            int pageSize);
+            int pageSize,
+            DateTime? startDate, // Naya parameter added
+            DateTime? endDate    // Naya parameter added
+);
 
         Task<StockRefillDetailsDto> GetRefillDetailsAsync(Guid productId);
 
