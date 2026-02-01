@@ -1,6 +1,7 @@
 ﻿using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
+using YourProjectNamespace.Entities;
 
 namespace Inventory.Infrastructure.Persistence;
 
@@ -20,9 +21,10 @@ public sealed class InventoryDbContext : DbContext,
     
     public DbSet<GRNHeader> GRNHeaders => Set<GRNHeader>(); 
 
-    public DbSet<GRNDetail> GRNDetails => Set<GRNDetail>(); 
-   
+    public DbSet<GRNDetail> GRNDetails => Set<GRNDetail>();
 
+    public DbSet<SaleOrder> SaleOrders { get; set; }
+    public DbSet<SaleOrderItem> SaleOrderItems { get; set; }
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -52,5 +54,13 @@ public sealed class InventoryDbContext : DbContext,
             builder.Property(x => x.Rate).HasPrecision(18, 2); //
             builder.Property(x => x.Total).HasPrecision(18, 2); //
         });
+
+        // SaleOrder aur SaleOrderItem ke beech Cascade Delete configuration
+        modelBuilder.Entity<SaleOrderItem>()
+           .HasOne(i => i.SaleOrder)
+            .WithMany(o => o.Items)
+            .HasForeignKey(i => i.SaleOrderId) 
+            .OnDelete(DeleteBehavior.Cascade);
+
     }
 }

@@ -122,6 +122,7 @@ namespace Inventory.Application.Subcategories.Queries.Searching
                 {
                     Id = x.Id,
                     CategoryName = x.Category.CategoryName,
+                    Description = x.Description,
                     SubcategoryName = x.SubcategoryName,
                     SubcategoryCode = x.SubcategoryCode,
                     DefaultGst = x.DefaultGst,

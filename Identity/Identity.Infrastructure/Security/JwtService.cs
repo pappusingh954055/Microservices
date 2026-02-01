@@ -38,6 +38,7 @@ public class JwtService : IJwtService
             if (!string.IsNullOrEmpty(role))
             {
                 claims.Add(new Claim(ClaimTypes.Role, role));
+               
             }
         }
 
@@ -52,7 +53,7 @@ public class JwtService : IJwtService
         var token = new JwtSecurityToken(
             issuer: jwt["Issuer"],
             audience: jwt["Audience"],
-            claims: claims,
+            claims: claims,            
             expires: expires,
             signingCredentials: creds
         );
@@ -68,7 +69,8 @@ public class JwtService : IJwtService
             AccessToken = accessToken,
             RefreshToken = refreshToken,
             ExpiresAt = expires,
-            Roles = roles
+            Roles = roles,
+            Email = user.Email!
         };
     }
 }
