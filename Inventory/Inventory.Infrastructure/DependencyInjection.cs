@@ -29,6 +29,7 @@ namespace Inventory.Infrastructure
             services.AddScoped<IGRNRepository, GRNRepository>();
             services.AddScoped<IStockRepository, StockRepository>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+            services.AddScoped<ISaleOrderRepository, SaleOrderRepository>();
 
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());

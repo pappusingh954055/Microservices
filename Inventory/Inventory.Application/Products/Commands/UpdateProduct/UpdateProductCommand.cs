@@ -18,5 +18,6 @@ public sealed record UpdateProductCommand(
     bool trackinventory,
     bool isactive,
     string? description,
-    string updatedby
+    string updatedby,
+    decimal saleRate
 ) : IRequest<Guid>;

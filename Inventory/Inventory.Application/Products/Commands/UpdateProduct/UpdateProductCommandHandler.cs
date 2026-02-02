@@ -30,7 +30,8 @@ internal sealed class UpdateProductCommandHandler
             request.categoryid,
             request.subcategoryid,
             request.productname,
-            request.sku,                     
+            request.sku, 
+            request.saleRate,
             request.brand,
             request.unit,
             request.hsncode,
@@ -41,7 +42,8 @@ internal sealed class UpdateProductCommandHandler
             request.trackinventory,
             request.isactive,
             request.description,
-            request.updatedby    
+            request.updatedby
+            
         );
 
         await _context.SaveChangesAsync(cancellationToken);

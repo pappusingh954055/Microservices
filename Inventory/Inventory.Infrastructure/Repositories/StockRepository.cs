@@ -24,32 +24,116 @@ namespace Inventory.Infrastructure.Repositories
 
 
 
+        //public async Task<StockPagedResponseDto> GetCurrentStockAsync(
+        // string? search,
+        // string? sortField,
+        // string? sortOrder,
+        // int pageIndex,
+        // int pageSize,
+        // DateTime? startDate = null,
+        // DateTime? endDate = null)
+        //    {
+        //        // 1. Base Query on GRNDetails with Date Filters applied first for performance
+        //        var baseQuery = _context.GRNDetails.AsQueryable();
+
+        //        if (startDate.HasValue)
+        //        {
+        //            baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate >= startDate.Value);
+        //        }
+        //        if (endDate.HasValue)
+        //        {
+        //            baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
+        //        }
+
+        //        // 2. Optimized Grouping Logic
+        //        var query = baseQuery
+        //            .GroupBy(g => new
+        //            {
+        //                ProductId = g.ProductId,
+        //                ProductName = g.Product.Name,
+        //                UnitName = g.Product.Unit,
+        //                MinStock = g.Product.MinStock
+        //            })
+        //            .Select(group => new StockSummaryDto
+        //            {
+        //                ProductId = group.Key.ProductId,
+        //                ProductName = group.Key.ProductName,
+        //                Unit = group.Key.UnitName,
+        //                MinStockLevel = group.Key.MinStock,
+
+        //                TotalReceived = group.Sum(x => x.ReceivedQty),
+        //                TotalRejected = group.Sum(x => x.RejectedQty),
+        //                AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
+
+        //                LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
+        //                LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault(),
+        //                LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault(),
+
+        //                History = group.OrderByDescending(x => x.GRNHeader.ReceivedDate)
+        //                               .SelectMany(h => _context.GRNDetails
+        //                                   .Where(allG => allG.GRNHeaderId == h.GRNHeaderId)
+        //                                   .Select(allG => new StockHistoryDto
+        //                                   {
+        //                                       ReceivedDate = allG.GRNHeader.ReceivedDate,
+        //                                       PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
+        //                                       SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
+        //                                       ProductName = allG.Product.Name,
+        //                                       ReceivedQty = allG.ReceivedQty,
+        //                                       RejectedQty = allG.RejectedQty
+        //                                   })).ToList()
+        //            });
+
+        //        // 3. Search Logic
+        //        if (!string.IsNullOrEmpty(search))
+        //        {
+        //            query = query.Where(x => x.ProductName.Contains(search));
+        //        }
+
+        //        // 4. FIXED Dynamic Sorting: Added 'totalreceived' case
+        //        bool isDesc = sortOrder?.ToLower() == "desc";
+        //        query = sortField?.ToLower() switch
+        //        {
+        //            "productname" => isDesc ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
+        //            "totalreceived" => isDesc ? query.OrderByDescending(x => x.TotalReceived) : query.OrderBy(x => x.TotalReceived), // Added Fix
+        //            "availablestock" => isDesc ? query.OrderByDescending(x => x.AvailableStock) : query.OrderBy(x => x.AvailableStock),
+        //            "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected),
+        //            "unitrate" => isDesc ? query.OrderByDescending(x => x.LastRate) : query.OrderBy(x => x.LastRate),
+        //            _ => query.OrderBy(x => x.ProductName)
+        //        };
+
+        //        // 5. Final Execution with Pagination
+        //        var totalCount = await query.CountAsync();
+        //        var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+
+        //        return new StockPagedResponseDto
+        //        {
+        //            Items = items,
+        //            TotalCount = totalCount
+        //        };
+        //    }
+
         public async Task<StockPagedResponseDto> GetCurrentStockAsync(
-     string? search,
-     string? sortField,
-     string? sortOrder,
-     int pageIndex,
-     int pageSize,
-     DateTime? startDate = null,
-     DateTime? endDate = null)
+    string? search,
+    string? sortField,
+    string? sortOrder,
+    int pageIndex,
+    int pageSize,
+    DateTime? startDate = null,
+    DateTime? endDate = null)
         {
-            // 1. Base Query on GRNDetails with Date Filters applied first for performance
+            // STEP 1: Sirf Base GRN data grouping karein (Sales aur History ke bina)
+            // Ye query ekdum light hai aur kabhi timeout nahi degi
             var baseQuery = _context.GRNDetails.AsQueryable();
 
             if (startDate.HasValue)
-            {
                 baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate >= startDate.Value);
-            }
             if (endDate.HasValue)
-            {
                 baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
-            }
 
-            // 2. Optimized Grouping Logic
-            var query = baseQuery
+            var groupedQuery = baseQuery
                 .GroupBy(g => new
                 {
-                    ProductId = g.ProductId,
+                    g.ProductId,
                     ProductName = g.Product.Name,
                     UnitName = g.Product.Unit,
                     MinStock = g.Product.MinStock
@@ -60,50 +144,61 @@ namespace Inventory.Infrastructure.Repositories
                     ProductName = group.Key.ProductName,
                     Unit = group.Key.UnitName,
                     MinStockLevel = group.Key.MinStock,
-
                     TotalReceived = group.Sum(x => x.ReceivedQty),
                     TotalRejected = group.Sum(x => x.RejectedQty),
+                    // Initial available stock (Sales minus karne se pehle)
                     AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
-
                     LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
-                    LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault(),
-                    LastSupplierId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrder.SupplierId).FirstOrDefault(),
-
-                    History = group.OrderByDescending(x => x.GRNHeader.ReceivedDate)
-                                   .SelectMany(h => _context.GRNDetails
-                                       .Where(allG => allG.GRNHeaderId == h.GRNHeaderId)
-                                       .Select(allG => new StockHistoryDto
-                                       {
-                                           ReceivedDate = allG.GRNHeader.ReceivedDate,
-                                           PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
-                                           SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
-                                           ProductName = allG.Product.Name,
-                                           ReceivedQty = allG.ReceivedQty,
-                                           RejectedQty = allG.RejectedQty
-                                       })).ToList()
+                    LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault()
                 });
 
-            // 3. Search Logic
+            // Search Logic
             if (!string.IsNullOrEmpty(search))
             {
-                query = query.Where(x => x.ProductName.Contains(search));
+                groupedQuery = groupedQuery.Where(x => x.ProductName.Contains(search));
             }
 
-            // 4. FIXED Dynamic Sorting: Added 'totalreceived' case
+            // Sorting Logic
             bool isDesc = sortOrder?.ToLower() == "desc";
-            query = sortField?.ToLower() switch
+            groupedQuery = sortField?.ToLower() switch
             {
-                "productname" => isDesc ? query.OrderByDescending(x => x.ProductName) : query.OrderBy(x => x.ProductName),
-                "totalreceived" => isDesc ? query.OrderByDescending(x => x.TotalReceived) : query.OrderBy(x => x.TotalReceived), // Added Fix
-                "availablestock" => isDesc ? query.OrderByDescending(x => x.AvailableStock) : query.OrderBy(x => x.AvailableStock),
-                "totalrejected" => isDesc ? query.OrderByDescending(x => x.TotalRejected) : query.OrderBy(x => x.TotalRejected),
-                "unitrate" => isDesc ? query.OrderByDescending(x => x.LastRate) : query.OrderBy(x => x.LastRate),
-                _ => query.OrderBy(x => x.ProductName)
+                "productname" => isDesc ? groupedQuery.OrderByDescending(x => x.ProductName) : groupedQuery.OrderBy(x => x.ProductName),
+                "totalreceived" => isDesc ? groupedQuery.OrderByDescending(x => x.TotalReceived) : groupedQuery.OrderBy(x => x.TotalReceived),
+                "availablestock" => isDesc ? groupedQuery.OrderByDescending(x => x.AvailableStock) : groupedQuery.OrderBy(x => x.AvailableStock),
+                _ => groupedQuery.OrderBy(x => x.ProductName)
             };
 
-            // 5. Final Execution with Pagination
-            var totalCount = await query.CountAsync();
-            var items = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+            // STEP 2: Pagination execute karke sirf limited items (e.g., 10 items) layein
+            var totalCount = await groupedQuery.CountAsync();
+            var items = await groupedQuery.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+
+            // STEP 3: Ab sirf in 10 items ke liye Sales aur History fetch karein
+            // Ye loop sirf 10 baar chalega, isliye performance par koi asar nahi padega
+            foreach (var item in items)
+            {
+                // 1. Calculate Total Sold for this product
+                item.TotalSold = await _context.SaleOrderItems
+                    .Where(si => si.ProductId == item.ProductId && si.SaleOrder.Status == "Confirmed")
+                    .SumAsync(si => (decimal?)si.Qty) ?? 0;
+
+                // 2. Final Stock Update
+                item.AvailableStock = (item.TotalReceived - item.TotalRejected) - item.TotalSold;
+
+                // 3. History fetch (Sirf is product ki specific history)
+                item.History = await _context.GRNDetails
+                    .Where(g => g.ProductId == item.ProductId)
+                    .OrderByDescending(g => g.GRNHeader.ReceivedDate)
+                    .Take(15) // Sirf top 15 records dikhayein speed ke liye
+                    .Select(allG => new StockHistoryDto
+                    {
+                        ReceivedDate = allG.GRNHeader.ReceivedDate,
+                        PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
+                        SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
+                        ProductName = allG.Product.Name,
+                        ReceivedQty = allG.ReceivedQty,
+                        RejectedQty = allG.RejectedQty
+                    }).ToListAsync();
+            }
 
             return new StockPagedResponseDto
             {
@@ -207,5 +302,8 @@ namespace Inventory.Infrastructure.Repositories
                 }
             }
         }
+
+
+
     }
 }

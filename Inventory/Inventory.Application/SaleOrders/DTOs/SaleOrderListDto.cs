@@ -1,0 +1,17 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Inventory.Application.SaleOrders.DTOs
+{
+    public class SaleOrderListDto
+    {
+        public int Id { get; set; }
+        public string SoNumber { get; set; } = string.Empty;
+        public DateTime SoDate { get; set; }
+        public int CustomerId { get; set; } // Mapping ke liye zaroori hai
+        public string CustomerName { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public decimal GrandTotal { get; set; }
+    }
+}

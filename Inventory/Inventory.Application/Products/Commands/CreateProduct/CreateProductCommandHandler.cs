@@ -24,18 +24,19 @@ public sealed class CreateProductCommandHandler
             request.categoryid,
             request.subcategoryid,
             request.productname,
-            request.sku,
+            request.sku,          
             request.brand,
             request.unit,
             request.hsncode,
             request.basepurchaseprice,
-            request.mrp,
+            request.mrp,          
             request.defaultgst,
             request.minstock,
             request.trackinventory,
             request.isactive,
             request.description,
-            request.createdby
+            request.createdby,
+            request.saleRate
         )
         {
 

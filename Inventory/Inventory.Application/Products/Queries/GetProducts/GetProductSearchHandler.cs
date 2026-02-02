@@ -25,11 +25,13 @@ public class GetProductSearchHandler : IRequestHandler<GetProductSearchQuery, Li
             IsActive = p.IsActive,
             BasePurchasePrice = p.BasePurchasePrice,
             unit = p.Unit,
-            brand = p.Brand,    
+            brand = p.Brand,  
+            
             sku = p.Sku,
             hsncode = p.HSNCode,
             mrp = p.MRP,
-
+            SaleRate = p.SaleRate??0,
+            CurrentStock = p.CurrentStock
         }).ToList();
     }
 }

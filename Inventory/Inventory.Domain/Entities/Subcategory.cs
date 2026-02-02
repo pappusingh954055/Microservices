@@ -11,8 +11,8 @@ public sealed class Subcategory
     public DateTime? CreatedOn { get; set; } = DateTime.Now;
     public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
     public int? ModifiedBy { get; set; }
-    public string SubcategoryCode { get; set; } = null!;
-    public string SubcategoryName { get; set; }
+    public string? SubcategoryCode { get; set; } = null!;
+    public string? SubcategoryName { get; set; }=null!;
     public decimal DefaultGst { get; set; }
     public string? Description { get; set; }
     public bool IsActive { get; set; }

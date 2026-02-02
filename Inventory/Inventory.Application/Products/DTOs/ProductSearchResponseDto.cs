@@ -16,5 +16,7 @@ namespace Inventory.Application.Products.DTOs
         public string hsncode { get; set; }
         public decimal mrp { get; set; }
         public decimal defaultGst { get; set; }
+        public decimal SaleRate { get; set; } // Sale Order ke liye Price ki jagah Rate
+        public decimal CurrentStock { get; set; } // UI par Stock dikhane ke liye
     }
 }

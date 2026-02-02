@@ -62,5 +62,14 @@ public sealed class InventoryDbContext : DbContext,
             .HasForeignKey(i => i.SaleOrderId) 
             .OnDelete(DeleteBehavior.Cascade);
 
+        modelBuilder.Entity<Category>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+
+            entity.HasOne(c => c.ParentCategory)
+                  .WithMany(c => c.SubCategories)
+                  .HasForeignKey(c => c.ParentCategoryId)
+                  .OnDelete(DeleteBehavior.NoAction); // Cascade ki jagah NoAction use karein
+        });
     }
 }

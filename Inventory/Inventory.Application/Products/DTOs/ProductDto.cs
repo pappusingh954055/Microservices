@@ -14,6 +14,7 @@ public sealed class ProductDto
     public string unit { get; set; } = string.Empty;
     public decimal? basePurchasePrice { get; set; }
     public decimal? mrp { get; set; }
+    public decimal? saleRate { get; set; }
     public string? hsnCode { get; set; }
     public decimal? defaultGst { get; set; }
     public int minStock { get; set; }

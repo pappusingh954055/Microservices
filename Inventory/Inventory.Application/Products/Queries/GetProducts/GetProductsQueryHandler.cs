@@ -25,6 +25,7 @@ public sealed class GetProductsQueryHandler
             categoryId = p.CategoryId,
             subcategoryId = p.SubcategoryId,
             sku = p.Sku,
+            saleRate = p.SaleRate,
             brand = p.Brand,
             productName = p.Name,
             unit = p.Unit,   

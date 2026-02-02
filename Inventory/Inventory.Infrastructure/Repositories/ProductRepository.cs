@@ -1,7 +1,5 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Products.DTOs;
-using Inventory.Domain.Entities;
-using Inventory.Domain.PriceLists;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 

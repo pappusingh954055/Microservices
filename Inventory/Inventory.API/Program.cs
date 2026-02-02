@@ -17,7 +17,12 @@ builder.Services.AddApplication();
 // Infrastructure (DB)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-
+builder.Services.AddHttpClient("CustomerService", client =>
+{
+    // Yahan aapke Customers.API ka localhost URL aayega
+    client.BaseAddress = new Uri("https://localhost:7173/");
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options => {

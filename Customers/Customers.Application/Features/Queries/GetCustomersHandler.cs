@@ -1,0 +1,31 @@
+﻿using Customers.Application.Common.Interfaces;
+using Customers.Application.DTOs;
+using Customers.Application.Features.Queries;
+using MediatR;
+
+namespace Customers.Application.Features.Handlers;
+
+public class GetCustomersHandler
+    : IRequestHandler<GetCustomersQuery, List<CustomerDto>>
+{
+    private readonly ICustomerRepository _repo;
+
+    public GetCustomersHandler(ICustomerRepository repo)
+    {
+        _repo = repo;
+    }
+
+    public async Task<List<CustomerDto>> Handle(
+        GetCustomersQuery request,
+        CancellationToken cancellationToken)
+    {
+        var customers = await _repo.GetAllAsync();
+
+        return customers.Select(x => new CustomerDto
+        {
+            Id = x.Id,
+            CustomerName = x.CustomerName,
+            Phone = x.Phone
+        }).ToList();
+    }
+}

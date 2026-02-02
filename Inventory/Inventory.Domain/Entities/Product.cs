@@ -15,6 +15,7 @@ public class Product
 
     public decimal BasePurchasePrice { get; set; }=0;
     public decimal MRP { get; set; }=0;
+    public decimal? SaleRate { get; set; }
     public decimal? DefaultGst { get; set; }
     public string HSNCode { get; private set; } = null!;
     public int MinStock { get;  set; } = 0;
@@ -44,7 +45,8 @@ public class Product
         bool trackinventory,
         bool isactive,
         string? description,
-        string createdby
+        string createdby,
+        decimal saleRate
         )
     {
         Id = Guid.NewGuid();
@@ -52,6 +54,7 @@ public class Product
         SubcategoryId = subcategoryid;
         Name = productname;
         Sku = sku;
+        SaleRate = saleRate;
         Brand = brand;
         Unit = unit;
         HSNCode = hsncode; 
@@ -63,6 +66,7 @@ public class Product
         IsActive = isactive;
         Description = description;
         CreatedBy = createdby;
+        
     }
 
     public void Update(        
@@ -70,6 +74,7 @@ public class Product
         Guid subcategoryid,
         string name,
         string sku,
+        decimal saleRate,
         string brand,
         string unit,
         string hsncode,
@@ -81,13 +86,16 @@ public class Product
         bool isactive,
         string? description,
         string updatedby,
-        DateTime? modifiedon = null 
+       
+        DateTime? modifiedon = null
+        
         )
     {
         CategoryId = categoryid;
         SubcategoryId = subcategoryid;
         Name = name;
         Sku = sku;
+        SaleRate = saleRate;
         Brand = brand;        
         Unit = unit;
         HSNCode = hsncode;
@@ -100,5 +108,6 @@ public class Product
         Description = description;    
         ModifiedBy = updatedby;
         ModifiedOn = modifiedon ?? DateTime.UtcNow;
+       
     }
 }

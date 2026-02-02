@@ -55,6 +55,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<Guid?>("ParentCategoryId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int?>("UpdatedBy")
                         .HasColumnType("int");
 
@@ -65,6 +68,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("CategoryCode")
                         .IsUnique();
+
+                    b.HasIndex("ParentCategoryId");
 
                     b.ToTable("Categories", (string)null);
                 });
@@ -374,6 +379,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<decimal?>("SaleRate")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Sku")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -578,8 +586,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Property<decimal>("GSTPercent")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ProductName")
                         .IsRequired()
@@ -609,6 +617,16 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.HasIndex("SaleOrderId");
 
                     b.ToTable("SaleOrderItems");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.Category", b =>
+                {
+                    b.HasOne("Inventory.Domain.Entities.Category", "ParentCategory")
+                        .WithMany("SubCategories")
+                        .HasForeignKey("ParentCategoryId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("ParentCategory");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Entities.GRNDetail", b =>
@@ -725,6 +743,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("SaleOrder");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.Category", b =>
+                {
+                    b.Navigation("SubCategories");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Entities.GRNHeader", b =>

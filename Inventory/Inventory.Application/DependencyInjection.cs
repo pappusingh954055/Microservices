@@ -1,6 +1,4 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
-using System.Reflection.Metadata;
 
 namespace Inventory.Application;
 

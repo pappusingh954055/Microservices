@@ -6,6 +6,7 @@ namespace YourProjectNamespace.Entities
     public class SaleOrderItem
     {
         [Key]
+        
         public int Id { get; set; } // Primary Key [cite: 6]
 
         [Required]
@@ -15,7 +16,7 @@ namespace YourProjectNamespace.Entities
         public virtual SaleOrder SaleOrder { get; set; }
 
         [Required]
-        public int ProductId { get; set; } // Product link [cite: 6]
+        public Guid ProductId { get; set; } // Product link [cite: 6]
 
         public string ProductName { get; set; } // Snapshot ke liye [cite: 6]
 

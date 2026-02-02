@@ -8,6 +8,7 @@ namespace YourProjectNamespace.Entities
     public class SaleOrder
     {
         [Key]
+       
         public int Id { get; set; } // Primary Key [cite: 3]
 
         [Required]

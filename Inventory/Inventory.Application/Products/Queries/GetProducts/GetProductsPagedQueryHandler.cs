@@ -73,6 +73,7 @@ internal sealed class GetProductsPagedQueryHandler
                 subcategoryId = p.SubcategoryId,
                 subcategoryName=p.Subcategory.SubcategoryName,
                 sku = p.Sku,
+                saleRate = p.SaleRate,
                 productName = p.Name,
                 unit = p.Unit,
                 hsnCode = p.HSNCode,

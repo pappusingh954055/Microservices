@@ -11,6 +11,8 @@
     public int? LastPurchaseOrderId { get; set; }
     public int? LastSupplierId { get; set; }
 
+    public decimal TotalSold {  get; set; }
+
     // Naya list history ke liye [cite: 2026-01-31]
     public List<StockHistoryDto> History { get; set; } = new List<StockHistoryDto>();
 }
