@@ -38,11 +38,30 @@ namespace Customers.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// bulk customer call
+        /// </summary>
+        /// <param name="ids"></param>
+        /// <returns></returns>
         public async Task<Dictionary<int, string>> GetCustomerNamesByIdsAsync(List<int> ids)
         {
             return await _context.Customers
                 .Where(c => ids.Contains(c.Id))
                 .ToDictionaryAsync(c => c.Id, c => c.CustomerName);
+        }
+
+        /// <summary>
+        /// Single call
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public async Task<string?> GetCustomerNameByIdAsync(int id)
+        {
+            // Database se sirf Name column select karein performance ke liye
+            return await _context.Customers
+                .Where(c => c.Id == id)
+                .Select(c => c.CustomerName)
+                .FirstOrDefaultAsync();
         }
     }
 }

@@ -13,6 +13,10 @@ namespace Customers.Application.Common.Interfaces
         Task UpdateAsync(Customer customer);
         Task DeleteAsync(Customer customer);
 
+        //bulk customer call
         Task<Dictionary<int, string>> GetCustomerNamesByIdsAsync(List<int> ids);
+
+        //single cusomer call
+        Task<string?> GetCustomerNameByIdAsync(int id);
     }
 }

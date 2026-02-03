@@ -20,8 +20,12 @@ namespace Inventory.Application.Common.Interfaces
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
 
-        Task<List<StockExportDto>> GetStockReportDataAsync(List<Guid> productIds);
+        Task<List<StockExportDto>> GetSaleReportDataAsync(List<int> orderIds);
 
         Task<List<SaleOrderListDto>> GetAllSaleOrdersAsync();
+
+        Task<bool> UpdateSaleOrderStatusAsync(int id, string status);
+
+        Task<SaleOrderDetailDto?> GetSaleOrderByIdAsync(int id);
     }
 }

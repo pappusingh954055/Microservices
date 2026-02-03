@@ -41,6 +41,11 @@ public class CustomersController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// bilk
+    /// </summary>
+    /// <param name="ids"></param>
+    /// <returns></returns>
     [HttpPost("get-names")]
     public async Task<IActionResult> GetCustomerNames([FromBody] List<int> ids)
     {
@@ -48,5 +53,24 @@ public class CustomersController : ControllerBase
 
         var names = await _customerRepo.GetCustomerNamesByIdsAsync(ids);
         return Ok(names);
+    }
+
+    /// <summary>
+    /// Single
+    /// </summary>
+    /// <param name="id"></param>
+    /// <returns></returns>
+    [HttpGet("{id}/name")]
+    public async Task<IActionResult> GetCustomerNameById(int id)
+    {
+        var name = await _customerRepo.GetCustomerNameByIdAsync(id);
+
+        if (string.IsNullOrEmpty(name))
+        {
+            return NotFound("Customer not found");
+        }
+
+        // Plain string return karein taaki Inventory API ka ReadAsStringAsync() ise handle kar sake
+        return Ok(name);
     }
 }

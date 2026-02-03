@@ -11,12 +11,16 @@ using YourProjectNamespace.Entities;
 public class SaleOrderRepository : ISaleOrderRepository
 {
     private readonly InventoryDbContext _context;
-    private IDbContextTransaction? _transaction; // Class variable, not in constructor
+    private IDbContextTransaction? _transaction; 
     private readonly HttpClient _httpClient;
-    // Constructor fix: Sirf DbContext inject karein
-    public SaleOrderRepository(InventoryDbContext context, IHttpClientFactory httpClientFactory)
+   
+    public SaleOrderRepository(InventoryDbContext context, 
+        IHttpClientFactory httpClientFactory)
     {
-        _context = context;
+        _context = context ?? throw new ArgumentNullException(nameof(context));
+       
+        if (httpClientFactory == null) throw new ArgumentNullException(nameof(httpClientFactory));
+
         _httpClient = httpClientFactory.CreateClient("CustomerService");
     }
 
@@ -75,28 +79,27 @@ public class SaleOrderRepository : ISaleOrderRepository
         await _context.SaveChangesAsync();
         return order.Id;
     }
-    public async Task<List<StockExportDto>> GetStockReportDataAsync(List<Guid> productIds)
+    public async Task<List<StockExportDto>> GetSaleReportDataAsync(List<int> orderIds) // logic according to integer IDs
     {
-        return await _context.GRNDetails
-            .Where(g => productIds.Contains(g.ProductId))
-            .GroupBy(g => new { g.ProductId, g.Product.Name, g.Product.Unit })
+        // Selected Orders ke Product IDs fetch karein
+        return await _context.SaleOrderItems
+            .Where(si => orderIds.Contains(si.SaleOrderId)) // Filter by selected integer IDs
+            .GroupBy(si => new { si.ProductId, si.ProductName, si.Unit })
             .Select(group => new StockExportDto
             {
-                ProductName = group.Key.Name,
+                ProductName = group.Key.ProductName,
                 Unit = group.Key.Unit,
-                TotalReceived = group.Sum(x => x.ReceivedQty),
-                TotalRejected = group.Sum(x => x.RejectedQty),
-                // Available Stock = (Received - Rejected) - Confirmed Sales
-                AvailableStock = (group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty)) -
-                                 (_context.SaleOrderItems
-                                    .Where(si => si.ProductId == group.Key.ProductId && si.SaleOrder.Status == "Confirmed")
-                                    .Sum(si => (decimal?)si.Qty) ?? 0)
+                TotalReceived = _context.GRNDetails.Where(g => g.ProductId == group.Key.ProductId).Sum(x => x.ReceivedQty),
+                TotalRejected = _context.GRNDetails.Where(g => g.ProductId == group.Key.ProductId).Sum(x => x.RejectedQty),
+                AvailableStock = (_context.GRNDetails.Where(g => g.ProductId == group.Key.ProductId).Sum(x => x.ReceivedQty) -
+                                  _context.GRNDetails.Where(g => g.ProductId == group.Key.ProductId).Sum(x => x.RejectedQty)) -
+                                 (_context.SaleOrderItems.Where(si => si.ProductId == group.Key.ProductId && si.SaleOrder.Status == "Confirmed").Sum(si => (decimal?)si.Qty) ?? 0)
             }).ToListAsync();
     }
 
     public async Task<List<SaleOrderListDto>> GetAllSaleOrdersAsync()
     {
-        // 1. Pehle SaleOrders fetch karein (Bina Customer Join ke)
+        // 1. Database se SaleOrders fetch karein
         var orders = await _context.SaleOrders
             .OrderByDescending(o => o.SODate)
             .Select(o => new SaleOrderListDto
@@ -104,26 +107,25 @@ public class SaleOrderRepository : ISaleOrderRepository
                 Id = o.Id,
                 SoNumber = o.SONumber,
                 SoDate = o.SODate,
-                CustomerId = o.CustomerId, // Hume sirf ID milegi DB se
+                CustomerId = o.CustomerId,
                 Status = o.Status,
                 GrandTotal = o.GrandTotal,
-                CustomerName = "Loading..." // Initial placeholder
+                CustomerName = "Loading..."
             })
             .ToListAsync();
 
-        if (!orders.Any()) return orders;
+        if (orders == null || !orders.Any()) return new List<SaleOrderListDto>();
 
-        // 2. Unique Customer IDs nikaalein taaki duplicate API calls na ho
+        // 2. Unique Customer IDs ki list taiyar karein
         var customerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
 
-        // 3. Customer Microservice se Names fetch karein
-        // Note: Aapka Customer service ek aisa endpoint provide kare jo List of IDs lekar Names de
+        // 3. Customer Microservice se data fetch karein
         var customerDictionary = await GetCustomerNamesFromService(customerIds);
 
-        // 4. Names ko Map karein
+        // 4. Dictionary se names map karein
         foreach (var order in orders)
         {
-            if (customerDictionary.TryGetValue(order.CustomerId, out var name))
+            if (customerDictionary != null && customerDictionary.TryGetValue(order.CustomerId, out var name))
             {
                 order.CustomerName = name;
             }
@@ -136,21 +138,107 @@ public class SaleOrderRepository : ISaleOrderRepository
         return orders;
     }
 
-    private async Task<Dictionary<int, string>> GetCustomerNamesFromService(List<int> ids)
+    // Helper method jo actual Microservice call handle karega
+    private async Task<Dictionary<int, string>> GetCustomerNamesFromService(List<int> customerIds)
     {
         try
         {
-            // Example: GET /api/customers/names?ids=1&ids=2
-            var response = await _httpClient.PostAsJsonAsync("api/customers/get-names", ids);
+            // Note: URL wahi hona chahiye jo Customers.API ke controller mein defined hai
+            var response = await _httpClient.PostAsJsonAsync("api/customers/get-names", customerIds);
+
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<Dictionary<int, string>>() ?? new();
+                var data = await response.Content.ReadFromJsonAsync<Dictionary<int, string>>();
+                return data ?? new Dictionary<int, string>();
             }
         }
         catch (Exception ex)
         {
-            // Log error
+            // Agar Microservice band hai toh crash na ho
+            Console.WriteLine($"Microservice call failed: {ex.Message}");
         }
+
         return new Dictionary<int, string>();
+    }
+
+
+
+    public async Task<bool> UpdateSaleOrderStatusAsync(int id, string status)
+    {
+        // 1. Pehle Order fetch karein
+        var order = await _context.SaleOrders.FindAsync(id);
+        if (order == null) return false;
+
+        // 2. Agar status 'Confirmed' ho raha hai aur pehle se nahi tha
+        if (status == "Confirmed" && order.Status != "Confirmed")
+        {
+            // Order ke saare items nikaalein
+            var items = await _context.SaleOrderItems
+                                      .Where(x => x.SaleOrderId == id)
+                                      .ToListAsync();
+
+            foreach (var item in items)
+            {
+                // Product table se stock kam karein
+                var product = await _context.Products.FindAsync(item.ProductId);
+                if (product != null)
+                {
+                    // Current stock mein se order qty minus kar dein
+                    product.CurrentStock -= item.Qty;
+                }
+            }
+        }
+
+        // 3. Status update karein aur save karein
+        order.Status = status;
+        return await _context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<SaleOrderDetailDto?> GetSaleOrderByIdAsync(int id)
+    {
+        // 1. Database se Order aur uske Items fetch karein
+        var order = await _context.SaleOrders
+      
+            .Include(o => o.Items)
+            .Where(o => o.Id == id)
+            .Select(o => new SaleOrderDetailDto
+            {
+                Id = o.Id,
+                SoNumber = o.SONumber,
+                SoDate = o.SODate,
+                CustomerId = o.CustomerId,
+                Status = o.Status,
+                GrandTotal = o.GrandTotal,
+                // Items ki mapping yahan karein
+                Items = o.Items.Select(oi => new SaleOrderItemDto
+                {
+                    ProductId = oi.ProductId,
+                    // ProductName direct column se aa jayega
+                    ProductName = oi.ProductName,
+                    Qty = oi.Qty,
+                    Rate = oi.Rate,
+                    Total = oi.Qty * oi.Rate
+                }).ToList()
+            })
+            .FirstOrDefaultAsync();
+
+        if (order == null) return null;
+
+        // 2. Customer Name fetch karein Microservice se
+        try
+        {
+            // Single customer name fetch call
+            var response = await _httpClient.GetAsync($"api/customers/{order.CustomerId}/name");
+            if (response.IsSuccessStatusCode)
+            {
+                order.CustomerName = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch
+        {
+            order.CustomerName = "Name Fetch Failed";
+        }
+
+        return order;
     }
 }
