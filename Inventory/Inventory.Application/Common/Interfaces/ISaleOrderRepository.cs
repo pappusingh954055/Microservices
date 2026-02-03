@@ -22,7 +22,13 @@ namespace Inventory.Application.Common.Interfaces
 
         Task<List<StockExportDto>> GetSaleReportDataAsync(List<int> orderIds);
 
-        Task<List<SaleOrderListDto>> GetAllSaleOrdersAsync();
+        // Naya signature jo parameters ke saath total count bhi return karega
+        Task<(List<SaleOrderListDto> Data, int TotalCount)> GetAllSaleOrdersAsync(
+            string searchTerm,
+            int pageNumber,
+            int pageSize,
+            string sortBy,
+            string sortOrder);
 
         Task<bool> UpdateSaleOrderStatusAsync(int id, string status);
 

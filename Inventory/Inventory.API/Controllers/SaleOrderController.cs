@@ -79,10 +79,28 @@ public class SaleOrderController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<SaleOrderListDto>>> GetSaleOrders()
+    public async Task<IActionResult> GetSaleOrders(
+     [FromQuery] string searchTerm = "",
+     [FromQuery] int pageNumber = 1,
+     [FromQuery] int pageSize = 10,
+     [FromQuery] string sortBy = "SODate",
+     [FromQuery] string sortOrder = "desc")
     {
-        var orders = await _saleRepo.GetAllSaleOrdersAsync();
-        return Ok(orders);
+        // 1. Repository method call with parameters [cite: 2026-02-03]
+        var (orders, totalCount) = await _saleRepo.GetAllSaleOrdersAsync(
+            searchTerm,
+            pageNumber,
+            pageSize,
+            sortBy,
+            sortOrder
+        );
+
+        // 2. Return data along with total count for frontend pagination
+        return Ok(new
+        {
+            data = orders,
+            totalCount = totalCount
+        });
     }
 
     [HttpPatch("{id}/status")] 
@@ -127,17 +145,24 @@ public class SaleOrderController : ControllerBase
         return Ok(order);
     }
 
-    [HttpGet("export-list")] 
+    [HttpGet("export-list")]
     public async Task<IActionResult> ExportSaleOrderList()
     {
-       
-        var orders = await _saleRepo.GetAllSaleOrdersAsync();
+        // Excel export ke liye hum pagination bypass karenge
+        // Hum pageNumber 1 aur pageSize bahut bada (e.g. 1000000) bhejenge taaki sab mil jaye [cite: 2026-02-03]
+        var (orders, totalCount) = await _saleRepo.GetAllSaleOrdersAsync(
+            searchTerm: "",
+            pageNumber: 1,
+            pageSize: 1000000, // Saare records lene ke liye
+            sortBy: "SODate",
+            sortOrder: "desc"
+        );
 
         using (var workbook = new XLWorkbook())
         {
             var worksheet = workbook.Worksheets.Add("Sale Orders");
 
-            // Headers set karein
+            // Headers setup [cite: 2026-02-03]
             string[] headers = { "Order #", "Date", "Customer", "Amount", "Status" };
             for (int i = 0; i < headers.Length; i++)
             {
@@ -148,13 +173,13 @@ public class SaleOrderController : ControllerBase
                 cell.Style.Font.FontColor = XLColor.White;
             }
 
-            // Data fill karein
+            // Data fill logic
             int row = 2;
             foreach (var order in orders)
             {
                 worksheet.Cell(row, 1).Value = order.SoNumber;
                 worksheet.Cell(row, 2).Value = order.SoDate.ToShortDateString();
-                worksheet.Cell(row, 3).Value = order.CustomerName; // Microservice wala name yahan ayega
+                worksheet.Cell(row, 3).Value = order.CustomerName;
                 worksheet.Cell(row, 4).Value = order.GrandTotal;
                 worksheet.Cell(row, 5).Value = order.Status;
                 row++;
@@ -165,7 +190,10 @@ public class SaleOrderController : ControllerBase
             using (var stream = new MemoryStream())
             {
                 workbook.SaveAs(stream);
-                return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Sale_Orders.xlsx");
+                // Excel file return logic [cite: 2026-02-03]
+                return File(stream.ToArray(),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "Sale_Orders.xlsx");
             }
         }
     }

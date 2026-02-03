@@ -97,11 +97,46 @@ public class SaleOrderRepository : ISaleOrderRepository
             }).ToListAsync();
     }
 
-    public async Task<List<SaleOrderListDto>> GetAllSaleOrdersAsync()
+    public async Task<(List<SaleOrderListDto> Data, int TotalCount)> GetAllSaleOrdersAsync(
+     string searchTerm,
+     int pageNumber,
+     int pageSize,
+     string sortBy,
+     string sortOrder)
     {
-        // 1. Database se SaleOrders fetch karein
-        var orders = await _context.SaleOrders
-            .OrderByDescending(o => o.SODate)
+        var query = _context.SaleOrders.AsQueryable();
+
+        // 1. Searching Logic (Existing)
+        if (!string.IsNullOrEmpty(searchTerm))
+        {
+            searchTerm = searchTerm.ToLower();
+            query = query.Where(o =>
+                o.SONumber.ToLower().Contains(searchTerm) ||
+                o.Status.ToLower().Contains(searchTerm));
+        }
+
+        // 2. FIXED Sorting Logic: Case-sensitive property mapping
+        // Frontend 'soDate' bhej raha hai, lekin Backend ko 'SODate' chahiye
+        string sortProperty = sortBy switch
+        {
+            "soNumber" => "SONumber",
+            "soDate" => "SODate",
+            "status" => "Status",
+            "grandTotal" => "GrandTotal",
+            _ => "SODate" // Default fallback
+        };
+
+        if (sortOrder?.ToLower() == "asc")
+            query = query.OrderBy(o => EF.Property<object>(o, sortProperty));
+        else
+            query = query.OrderByDescending(o => EF.Property<object>(o, sortProperty));
+
+        // 3. Count aur Pagination
+        var totalCount = await query.CountAsync();
+
+        var orders = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .Select(o => new SaleOrderListDto
             {
                 Id = o.Id,
@@ -114,28 +149,22 @@ public class SaleOrderRepository : ISaleOrderRepository
             })
             .ToListAsync();
 
-        if (orders == null || !orders.Any()) return new List<SaleOrderListDto>();
+        if (orders == null || !orders.Any())
+            return (new List<SaleOrderListDto>(), 0);
 
-        // 2. Unique Customer IDs ki list taiyar karein
+        // 4. Customer Mapping Logic (Existing) [cite: 2026-02-03]
         var customerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
-
-        // 3. Customer Microservice se data fetch karein
         var customerDictionary = await GetCustomerNamesFromService(customerIds);
 
-        // 4. Dictionary se names map karein
         foreach (var order in orders)
         {
             if (customerDictionary != null && customerDictionary.TryGetValue(order.CustomerId, out var name))
-            {
                 order.CustomerName = name;
-            }
             else
-            {
                 order.CustomerName = "Unknown Customer";
-            }
         }
 
-        return orders;
+        return (orders, totalCount);
     }
 
     // Helper method jo actual Microservice call handle karega
