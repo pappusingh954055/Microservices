@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Suppliers.Application.DTOs;
 using Suppliers.Application.Features.Suppliers.Queries;
 
 namespace Suppliers.API.Controllers
@@ -12,9 +14,12 @@ namespace Suppliers.API.Controllers
     {
         private readonly IMediator _mediator;
 
-        public SupplierController(IMediator mediator)
+        private readonly ISupplierRepository _supplierRepository;
+
+        public SupplierController(IMediator mediator, ISupplierRepository repository)
         {
             _mediator = mediator;
+            _supplierRepository = repository;
         }
 
         // CREATE: POST api/v1/supplier
@@ -75,5 +80,36 @@ namespace Suppliers.API.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("get-by-ids")]
+        public async Task<IActionResult> GetSuppliersByIds([FromBody] List<int> ids)
+        {
+            // Debugging ke liye log lagayein
+            Console.WriteLine($"[SupplierService] Received IDs: {string.Join(",", ids)}"); 
+
+            if (ids == null || ids.Count == 0)
+            {
+                return Ok(new List<SupplierSelectDto>());
+            }
+
+            try
+            {
+                var suppliers = await _supplierRepository.GetSuppliersByIdsAsync(ids);
+
+                // Log results count
+                Console.WriteLine($"[SupplierService] Found {suppliers.Count} suppliers.");
+
+              return Ok(suppliers);
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    message = "Error in Supplier Microservice.",
+                    error = ex.Message
+                });
+            }
+        }
+
     }
 }

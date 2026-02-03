@@ -31,6 +31,9 @@ namespace Inventory.Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<ISaleOrderRepository, SaleOrderRepository>();
 
+            // Program.cs ke andar builder.Services mein add karein
+            services.AddScoped<IPurchaseReturnRepository, PurchaseReturnRepository>();
+
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());
 

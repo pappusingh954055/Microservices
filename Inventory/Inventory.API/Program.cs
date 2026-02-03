@@ -24,6 +24,12 @@ builder.Services.AddHttpClient("CustomerService", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
+builder.Services.AddHttpClient("SupplierServiceClient", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7224/"); // Aapki service ka URL
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
         // Taaki dates aur complex objects sahi se serialize hon

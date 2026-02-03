@@ -25,6 +25,11 @@ public sealed class InventoryDbContext : DbContext,
 
     public DbSet<SaleOrder> SaleOrders { get; set; }
     public DbSet<SaleOrderItem> SaleOrderItems { get; set; }
+
+    public DbSet<PurchaseReturn> PurchaseReturns { get; set; }
+
+    public DbSet<PurchaseReturnItem> PurchaseReturnItems { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -46,6 +51,21 @@ public sealed class InventoryDbContext : DbContext,
                    .HasForeignKey(x => x.PurchaseOrderId)
                    .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // Configuration for PurchaseReturn
+        modelBuilder.Entity<PurchaseReturn>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ReturnNumber).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Status).HasDefaultValue("Draft"); // Default status set kiya hai
+        });
+
+        // Relationship: One Return has many Items [cite: 2026-02-03]
+        modelBuilder.Entity<PurchaseReturnItem>()
+            .HasOne(p => p.PurchaseReturn)
+            .WithMany(i => i.Items)
+            .HasForeignKey(p => p.PurchaseReturnId)
+            .OnDelete(DeleteBehavior.Cascade); // Header delete toh items bhi delete
 
         // PurchaseOrderItem Configuration
         modelBuilder.Entity<PurchaseOrderItem>(builder =>
