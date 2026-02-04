@@ -101,12 +101,13 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     /// <returns></returns>
     public async Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request)
     {
+        // STEP 1: Base Query - AsNoTracking use karein fast read ke liye [cite: 2026-02-04]
+        // Include yahan se hata diya hai taaki CountAsync fast chale [cite: 2026-02-04]
         var query = _context.PurchaseOrders
-            .Include(x => x.Items).ThenInclude(i => i.Product)
-            .Include(x => x.GrnHeaders)
+            .AsNoTracking()
             .AsQueryable();
 
-        // 1. GLOBAL SEARCH FIX (image_ddd1f3.png mark)
+        // 1. GLOBAL SEARCH FIX
         if (!string.IsNullOrWhiteSpace(request.Filter))
         {
             var searchTerm = request.Filter.Trim().ToLower();
@@ -125,7 +126,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             query = query.Where(x => x.PoDate <= endOfToDate);
         }
 
-        // 3. COLUMN SPECIFIC FILTERS FIX (image_de41f8.jpg mark)
+        // 3. COLUMN SPECIFIC FILTERS FIX
         if (request.Filters != null && request.Filters.Any())
         {
             foreach (var f in request.Filters)
@@ -137,7 +138,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
                 query = field switch
                 {
-                    "status" => query.Where(x => x.Status != null && x.Status.ToLower() == val), // Match exactly for status
+                    "status" => query.Where(x => x.Status != null && x.Status.ToLower() == val),
                     "ponumber" or "po no." => query.Where(x => x.PoNumber != null && x.PoNumber.ToLower().Contains(val)),
                     "suppliername" => query.Where(x => x.SupplierName != null && x.SupplierName.ToLower().Contains(val)),
                     "id" => query.Where(x => x.Id.ToString().Contains(val)),
@@ -146,6 +147,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             }
         }
 
+        // STEP 2: Get Total Count before adding heavy Includes [cite: 2026-02-04]
         var total = await query.CountAsync();
 
         // 4. DYNAMIC SORTING FIX
@@ -160,9 +162,14 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             _ => isDesc ? query.OrderByDescending(x => x.PoDate) : query.OrderBy(x => x.PoDate)
         };
 
+        // STEP 3: Optimized Data Fetch [cite: 2026-02-04]
+        // Ab sirf wahi 10-20 records ke liye Include chalega jo page par hain [cite: 2026-02-04]
         var data = await query
             .Skip(request.PageIndex * request.PageSize)
             .Take(request.PageSize)
+            .Include(x => x.Items)
+                .ThenInclude(i => i.Product)
+            .Include(x => x.GrnHeaders)
             .ToListAsync();
 
         return (data, total);

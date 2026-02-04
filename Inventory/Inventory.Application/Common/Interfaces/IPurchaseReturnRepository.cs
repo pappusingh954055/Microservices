@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.PurchaseReturn;
+using Inventory.Application.PurchaseReturn.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -12,4 +13,17 @@ public interface IPurchaseReturnRepository
 
     // 2. Form se pura data save karne aur stock update karne ke liye [cite: 2026-02-03]
     Task<bool> CreatePurchaseReturnAsync(PurchaseReturn returnData);
+
+    Task<PurchaseReturnPagedResponse> GetPurchaseReturnsAsync(
+       string? search,
+       int pageIndex,
+       int pageSize,
+       DateTime? fromDate = null,
+       DateTime? toDate = null,
+       string? sortField = "ReturnDate",
+       string? sortOrder = "desc");
+
+    Task<PurchaseReturnDetailDto?> GetPurchaseReturnByIdAsync(Guid id);
+
+    Task<byte[]> ExportPurchaseReturnsToExcelAsync(DateTime? fromDate, DateTime? toDate);
 }

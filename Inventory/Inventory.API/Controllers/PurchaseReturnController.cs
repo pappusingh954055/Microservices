@@ -54,29 +54,35 @@ namespace Inventory.API.Controllers
             }
         }
 
-        
+
         // POST: api/PurchaseReturn/create
         [HttpPost("create")]
         public async Task<IActionResult> CreateReturn([FromBody] PurchaseReturnDto returnDto)
         {
+            if (returnDto == null || returnDto.Items == null || !returnDto.Items.Any())
+            {
+                return BadRequest("Invalid return data. No items selected.");
+            }
+
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
             try
             {
-                // DTO ko Entity mein map karein [cite: 2026-02-03]
+                // DTO ko Entity mein map karein [cite: 2026-02-04]
                 var returnEntity = new PurchaseReturn
                 {
                     SupplierId = returnDto.SupplierId,
                     ReturnDate = returnDto.ReturnDate,
                     Remarks = returnDto.Remarks,
-                    GrandTotal = 0, // Neeche calculate hoga
-                    Status = "Confirmed", // Ya "Draft" as per your need [cite: 2026-02-03]
+                    GrandTotal = 0,
+                    Status = "Confirmed",
                     Items = new List<PurchaseReturnItem>()
                 };
 
                 foreach (var item in returnDto.Items)
                 {
+                    // Calculation [cite: 2026-02-04]
                     var itemTotal = item.ReturnQty * item.Rate;
                     returnEntity.GrandTotal += itemTotal;
 
@@ -90,17 +96,72 @@ namespace Inventory.API.Controllers
                     });
                 }
 
+                // Repository call [cite: 2026-02-04]
                 var result = await _repository.CreatePurchaseReturnAsync(returnEntity);
 
                 if (result)
-                    return Ok(new { message = "Purchase Return successfully created!", returnNumber = returnEntity.ReturnNumber });
+                {
+                    return Ok(new
+                    {
+                        success = true,
+                        message = "Purchase Return successfully created!",
+                        returnNumber = returnEntity.ReturnNumber
+                    });
+                }
 
-                return StatusCode(500, "Data save karne mein kuch dikkat aayi.");
+                return StatusCode(500, "Database save operation failed.");
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { message = "Internal Server Error", error = ex.Message });
             }
+        }
+
+        [HttpGet("list")]
+        public async Task<ActionResult<PurchaseReturnPagedResponse>> GetList(
+             [FromQuery] string? filter,        // Frontend se 'filter' key aa rahi hai [cite: 2026-02-04]
+             [FromQuery] int pageIndex = 0,
+             [FromQuery] int pageSize = 10,
+             [FromQuery] DateTime? fromDate = null,
+             [FromQuery] DateTime? toDate = null,
+             [FromQuery] string? sortField = "ReturnDate",
+             [FromQuery] string? sortOrder = "desc")
+        {
+            // Repository ko saare parameters pass karein [cite: 2026-02-04]
+            var result = await _repository.GetPurchaseReturnsAsync(
+                filter,
+                pageIndex,
+                pageSize,
+                fromDate,
+                toDate,
+                sortField,
+                sortOrder);
+
+            return Ok(result);
+        }
+
+        [HttpGet("details/{id}")]
+        public async Task<IActionResult> GetById(Guid id)        
+        {
+           
+            var result = await _repository.GetPurchaseReturnByIdAsync(id);
+           
+            if (result == null)
+            {
+                return NotFound(new { message = "Purchase Return record not found." });
+            }
+           
+            return Ok(result);
+        }
+
+        [HttpGet("export-excel")]
+        public async Task<IActionResult> ExportExcel([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
+        {
+            var fileContent = await _repository.ExportPurchaseReturnsToExcelAsync(fromDate, toDate);
+            string fileName = $"DebitNotes_{DateTime.Now:yyyyMMdd}.xlsx";
+
+            // File return karein proper MIME type ke saath [cite: 2026-02-04]
+            return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
     }
 }

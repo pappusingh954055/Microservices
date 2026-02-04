@@ -1,13 +1,19 @@
-﻿public class PurchaseReturnItem
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+public class PurchaseReturnItem
 {
     public Guid Id { get; set; }
     public Guid PurchaseReturnId { get; set; }
-    public Guid ProductId { get; set; } // Kept as Guid [cite: 2026-02-03]
-    public string GrnRef { get; set; } // UI se matching reference
+    public Guid ProductId { get; set; }
+    [NotMapped]
+    public string ProductName { get; set; }
+    public string GrnRef { get; set; } 
     public decimal ReturnQty { get; set; }
     public decimal Rate { get; set; }
     public decimal TotalAmount { get; set; }
-
+    public decimal GstPercent { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal TaxAmount { get; set; }
     // Navigation Property
     public PurchaseReturn PurchaseReturn { get; set; }
 }

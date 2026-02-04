@@ -14,9 +14,15 @@ namespace Inventory.Application.PurchaseReturn.DTOs
 
     public class PurchaseReturnItemDto
     {
-        public Guid ProductId { get; set; } // Guid [cite: 2026-02-03]
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
         public string GrnRef { get; set; }
         public decimal ReturnQty { get; set; }
         public decimal Rate { get; set; }
+        public decimal GstPercent {  get; set; }
+        public decimal DiscountPercent {  get; set; }
+
+        public decimal TotalAmount { get; set; }
+        public decimal TaxAmount { get; set; }
     }
 }

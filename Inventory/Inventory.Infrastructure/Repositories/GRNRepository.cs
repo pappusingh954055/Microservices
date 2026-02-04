@@ -19,20 +19,30 @@ namespace Inventory.Infrastructure.Repositories
         public async Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details)
         {
             // 1. PO Reference Check
-            if (header.PurchaseOrderId <= 0)
+            // Note: Agar aapka ID Guid hai toh 'header.PurchaseOrderId == Guid.Empty' use karein
+            if (header.PurchaseOrderId == null)
             {
-                throw new Exception("Purchase Order Reference (POHeaderId) is missing. Cannot save GRN.");
+                throw new Exception("Purchase Order Reference is missing. Cannot save GRN.");
             }
 
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 2. Header Setup
-                header.Status = "Received"; // SQL NULL error fix
+                // --- FIX: Fetch SupplierId from Purchase Order to avoid '0' in DB --- [cite: 2026-02-04]
+                var po = await _context.PurchaseOrders
+                                       .FirstOrDefaultAsync(p => p.Id == header.PurchaseOrderId);
+
+                if (po != null)
+                {
+                    header.SupplierId = po.SupplierId; // PO se asali SupplierId utha liya [cite: 2026-02-04]
+                }
+
+                // 2. Header Setup - Existing Logic [cite: 2026-02-04]
+                header.Status = "Received";
                 header.CreatedOn = DateTime.Now;
-                header.CreatedBy = header.CreatedBy;               
+                header.CreatedBy = header.CreatedBy;
                 header.ModifiedBy = header.ModifiedBy;
-                // Agar UI se AUTO-GEN aaya hai toh naya number generate karein
+
                 if (string.IsNullOrEmpty(header.GRNNumber) || header.GRNNumber == "AUTO-GEN")
                 {
                     header.GRNNumber = await GenerateGRNNumber();
@@ -41,13 +51,13 @@ namespace Inventory.Infrastructure.Repositories
                 await _context.GRNHeaders.AddAsync(header);
                 await _context.SaveChangesAsync();
 
-                // 3. Batch Fetch Products (Optimization)
+                // 3. Batch Fetch Products (Optimization) - Existing Logic [cite: 2026-02-04]
                 var productIds = details.Select(d => d.ProductId).ToList();
                 var products = await _context.Products
                                              .Where(p => productIds.Contains(p.Id))
                                              .ToListAsync();
 
-                // 4. Detail Mapping & Stock Update
+                // 4. Detail Mapping & Stock Update - Existing Logic [cite: 2026-02-04]
                 foreach (var item in details)
                 {
                     item.GRNHeaderId = header.Id;
@@ -69,7 +79,6 @@ namespace Inventory.Infrastructure.Repositories
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // SUCCESS: Ab true ki jagah naya GRN Number return karein
                 return header.GRNNumber;
             }
             catch (Exception ex)

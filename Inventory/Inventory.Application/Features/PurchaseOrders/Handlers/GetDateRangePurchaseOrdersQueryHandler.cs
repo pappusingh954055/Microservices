@@ -30,9 +30,7 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                 GrandTotal = x.GrandTotal,
                 SubTotal = x.SubTotal,
 
-                // --- DYNAMIC STATUS MERGE LOGIC ---
-                // Agar GrnHeaders collection mein koi bhi record hai, toh status 'Received' dikhao.
-                // Varna jo original status (Draft, Submitted, Approved) hai wahi dikhao.
+               
                 Status = (x.GrnHeaders != null && x.GrnHeaders.Any())
                          ? "Received"
                          : x.Status,

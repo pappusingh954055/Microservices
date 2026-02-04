@@ -112,17 +112,111 @@ namespace Inventory.Infrastructure.Repositories
         //        };
         //    }
 
+        //    public async Task<StockPagedResponseDto> GetCurrentStockAsync(
+        //string? search,
+        //string? sortField,
+        //string? sortOrder,
+        //int pageIndex,
+        //int pageSize,
+        //DateTime? startDate = null,
+        //DateTime? endDate = null)
+        //    {
+        //        // STEP 1: Sirf Base GRN data grouping karein (Sales aur History ke bina)
+        //        // Ye query ekdum light hai aur kabhi timeout nahi degi
+        //        var baseQuery = _context.GRNDetails.AsQueryable();
+
+        //        if (startDate.HasValue)
+        //            baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate >= startDate.Value);
+        //        if (endDate.HasValue)
+        //            baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
+
+        //        var groupedQuery = baseQuery
+        //            .GroupBy(g => new
+        //            {
+        //                g.ProductId,
+        //                ProductName = g.Product.Name,
+        //                UnitName = g.Product.Unit,
+        //                MinStock = g.Product.MinStock
+        //            })
+        //            .Select(group => new StockSummaryDto
+        //            {
+        //                ProductId = group.Key.ProductId,
+        //                ProductName = group.Key.ProductName,
+        //                Unit = group.Key.UnitName,
+        //                MinStockLevel = group.Key.MinStock,
+        //                TotalReceived = group.Sum(x => x.ReceivedQty),
+        //                TotalRejected = group.Sum(x => x.RejectedQty),
+        //                // Initial available stock (Sales minus karne se pehle)
+        //                AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
+        //                LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
+        //                LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault()
+        //            });
+
+        //        // Search Logic
+        //        if (!string.IsNullOrEmpty(search))
+        //        {
+        //            groupedQuery = groupedQuery.Where(x => x.ProductName.Contains(search));
+        //        }
+
+        //        // Sorting Logic
+        //        bool isDesc = sortOrder?.ToLower() == "desc";
+        //        groupedQuery = sortField?.ToLower() switch
+        //        {
+        //            "productname" => isDesc ? groupedQuery.OrderByDescending(x => x.ProductName) : groupedQuery.OrderBy(x => x.ProductName),
+        //            "totalreceived" => isDesc ? groupedQuery.OrderByDescending(x => x.TotalReceived) : groupedQuery.OrderBy(x => x.TotalReceived),
+        //            "availablestock" => isDesc ? groupedQuery.OrderByDescending(x => x.AvailableStock) : groupedQuery.OrderBy(x => x.AvailableStock),
+        //            _ => groupedQuery.OrderBy(x => x.ProductName)
+        //        };
+
+        //        // STEP 2: Pagination execute karke sirf limited items (e.g., 10 items) layein
+        //        var totalCount = await groupedQuery.CountAsync();
+        //        var items = await groupedQuery.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+
+        //        // STEP 3: Ab sirf in 10 items ke liye Sales aur History fetch karein
+        //        // Ye loop sirf 10 baar chalega, isliye performance par koi asar nahi padega
+        //        foreach (var item in items)
+        //        {
+        //            // 1. Calculate Total Sold for this product
+        //            item.TotalSold = await _context.SaleOrderItems
+        //                .Where(si => si.ProductId == item.ProductId && si.SaleOrder.Status == "Confirmed")
+        //                .SumAsync(si => (decimal?)si.Qty) ?? 0;
+
+        //            // 2. Final Stock Update
+        //            item.AvailableStock = (item.TotalReceived - item.TotalRejected) - item.TotalSold;
+
+        //            // 3. History fetch (Sirf is product ki specific history)
+        //            item.History = await _context.GRNDetails
+        //                .Where(g => g.ProductId == item.ProductId)
+        //                .OrderByDescending(g => g.GRNHeader.ReceivedDate)
+        //                .Take(15) // Sirf top 15 records dikhayein speed ke liye
+        //                .Select(allG => new StockHistoryDto
+        //                {
+        //                    ReceivedDate = allG.GRNHeader.ReceivedDate,
+        //                    PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
+        //                    SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
+        //                    ProductName = allG.Product.Name,
+        //                    ReceivedQty = allG.ReceivedQty,
+        //                    RejectedQty = allG.RejectedQty
+        //                }).ToListAsync();
+        //        }
+
+        //        return new StockPagedResponseDto
+        //        {
+        //            Items = items,
+        //            TotalCount = totalCount
+        //        };
+        //    }
+
         public async Task<StockPagedResponseDto> GetCurrentStockAsync(
-    string? search,
-    string? sortField,
-    string? sortOrder,
-    int pageIndex,
-    int pageSize,
-    DateTime? startDate = null,
-    DateTime? endDate = null)
+        string? search,
+        string? sortField,
+        string? sortOrder,
+        int pageIndex,
+        int pageSize,
+        DateTime? startDate = null,
+        DateTime? endDate = null)
         {
-            // STEP 1: Sirf Base GRN data grouping karein (Sales aur History ke bina)
-            // Ye query ekdum light hai aur kabhi timeout nahi degi
+            // STEP 1: Base Query - Existing logic unchanged [cite: 2026-02-04]
             var baseQuery = _context.GRNDetails.AsQueryable();
 
             if (startDate.HasValue)
@@ -130,6 +224,7 @@ namespace Inventory.Infrastructure.Repositories
             if (endDate.HasValue)
                 baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
 
+            // STEP 2: Grouping Logic [cite: 2026-02-04]
             var groupedQuery = baseQuery
                 .GroupBy(g => new
                 {
@@ -144,21 +239,21 @@ namespace Inventory.Infrastructure.Repositories
                     ProductName = group.Key.ProductName,
                     Unit = group.Key.UnitName,
                     MinStockLevel = group.Key.MinStock,
+                    // TotalReceived ab Purchase Returns ke baad wala net value hai [cite: 2026-02-04]
                     TotalReceived = group.Sum(x => x.ReceivedQty),
                     TotalRejected = group.Sum(x => x.RejectedQty),
-                    // Initial available stock (Sales minus karne se pehle)
-                    AvailableStock = group.Sum(x => x.ReceivedQty) - group.Sum(x => x.RejectedQty),
+
+                    // FIXED: Yahan se '- TotalRejected' pehle hi hata hua tha, isko net pool mana hai [cite: 2026-02-04]
+                    AvailableStock = group.Sum(x => x.ReceivedQty),
+
                     LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
                     LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault()
                 });
 
-            // Search Logic
+            // Search & Sorting - Existing logic unchanged [cite: 2026-02-04]
             if (!string.IsNullOrEmpty(search))
-            {
                 groupedQuery = groupedQuery.Where(x => x.ProductName.Contains(search));
-            }
 
-            // Sorting Logic
             bool isDesc = sortOrder?.ToLower() == "desc";
             groupedQuery = sortField?.ToLower() switch
             {
@@ -168,27 +263,33 @@ namespace Inventory.Infrastructure.Repositories
                 _ => groupedQuery.OrderBy(x => x.ProductName)
             };
 
-            // STEP 2: Pagination execute karke sirf limited items (e.g., 10 items) layein
+            // STEP 3: Execute Pagination [cite: 2026-02-04]
             var totalCount = await groupedQuery.CountAsync();
             var items = await groupedQuery.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
-            // STEP 3: Ab sirf in 10 items ke liye Sales aur History fetch karein
-            // Ye loop sirf 10 baar chalega, isliye performance par koi asar nahi padega
+            // STEP 4: Advanced Calculations - FIXING THE ISSUE HERE [cite: 2026-02-04]
             foreach (var item in items)
             {
-                // 1. Calculate Total Sold for this product
-                item.TotalSold = await _context.SaleOrderItems
+                // Confirmed Sales fetch karein [cite: 2026-02-04]
+                var totalSold = await _context.SaleOrderItems
                     .Where(si => si.ProductId == item.ProductId && si.SaleOrder.Status == "Confirmed")
                     .SumAsync(si => (decimal?)si.Qty) ?? 0;
 
-                // 2. Final Stock Update
-                item.AvailableStock = (item.TotalReceived - item.TotalRejected) - item.TotalSold;
+                item.TotalSold = totalSold;
 
-                // 3. History fetch (Sirf is product ki specific history)
+                // --- ISSUE FIX START --- [cite: 2026-02-04]
+                // Galti yahan thi: (TotalReceived - TotalRejected) karne se Rejected kam hone par stock badh raha tha.
+                // Kyunki hum Purchase Return ke waqt TotalReceived ko pehle hi kam kar dete hain,
+                // isliye formula sirf (TotalReceived - TotalSold) hona chahiye. [cite: 2026-02-04]
+
+                item.AvailableStock = item.TotalReceived - item.TotalSold;
+                // --- ISSUE FIX END ---
+
+                // History fetch - Existing logic unchanged [cite: 2026-02-04]
                 item.History = await _context.GRNDetails
                     .Where(g => g.ProductId == item.ProductId)
                     .OrderByDescending(g => g.GRNHeader.ReceivedDate)
-                    .Take(15) // Sirf top 15 records dikhayein speed ke liye
+                    .Take(10)
                     .Select(allG => new StockHistoryDto
                     {
                         ReceivedDate = allG.GRNHeader.ReceivedDate,

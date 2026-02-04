@@ -17,7 +17,7 @@ namespace Inventory.API.Controllers
         [Authorize(Roles = "Warehouse")]
         public async Task<IActionResult> Save([FromBody] CreateGRNCommand command)
         {
-            // Fix: result ab bool nahi balki string (GRN Number) hai
+           
             string newGrnNumber = await _mediator.Send(command);
 
             if (!string.IsNullOrEmpty(newGrnNumber))
@@ -26,7 +26,7 @@ namespace Inventory.API.Controllers
                 {
                     success = true,
                     message = "Stock Updated Successfully",
-                    grnNumber = newGrnNumber // Frontend isse 'AUTO-GEN' ko replace karega
+                    grnNumber = newGrnNumber 
                 });
             }
 
