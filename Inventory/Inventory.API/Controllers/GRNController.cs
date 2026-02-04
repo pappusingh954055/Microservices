@@ -34,6 +34,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("GetPOData/{poId}")]
+        [Authorize(Roles = "Manager,Admin,User,Warehouse")]
         public async Task<IActionResult> GetPOData(int poId, [FromQuery] int? grnHeaderId = null)
         {
             // Mediator query mein ab do parameters jayenge
@@ -43,6 +44,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("grn-list")]
+        [Authorize(Roles = "Manager,Admin,User,Warehouse")]
         public async Task<IActionResult> GetGRNList(
         [FromQuery] string? search = "",
         [FromQuery] string? sortField = "id", // Default value rakhein

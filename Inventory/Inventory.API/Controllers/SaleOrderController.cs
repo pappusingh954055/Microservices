@@ -31,6 +31,7 @@ public class SaleOrderController : ControllerBase
     }
 
     [HttpPost("export")]
+    [Authorize(Roles = "Manager,Admin,User")]
     public async Task<IActionResult> ExportSaleOrderReport([FromBody] List<int> orderIds) // Guid se int mein badla
     {
         // 1. Validation check karein taaki 400 error handle ho sake
@@ -79,6 +80,7 @@ public class SaleOrderController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Manager,Admin,User")]
     public async Task<IActionResult> GetSaleOrders(
      [FromQuery] string searchTerm = "",
      [FromQuery] int pageNumber = 1,
@@ -103,8 +105,8 @@ public class SaleOrderController : ControllerBase
         });
     }
 
-    [HttpPatch("{id}/status")] 
-    [Authorize(Roles = "Admin,Manager")]
+    [HttpPatch("{id}/status")]
+    [Authorize(Roles = "Manager,Admin,User")]
     public async Task<IActionResult> UpdateStatus(int id, [FromBody] StatusUpdateDto request)
     {
         if (request == null || string.IsNullOrEmpty(request.Status))
@@ -133,6 +135,7 @@ public class SaleOrderController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [Authorize(Roles = "Manager,Admin,User")]
     public async Task<ActionResult<SaleOrderDetailDto>> GetOrder(int id)
     {
         var order = await _saleRepo.GetSaleOrderByIdAsync(id);
@@ -146,6 +149,7 @@ public class SaleOrderController : ControllerBase
     }
 
     [HttpGet("export-list")]
+    [Authorize(Roles = "Manager,Admin,User")]
     public async Task<IActionResult> ExportSaleOrderList()
     {
         // Excel export ke liye hum pagination bypass karenge

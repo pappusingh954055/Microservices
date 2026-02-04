@@ -1,5 +1,6 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -18,6 +19,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("current-stock")]
+        [Authorize(Roles = "Manager,Admin,User,Warehouse")]
         public async Task<IActionResult> GetStock(
            [FromQuery] string? search,
            [FromQuery] string? sortField,
@@ -34,6 +36,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("ExportExcel")]
+        [Authorize(Roles = "Manager,Admin,User,Warehouse")]
         public async Task<IActionResult> ExportExcel([FromBody] List<Guid> productIds)
         {
             if (productIds == null || !productIds.Any())
