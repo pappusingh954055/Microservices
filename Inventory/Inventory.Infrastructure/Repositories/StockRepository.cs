@@ -207,24 +207,24 @@ namespace Inventory.Infrastructure.Repositories
         //        };
         //    }
 
-        public async Task<StockPagedResponseDto> GetCurrentStockAsync(
-        string? search,
-        string? sortField,
-        string? sortOrder,
-        int pageIndex,
-        int pageSize,
-        DateTime? startDate = null,
-        DateTime? endDate = null)
+     public async Task<StockPagedResponseDto> GetCurrentStockAsync(
+     string? search,
+     string? sortField,
+     string? sortOrder,
+     int pageIndex,
+     int pageSize,
+     DateTime? startDate = null,
+     DateTime? endDate = null)
         {
-            // STEP 1: Base Query - Existing logic unchanged [cite: 2026-02-04]
-            var baseQuery = _context.GRNDetails.AsQueryable();
+            // STEP 1: Base Query - Data ko fast fetch karne ke liye AsNoTracking [cite: 2026-02-04]
+            var baseQuery = _context.GRNDetails.AsNoTracking().AsQueryable();
 
             if (startDate.HasValue)
                 baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate >= startDate.Value);
             if (endDate.HasValue)
                 baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
 
-            // STEP 2: Grouping Logic [cite: 2026-02-04]
+            // STEP 2: Grouping Logic - Product wise aggregate [cite: 2026-02-04]
             var groupedQuery = baseQuery
                 .GroupBy(g => new
                 {
@@ -239,18 +239,18 @@ namespace Inventory.Infrastructure.Repositories
                     ProductName = group.Key.ProductName,
                     Unit = group.Key.UnitName,
                     MinStockLevel = group.Key.MinStock,
-                    // TotalReceived ab Purchase Returns ke baad wala net value hai [cite: 2026-02-04]
+                    // TotalReceived: Ye total kitna mal andar aaya hai (#8 for Test-001)
                     TotalReceived = group.Sum(x => x.ReceivedQty),
                     TotalRejected = group.Sum(x => x.RejectedQty),
 
-                    // FIXED: Yahan se '- TotalRejected' pehle hi hata hua tha, isko net pool mana hai [cite: 2026-02-04]
+                    // AvailableStock: Initial value same as TotalReceived [cite: 2026-02-04]
                     AvailableStock = group.Sum(x => x.ReceivedQty),
 
                     LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
                     LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault()
                 });
 
-            // Search & Sorting - Existing logic unchanged [cite: 2026-02-04]
+            // STEP 3: Search & Sorting [cite: 2026-02-04]
             if (!string.IsNullOrEmpty(search))
                 groupedQuery = groupedQuery.Where(x => x.ProductName.Contains(search));
 
@@ -263,29 +263,34 @@ namespace Inventory.Infrastructure.Repositories
                 _ => groupedQuery.OrderBy(x => x.ProductName)
             };
 
-            // STEP 3: Execute Pagination [cite: 2026-02-04]
+            // Execution of count and paged items [cite: 2026-02-04]
             var totalCount = await groupedQuery.CountAsync();
             var items = await groupedQuery.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
-            // STEP 4: Advanced Calculations - FIXING THE ISSUE HERE [cite: 2026-02-04]
+            // STEP 4: Real-Time Sales & Returns Fix [cite: 2026-02-04]
             foreach (var item in items)
             {
-                // Confirmed Sales fetch karein [cite: 2026-02-04]
+                // 1. Confirmed Sales fetch karein (Confirmed and Completed) [cite: 2026-02-04]
+                // Ye wahi 2 units hain jo Sale Order mein minus ho rahi hain
                 var totalSold = await _context.SaleOrderItems
-                    .Where(si => si.ProductId == item.ProductId && si.SaleOrder.Status == "Confirmed")
+                    .Where(si => si.ProductId == item.ProductId &&
+                                (si.SaleOrder.Status == "Confirmed" || si.SaleOrder.Status == "Completed"))
                     .SumAsync(si => (decimal?)si.Qty) ?? 0;
 
                 item.TotalSold = totalSold;
 
-                // --- ISSUE FIX START --- [cite: 2026-02-04]
-                // Galti yahan thi: (TotalReceived - TotalRejected) karne se Rejected kam hone par stock badh raha tha.
-                // Kyunki hum Purchase Return ke waqt TotalReceived ko pehle hi kam kar dete hain,
-                // isliye formula sirf (TotalReceived - TotalSold) hona chahiye. [cite: 2026-02-04]
+                // 2. Purchase Returns fetch karein (Debit Note) [cite: 2026-02-04]
+                var totalReturned = await _context.PurchaseReturnItems
+                    .Where(ri => ri.ProductId == item.ProductId)
+                    .SumAsync(ri => (decimal?)ri.ReturnQty) ?? 0;
 
-                item.AvailableStock = item.TotalReceived - item.TotalSold;
-                // --- ISSUE FIX END ---
+                item.TotalRejected = totalReturned; // Optional: Syncing rejected with returns
 
-                // History fetch - Existing logic unchanged [cite: 2026-02-04]
+                // --- FINAL SYNC CALCULATION ---
+                // Dashboard ab 8 - 2 = 6 hi dikhayega
+                item.AvailableStock = item.TotalReceived - (item.TotalSold + totalReturned);
+
+                // --- Audit Trail Logic ---
                 item.History = await _context.GRNDetails
                     .Where(g => g.ProductId == item.ProductId)
                     .OrderByDescending(g => g.GRNHeader.ReceivedDate)

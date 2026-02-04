@@ -1,12 +1,18 @@
-﻿using Inventory.Domain.PriceLists;
+﻿using Inventory.Domain.Entities;
+using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using YourProjectNamespace.Entities;
 
 namespace Inventory.Application.Common.Interfaces
 {
     public interface IInventoryDbContext
     {
-        // PriceList Entities
+        DbSet<GRNDetail> GRNDetails { get; }
+        DbSet<SaleOrderItem> SaleOrderItems { get; }
+        DbSet<PurchaseReturnItem> PurchaseReturnItems { get; }
+
+
         DbSet<PriceList> PriceLists { get; }
         DbSet<PriceListItem> PriceListItems { get; }
 
