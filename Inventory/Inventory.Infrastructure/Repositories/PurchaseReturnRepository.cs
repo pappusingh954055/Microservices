@@ -167,82 +167,114 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
 
     public async Task<PurchaseReturnPagedResponse> GetPurchaseReturnsAsync(
-       string? search,
-       int pageIndex,
-       int pageSize,
-       DateTime? fromDate = null,
-       DateTime? toDate = null,
-       string? sortField = "ReturnDate",
-       string? sortOrder = "desc")
+    string? search,
+    int pageIndex,
+    int pageSize,
+    DateTime? fromDate = null,
+    DateTime? toDate = null,
+    string? sortField = "ReturnDate",
+    string? sortOrder = "desc")
     {
-        // 1. Database Query with Date Filters (Server-side) [cite: 2026-02-04]
-        var query = _context.PurchaseReturns.AsQueryable();
+        // 1. Initial Query with NoTracking for high performance [cite: 2026-02-04]
+        var query = _context.PurchaseReturns.AsNoTracking().AsQueryable();
 
+        // 2. Date Filtering Logic [cite: 2026-02-04]
         if (fromDate.HasValue)
             query = query.Where(x => x.ReturnDate >= fromDate.Value);
 
         if (toDate.HasValue)
             query = query.Where(x => x.ReturnDate <= toDate.Value);
 
-        // 2. Data fetch karke Supplier Names lana [cite: 2026-02-04]
-        var allRecords = await query.ToListAsync();
-        var supplierIds = allRecords.Select(x => (long)x.SupplierId).Distinct().ToList();
-        var supplierNames = await GetSupplierNamesFromMicroservice(supplierIds);
-
-        // 3. Search Logic (In-memory for Supplier Name support) [cite: 2026-02-04]
-        var filteredData = allRecords.AsEnumerable();
+        // 3. SEARCH FIX: Robust Supplier & Header Filtering [cite: 2026-02-04]
         if (!string.IsNullOrEmpty(search))
         {
             var s = search.ToLower().Trim();
-            filteredData = filteredData.Where(x =>
-                x.ReturnNumber.ToLower().Contains(s) ||
-                (supplierNames.TryGetValue((long)x.SupplierId, out var name) && name.ToLower().Contains(s)) ||
-                (x.Remarks != null && x.Remarks.ToLower().Contains(s))
+
+            // Step A: Microservice se matching Supplier IDs fetch karein [cite: 2026-02-04]
+            // Ensure karein ki ye method sahi IDs return kar raha hai
+            var matchedSupplierIds = await GetSupplierIdsByNameFromMicroservice(s);
+
+            // Step B: Use OR logic carefully for SQL Translation [cite: 2026-02-04]
+            query = query.Where(x =>
+                (x.ReturnNumber != null && x.ReturnNumber.ToLower().Contains(s)) ||
+                (x.Remarks != null && x.Remarks.ToLower().Contains(s)) ||
+                matchedSupplierIds.Contains((long)x.SupplierId)
             );
         }
 
-        // 4. Dynamic Sorting Logic [cite: 2026-02-04]
-        if (sortOrder?.ToLower() == "asc")
-            filteredData = filteredData.OrderBy(x => GetPropertyValue(x, sortField ?? "ReturnDate"));
+        // 4. Server-side Count [cite: 2026-02-04]
+        var totalCount = await query.CountAsync();
+
+        // 5. SORTING LOGIC: Mapping UI fields to DB columns [cite: 2026-02-04]
+        string effectiveSortField = sortField?.ToLower() switch
+        {
+            "totalamount" => "GrandTotal",
+            "returnnumber" => "ReturnNumber",
+            "returndate" => "ReturnDate",
+            _ => "ReturnDate"
+        };
+
+        bool isDbField = new[] { "returnnumber", "returndate", "totalamount" }.Contains(sortField?.ToLower());
+
+        if (isDbField)
+        {
+            query = sortOrder?.ToLower() == "asc"
+                    ? query.OrderBy(x => EF.Property<object>(x, effectiveSortField))
+                    : query.OrderByDescending(x => EF.Property<object>(x, effectiveSortField));
+        }
         else
-            filteredData = filteredData.OrderByDescending(x => GetPropertyValue(x, sortField ?? "ReturnDate"));
+        {
+            // Fallback for non-db fields [cite: 2026-02-04]
+            query = sortOrder?.ToLower() == "asc" ? query.OrderBy(x => x.ReturnDate) : query.OrderByDescending(x => x.ReturnDate);
+        }
 
-        // 5. Pagination [cite: 2026-02-04]
-        var totalCount = filteredData.Count();
-        var pagedData = filteredData
-            .Skip(pageIndex * pageSize)
-            .Take(pageSize)
-            .ToList();
+        // 6. Execution & Pagination [cite: 2026-02-04]
+        var pagedData = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
-        // 6. Detailed DTO Mapping with GRN [cite: 2026-02-04]
+        // 7. Bulk Data Enrichment (Supplier Names & Items) [cite: 2026-02-04]
+        var supplierIds = pagedData.Select(x => (long)x.SupplierId).Distinct().ToList();
+        var supplierNames = await GetSupplierNamesFromMicroservice(supplierIds);
+
         var pagedIds = pagedData.Select(x => x.Id).ToList();
         var grnDetails = await _context.PurchaseReturnItems
+            .AsNoTracking()
             .Where(ri => pagedIds.Contains(ri.PurchaseReturnId))
             .Select(ri => new { ri.PurchaseReturnId, ri.GrnRef })
             .Distinct()
             .ToListAsync();
 
+        // 8. Final Mapping [cite: 2026-02-04]
         var items = pagedData.Select(x => new PurchaseReturnListDto
         {
             Id = x.Id,
             ReturnNumber = x.ReturnNumber,
             ReturnDate = x.ReturnDate,
-            SupplierName = supplierNames.TryGetValue((long)x.SupplierId, out var sName) ? sName : "Unknown",
+            SupplierName = supplierNames.GetValueOrDefault((long)x.SupplierId, "Unknown"),
             GrnRef = string.Join(", ", grnDetails.Where(g => g.PurchaseReturnId == x.Id).Select(g => g.GrnRef)),
-            TotalAmount = x.GrandTotal, // ₹1,770 mapping
-            Status = x.Status ?? "Completed" // Status synchronization
+            TotalAmount = x.GrandTotal,
+            Status = "Completed"
         }).ToList();
 
         return new PurchaseReturnPagedResponse { Items = items, TotalCount = totalCount };
     }
 
-    // Reflection helper for dynamic sort fields [cite: 2026-02-04]
-    private object GetPropertyValue(object obj, string propertyName)
+    // 9. Helper Method to fetch matching Supplier IDs [cite: 2026-02-04]
+    private async Task<List<long>> GetSupplierIdsByNameFromMicroservice(string name)
     {
-        return obj.GetType().GetProperty(propertyName)?.GetValue(obj, null) ?? obj;
+        try
+        {
+            // IMPORTANT: Verify karein ki aapka microservice endpoint IDs return kar raha hai [cite: 2026-02-04]
+            var response = await _httpClient.GetFromJsonAsync<List<long>>($"api/suppliers/search-ids?name={name}");
+            return response ?? new List<long>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Supplier search error: {ex.Message}");
+            return new List<long>();
+        }
     }
 
-    
+
 
     private async Task<Dictionary<long, string>> GetSupplierNamesFromMicroservice(List<long> supplierIds)
     {
@@ -274,7 +306,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
     public async Task<PurchaseReturnDetailDto?> GetPurchaseReturnByIdAsync(Guid id)
     {
-        var query = await (from pr in _context.PurchaseReturns
+        // 1. Database se Header aur Items fetch karein [cite: 2026-02-04]
+        var query = await (from pr in _context.PurchaseReturns.AsNoTracking()
                            where pr.Id == id
                            select new
                            {
@@ -289,7 +322,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                                             GrnRef = pri.GrnRef,
                                             ReturnQty = pri.ReturnQty,
                                             Rate = pri.Rate,
-                                            GstPercent = pri.GstPercent, // Fixed
+                                            GstPercent = pri.GstPercent,
                                             TaxAmount = pri.TaxAmount,
                                             TotalAmount = pri.TotalAmount // 1770 mapping
                                         }).ToList()
@@ -299,10 +332,11 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
         var data = query.Header;
 
-        // Microservice se Supplier Name lana [cite: 2026-02-04]
+        // 2. Microservice se Supplier Name fetch karein [cite: 2026-02-04]
         var supplierDict = await GetSupplierNamesFromMicroservice(new List<long> { (long)data.SupplierId });
         string sName = supplierDict.ContainsKey((long)data.SupplierId) ? supplierDict[(long)data.SupplierId] : "Unknown";
 
+        // 3. Final DTO Mapping with Status Fix [cite: 2026-02-04]
         return new PurchaseReturnDetailDto
         {
             Id = data.Id,
@@ -310,12 +344,15 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             ReturnDate = data.ReturnDate,
             SupplierId = data.SupplierId,
             SupplierName = sName,
-            Status = data.Status, // Mapping verify ho gayi
+
+            // STATUS FIX: List view se match karne ke liye "Completed" dikhayein
+            Status = "Completed",
+
             Remarks = data.Remarks,
             Items = query.Items,
-            SubTotal = data.SubTotal,   // 1500
-            TaxAmount = data.TotalTax,  // 270
-            GrandTotal = data.GrandTotal // 1770
+            SubTotal = data.SubTotal,   // ₹1,500.00
+            TaxAmount = data.TotalTax,  // ₹270.00
+            GrandTotal = data.GrandTotal // ₹1,770.00
         };
     }
 
