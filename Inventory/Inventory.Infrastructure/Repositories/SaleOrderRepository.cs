@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.DTOs.SaleOrder;
 using Inventory.Application.SaleOrders.DTOs;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -269,5 +270,33 @@ public class SaleOrderRepository : ISaleOrderRepository
         }
 
         return order;
+    }
+
+    public async Task<List<SaleOrderLookupDto>> GetOrdersByCustomerAsync(int customerId)
+    {
+        return await _context.SaleOrders
+            .AsNoTracking()
+            .Where(x => x.CustomerId == customerId && x.Status == "Confirmed") // Sirf confirmed orders [cite: 2026-02-05]
+            .Select(x => new SaleOrderLookupDto
+            {
+                SaleOrderId = x.Id,
+                SoNumber = x.SONumber // Display ke liye number
+            }).ToListAsync();
+    }
+
+    public async Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId)
+    {
+        return await _context.SaleOrderItems
+            .AsNoTracking()
+            .Where(x => x.SaleOrderId == saleOrderId)
+            .Select(x => new SaleOrderItemGridDto
+            {
+                ProductId = x.ProductId,
+                ProductName = x.ProductName, // Table mein ProductName nvarchar column hai
+                SoldQty = x.Qty,            // Schema mein column 'Qty' hai
+                Rate = x.Rate,              // Schema mein column 'Rate' hai
+                TaxPercentage = x.GSTPercent // Schema mein column 'GSTPercent' hai
+            })
+            .ToListAsync();
     }
 }

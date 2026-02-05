@@ -1,5 +1,6 @@
 ﻿using ClosedXML.Excel;
 using Inventory.Application.Common.Interfaces;
+using Inventory.Application.DTOs.SaleOrder;
 using Inventory.Application.SaleOrders.Commands;
 using Inventory.Application.SaleOrders.DTOs;
 using MediatR;
@@ -200,5 +201,39 @@ public class SaleOrderController : ControllerBase
                     "Sale_Orders.xlsx");
             }
         }
+    }
+
+
+    [HttpGet("orders-by-customer/{customerId}")]
+    public async Task<IActionResult> GetOrdersByCustomer(int customerId)
+    {
+        if (customerId <= 0)
+        {
+            return BadRequest("Invalid Customer Id");
+        }
+
+        // Repository se DTO ki list mangwana [cite: 2026-02-05]
+        var orders = await _saleRepo.GetOrdersByCustomerAsync(customerId);
+
+        if (orders == null || !orders.Any())
+        {
+            return Ok(new List<SaleOrderLookupDto>()); // Empty list if no orders found
+        }
+
+        return Ok(orders);
+    }
+
+    [HttpGet("grid-items/{saleOrderId}")]
+    public async Task<IActionResult> GetGridItems(int saleOrderId)
+    {
+        if (saleOrderId <= 0) return BadRequest("Invalid Sale Order ID");
+
+        // Repository se lightweight DTO list mangwana [cite: 2026-02-05]
+        var items = await _saleRepo.GetItemsForGridByOrderIdAsync(saleOrderId);
+
+        if (items == null || !items.Any())
+            return Ok(new List<SaleOrderItemGridDto>());
+
+        return Ok(items);
     }
 }

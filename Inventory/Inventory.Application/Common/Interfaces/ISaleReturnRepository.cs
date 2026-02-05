@@ -1,0 +1,15 @@
+﻿using Inventory.Domain.Entities;
+
+public interface ISaleReturnRepository
+{
+    Task<SaleReturnPagedResponse> GetSaleReturnsAsync(
+         string? search,
+         int pageIndex,
+         int pageSize,
+         DateTime? fromDate,
+         DateTime? toDate,
+         string sortField,
+         string sortOrder);
+
+    Task<bool> CreateSaleReturnAsync(SaleReturnHeader returnHeader);
+}

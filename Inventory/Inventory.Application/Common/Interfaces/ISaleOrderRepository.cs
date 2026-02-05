@@ -1,4 +1,5 @@
-﻿using Inventory.Application.GRN.DTOs.Stock;
+﻿using Inventory.Application.DTOs.SaleOrder;
+using Inventory.Application.GRN.DTOs.Stock;
 using Inventory.Application.SaleOrders.DTOs;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -33,5 +34,9 @@ namespace Inventory.Application.Common.Interfaces
         Task<bool> UpdateSaleOrderStatusAsync(int id, string status);
 
         Task<SaleOrderDetailDto?> GetSaleOrderByIdAsync(int id);
+
+        Task<List<SaleOrderLookupDto>> GetOrdersByCustomerAsync(int customerId);
+
+        Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId);
     }
 }

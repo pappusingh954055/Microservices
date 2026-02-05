@@ -18,5 +18,7 @@ namespace Customers.Application.Common.Interfaces
 
         //single cusomer call
         Task<string?> GetCustomerNameByIdAsync(int id);
+
+        Task<List<CustomerLookupDto>> GetCustomersLookupAsync();
     }
 }

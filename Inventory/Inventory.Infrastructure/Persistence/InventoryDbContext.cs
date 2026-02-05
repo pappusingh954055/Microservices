@@ -30,6 +30,10 @@ public sealed class InventoryDbContext : DbContext,
 
     public DbSet<PurchaseReturnItem> PurchaseReturnItems { get; set; }
 
+    public DbSet<SaleReturnHeader> SaleReturnHeaders { get; set; }
+
+    public DbSet<SaleReturnItem> SaleReturnItems { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);

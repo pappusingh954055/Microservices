@@ -1,4 +1,6 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Clients;
+using Inventory.Application.Common.Interfaces;
+using Inventory.Infrastructure.Clients;
 using Inventory.Infrastructure.Persistence;
 using Inventory.Infrastructure.Repositories;
 using Microsoft.EntityFrameworkCore;
@@ -33,6 +35,8 @@ namespace Inventory.Infrastructure
 
             // Program.cs ke andar builder.Services mein add karein
             services.AddScoped<IPurchaseReturnRepository, PurchaseReturnRepository>();
+            services.AddScoped<ICustomerClient, CustomerClient>();
+            services.AddScoped<ISaleReturnRepository, SaleReturnRepository>();
 
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());

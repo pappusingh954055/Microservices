@@ -73,4 +73,12 @@ public class CustomersController : ControllerBase
         // Plain string return karein taaki Inventory API ka ReadAsStringAsync() ise handle kar sake
         return Ok(name);
     }
+
+    [HttpGet("lookup")]
+    public async Task<IActionResult> GetCustomerLookup()
+    {
+        // Repository se data mangwana [cite: 2026-02-05]
+        var customers = await _customerRepo.GetCustomersLookupAsync();
+        return Ok(customers);
+    }
 }

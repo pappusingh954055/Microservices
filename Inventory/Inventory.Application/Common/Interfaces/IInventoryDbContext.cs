@@ -12,7 +12,8 @@ namespace Inventory.Application.Common.Interfaces
         DbSet<SaleOrderItem> SaleOrderItems { get; }
         DbSet<PurchaseReturnItem> PurchaseReturnItems { get; }
 
-
+        DbSet<SaleReturnHeader> SaleReturnHeaders { get; }
+        DbSet<SaleReturnItem> SaleReturnItems { get; }
         DbSet<PriceList> PriceLists { get; }
         DbSet<PriceListItem> PriceListItems { get; }
 

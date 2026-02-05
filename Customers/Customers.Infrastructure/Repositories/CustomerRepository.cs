@@ -63,5 +63,18 @@ namespace Customers.Infrastructure.Repositories
                 .Select(c => c.CustomerName)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<List<CustomerLookupDto>> GetCustomersLookupAsync()
+        {
+            // Database se sirf Id aur CustomerName select karna [cite: 2026-02-05]
+            return await _context.Customers
+                .AsNoTracking() // Performance ke liye [cite: 2026-02-05]
+                .Select(c => new CustomerLookupDto
+                {
+                    Id = c.Id,
+                    Name = c.CustomerName // Aapki table mein 'CustomerName' column hai [cite: 2026-02-05]
+                })
+                .ToListAsync();
+        }
     }
 }
