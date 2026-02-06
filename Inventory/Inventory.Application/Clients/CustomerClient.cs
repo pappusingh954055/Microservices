@@ -18,7 +18,7 @@ public class CustomerClient : ICustomerClient
         var client = _httpClientFactory.CreateClient("CustomerService");
 
         // Batch API call: Customer Microservice ko IDs bhejein
-        var response = await client.PostAsJsonAsync("api/customers/get-names-by-ids", customerIds);
+        var response = await client.PostAsJsonAsync("api/customers/get-names", customerIds);
 
         if (response.IsSuccessStatusCode)
         {

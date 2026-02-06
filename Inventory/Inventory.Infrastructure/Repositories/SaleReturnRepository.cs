@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.Entities;
+﻿using Inventory.Application.Clients;
+using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -7,40 +8,41 @@ namespace Inventory.Infrastructure.Repositories
     public class SaleReturnRepository : ISaleReturnRepository
     {
         private readonly InventoryDbContext _context;
+        private readonly ICustomerClient _customerClient;   
 
-        public SaleReturnRepository(InventoryDbContext context)
+        public SaleReturnRepository(InventoryDbContext context, ICustomerClient customerClient
+            )
         {
             _context = context;
+            _customerClient = customerClient;
         }
 
         public async Task<SaleReturnPagedResponse> GetSaleReturnsAsync(
-            string? search,
-            int pageIndex,
-            int pageSize,
-            DateTime? fromDate,
-            DateTime? toDate,
-            string sortField,
-            string sortOrder)
+     string? search,
+     int pageIndex,
+     int pageSize,
+     DateTime? fromDate,
+     DateTime? toDate,
+     string sortField,
+     string sortOrder)
         {
-            // Optimization 1: No tracking and initial query without includes for performance
             var query = _context.SaleReturnHeaders.AsNoTracking().AsQueryable();
 
-            // 1. Filters (Direct Table Filters)
+            // 1. Filters
             if (fromDate.HasValue)
                 query = query.Where(x => x.ReturnDate >= fromDate.Value);
 
             if (toDate.HasValue)
                 query = query.Where(x => x.ReturnDate <= toDate.Value);
 
-            // 2. Search Logic (Including Join Table Search)
+            // 2. Search Logic
             if (!string.IsNullOrEmpty(search))
             {
-                // EF Core is smart enough to handle this join only when needed
                 query = query.Where(x => x.ReturnNumber.Contains(search) ||
-                                       x.SaleOrder.SONumber.Contains(search));
+                                        x.SaleOrder.SONumber.Contains(search));
             }
 
-            // 3. Sorting [cite: 2026-02-05]
+            // 3. Sorting
             bool isDesc = sortOrder?.ToLower() == "desc";
             query = sortField?.ToLower() switch
             {
@@ -50,11 +52,9 @@ namespace Inventory.Infrastructure.Repositories
                 _ => query.OrderByDescending(x => x.ReturnDate)
             };
 
-            // Optimization 2: CountAsync before taking results
             var totalCount = await query.CountAsync();
 
-            // Optimization 3: Projection (Select only needed fields)
-            // Isse 'SELECT *' nahi hota, sirf wahi columns aate hain jo DTO mein hain.
+            // 4. Projection
             var items = await query
                 .Skip(pageIndex * pageSize)
                 .Take(pageSize)
@@ -63,11 +63,35 @@ namespace Inventory.Infrastructure.Repositories
                     SaleReturnHeaderId = x.SaleReturnHeaderId,
                     ReturnNumber = x.ReturnNumber,
                     ReturnDate = x.ReturnDate,
-                    CustomerId = x.CustomerId, // Needed for Microservice mapping
-                    SoRef = x.SaleOrder != null ? x.SaleOrder.SONumber : string.Empty, //
+                    CustomerId = x.CustomerId,
+                    SoRef = x.SaleOrder != null ? x.SaleOrder.SONumber : string.Empty,
                     TotalAmount = x.TotalAmount,
                     Status = x.Status
                 }).ToListAsync();
+
+            // ==========================================================
+            // STEP 5: MICROSERVICE MAPPING LOGIC (The Fix)
+            // ==========================================================
+            // 1. Saare Unique CustomerIds nikaalein
+            var customerIds = items.Select(i => i.CustomerId).Distinct().ToList();
+
+            // 2. CustomerMicroservice se Names fetch karein [cite: 2026-02-06]
+            // Note: Yahan aapka existing internal service call aayega
+            var customerMap = await _customerClient.GetCustomerNamesAsync(customerIds);
+
+            // 3. Names ko list mein bind karein
+            foreach (var item in items)
+            {
+                if (customerMap.ContainsKey(item.CustomerId))
+                {
+                    item.CustomerName = customerMap[item.CustomerId];
+                }
+                else
+                {
+                    item.CustomerName = "Unknown Customer"; // Fallback
+                }
+            }
+            // ==========================================================
 
             return new SaleReturnPagedResponse { Items = items, TotalCount = totalCount };
         }
