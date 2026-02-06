@@ -238,6 +238,8 @@ public class SaleOrderRepository : ISaleOrderRepository
                 SoDate = o.SODate,
                 CustomerId = o.CustomerId,
                 Status = o.Status,
+                SubTotal = o.SubTotal,  
+                TotalTax = o.TotalTax,
                 GrandTotal = o.GrandTotal,
                 // Items ki mapping yahan karein
                 Items = o.Items.Select(oi => new SaleOrderItemDto

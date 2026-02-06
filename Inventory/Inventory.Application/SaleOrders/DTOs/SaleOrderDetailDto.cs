@@ -13,6 +13,9 @@ namespace Inventory.Application.SaleOrders.DTOs
         public string CustomerName { get; set; } = "Loading..."; // Placeholder for Microservice data
         public string Status { get; set; } = string.Empty;
         public decimal GrandTotal { get; set; }
+        public decimal SubTotal {  get; set; }
+
+        public decimal TotalTax {  get; set; }
 
         // Order ke andar ke items
         public List<SaleOrderItemDto> Items { get; set; } = new();

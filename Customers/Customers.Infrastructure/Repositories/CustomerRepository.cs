@@ -43,11 +43,26 @@ namespace Customers.Infrastructure.Repositories
         /// </summary>
         /// <param name="ids"></param>
         /// <returns></returns>
+        //public async Task<Dictionary<int, string>> GetCustomerNamesByIdsAsync(List<int> ids)
+        //{
+        //    return await _context.Customers
+        //        .Where(c => ids.Contains(c.Id))
+        //        .ToDictionaryAsync(c => c.Id, c => c.CustomerName);
+        //}
         public async Task<Dictionary<int, string>> GetCustomerNamesByIdsAsync(List<int> ids)
         {
+            // 1. Validation: Agar list empty hai toh turant return karein taaki DB trip bache
+            if (ids == null || !ids.Any())
+                return new Dictionary<int, string>();
+
+            // 2. Duplicate IDs remove karein taaki SQL IN clause chhota rahe
+            var distinctIds = ids.Distinct().ToList();
+
             return await _context.Customers
-                .Where(c => ids.Contains(c.Id))
-                .ToDictionaryAsync(c => c.Id, c => c.CustomerName);
+                .AsNoTracking() // 3. Tracking off karein, ye performance ke liye bahut zaroori hai [cite: 2026-02-06]
+                .Where(c => distinctIds.Contains(c.Id))
+                .Select(c => new { c.Id, c.CustomerName }) // 4. Sirf wahi columns layein jo chahiye
+                .ToDictionaryAsync(x => x.Id, x => x.CustomerName);
         }
 
         /// <summary>
