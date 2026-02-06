@@ -12,4 +12,5 @@ public interface ISaleReturnRepository
          string sortOrder);
 
     Task<bool> CreateSaleReturnAsync(SaleReturnHeader returnHeader);
+    Task<decimal> GetRemainingReturnableQtyAsync(int saleOrderId, Guid productId);
 }

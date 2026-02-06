@@ -96,39 +96,206 @@ namespace Inventory.Infrastructure.Repositories
             return new SaleReturnPagedResponse { Items = items, TotalCount = totalCount };
         }
 
+        //public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // 1. Sale Return entry save karo
+        //        _context.SaleReturnHeaders.Add(header);
+
+        //        // 2. Product Table mein CurrentStock update karo
+        //        foreach (var item in header.ReturnItems)
+        //        {
+        //            // Yahan 'Id' column use hoga (schema dekho)
+        //            var product = await _context.Products
+        //                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+        //            if (product != null)
+        //            {
+        //                // Sales Return = Stock increase (+)
+        //                product.CurrentStock += item.ReturnQty;
+        //                product.ModifiedOn = DateTime.Now; // Schema requirement
+        //                product.ModifiedBy = item.ModifiedBy;
+        //            }
+        //        }
+
+        //        await _context.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        return false;
+        //    }
+        //}
+
+        //public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+
+        //        header.ReturnNumber = $"SR-{DateTime.Now:yyyyMMddHHmmss}";
+        //        header.CreatedOn = DateTime.Now;
+        //        header.Status = "CONFIRMED"; 
+
+        //        decimal totalHeaderAmount = 0;
+
+
+        //        foreach (var item in header.ReturnItems)
+        //        {
+
+
+        //            decimal baseAmt = item.ReturnQty * item.UnitPrice;
+        //            item.TaxAmount = baseAmt * (item.TaxPercentage / 100m);
+
+
+        //            totalHeaderAmount += item.TotalAmount;
+
+        //            var product = await _context.Products
+        //                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+        //            if (product != null)
+        //            {
+
+        //                product.CurrentStock += item.ReturnQty;
+        //                product.ModifiedOn = DateTime.Now; 
+        //                product.ModifiedBy = header.ModifiedBy ?? "system";
+        //            }
+
+        //            item.CreatedOn = DateTime.Now;
+        //        }
+
+        //        header.TotalAmount = totalHeaderAmount;
+
+        //        _context.SaleReturnHeaders.Add(header);
+
+        //        await _context.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        return false;
+        //    }
+        //}
+
+        //public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
+        //{
+        //    using var transaction = await _context.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // 1. Save Sale Return
+        //        _context.SaleReturnHeaders.Add(header);
+
+        //        // 2. Stock Recovery (Restock logic)
+        //        foreach (var item in header.ReturnItems)
+        //        {
+        //            var product = await _context.Products.FindAsync(item.ProductId);
+        //            if (product != null)
+        //            {
+        //                // Return = Increase Current Stock
+        //                product.CurrentStock += item.ReturnQty;
+        //                product.ModifiedOn = DateTime.Now;
+        //            }
+        //        }
+
+        //        await _context.SaveChangesAsync();
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+        //    catch (Exception)
+        //    {
+        //        await transaction.RollbackAsync();
+        //        return false;
+        //    }
+        //}
+
         public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Sale Return entry save karo
-                _context.SaleReturnHeaders.Add(header);
+                // 1. Financial totals calculate karne ke liye variables
+                decimal calculatedSubTotal = 0;
+                decimal calculatedTaxAmount = 0;
 
-                // 2. Product Table mein CurrentStock update karo
+                // 2. Stock Recovery aur Calculations Loop
                 foreach (var item in header.ReturnItems)
                 {
-                    // Yahan 'Id' column use hoga (schema dekho)
-                    var product = await _context.Products
-                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    // Item level financial calculations
+                    // UnitPrice (95.00) * ReturnQty (1) = 95.00
+                    decimal itemSubTotal = item.ReturnQty * item.UnitPrice;
+                    decimal itemTax = itemSubTotal * (item.TaxPercentage / 100m);
 
+                    // Item level financial fields update
+                    item.TaxAmount = itemTax;
+                    item.TotalAmount = itemSubTotal + itemTax;
+                    item.CreatedOn = DateTime.Now;
+
+                    // Header totals accumulate karein
+                    calculatedSubTotal += itemSubTotal;
+                    calculatedTaxAmount += itemTax;
+
+                    // STOCK LOGIC (No changes here, as requested)
+                    var product = await _context.Products.FindAsync(item.ProductId);
                     if (product != null)
                     {
-                        // Sales Return = Stock increase (+)
+                        // Sales Return = Increase Current Stock
                         product.CurrentStock += item.ReturnQty;
-                        product.ModifiedOn = DateTime.Now; // Schema requirement
-                        product.ModifiedBy = item.ModifiedBy;
+                        product.ModifiedOn = DateTime.Now;
+                        product.ModifiedBy = header.CreatedBy ?? "system";
                     }
                 }
+
+                // 3. Header table columns update (0.00 fix karne ke liye)
+                header.SubTotal = calculatedSubTotal;
+                header.TaxAmount = calculatedTaxAmount;
+                header.DiscountAmount = header.DiscountAmount;
+                // TotalAmount final sync
+                header.TotalAmount = calculatedSubTotal + calculatedTaxAmount - (header.DiscountAmount);
+                header.CreatedOn = DateTime.Now;
+
+                // 4. Save Sale Return
+                _context.SaleReturnHeaders.Add(header);
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 await transaction.RollbackAsync();
                 return false;
             }
+        }
+
+        public async Task<decimal> GetRemainingReturnableQtyAsync(int saleOrderId, Guid productId)
+        {
+            // 1. Sale Order mein kitni quantity bechi gayi thi (e.g., 6)
+            var totalSold = await _context.SaleOrderItems
+                .AsNoTracking()
+                .Where(soi => soi.SaleOrderId == saleOrderId && soi.ProductId == productId)
+                .Select(soi => soi.Qty)
+                .FirstOrDefaultAsync();
+
+            // 2. Iss Order ke liye ab tak kitna return ho chuka hai (e.g., 2)
+            // Kewal "Confirmed" status wale returns ginein taaki logic dashboard se match kare
+            var totalReturned = await _context.SaleReturnItems
+                .AsNoTracking()
+                .Where(sri => sri.SaleReturnHeader.SaleOrderId == saleOrderId &&
+                              sri.ProductId == productId &&
+                              sri.SaleReturnHeader.Status == "Confirmed")
+                .SumAsync(sri => (decimal?)sri.ReturnQty) ?? 0;
+
+            // 3. Calculation (6 - 2 = 4 pieces available for return)
+            // Agar result 0 se niche jaye, toh 0 hi return karein taaki UI minus na dikhaye
+            var remaining = totalSold - totalReturned;
+
+            return remaining > 0 ? remaining : 0;
         }
     }
 }

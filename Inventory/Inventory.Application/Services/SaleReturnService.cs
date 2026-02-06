@@ -65,8 +65,8 @@ public class SaleReturnService : ISaleReturnService
                 ReturnQty = i.ReturnQty,
                 UnitPrice = i.UnitPrice,
                 TaxPercentage = i.TaxPercentage,
-                TaxAmount = taxAmount,       // Schema requirement
-                TotalAmount = subTotal + taxAmount, // Schema requirement
+                TaxAmount = taxAmount,   
+                TotalAmount = subTotal + taxAmount, 
                 Reason = i.Reason,
                 ItemCondition = i.ItemCondition
             };

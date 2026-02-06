@@ -284,6 +284,22 @@ public class SaleOrderRepository : ISaleOrderRepository
             }).ToListAsync();
     }
 
+    //public async Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId)
+    //{
+    //    return await _context.SaleOrderItems
+    //        .AsNoTracking()
+    //        .Where(x => x.SaleOrderId == saleOrderId)
+    //        .Select(x => new SaleOrderItemGridDto
+    //        {
+    //            ProductId = x.ProductId,
+    //            ProductName = x.ProductName,
+    //            SoldQty = x.Qty,
+    //            Rate = x.Rate, 
+    //            TaxPercentage = x.GSTPercent
+    //        })
+    //        .ToListAsync();
+    //}
+
     public async Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId)
     {
         return await _context.SaleOrderItems
@@ -292,11 +308,19 @@ public class SaleOrderRepository : ISaleOrderRepository
             .Select(x => new SaleOrderItemGridDto
             {
                 ProductId = x.ProductId,
-                ProductName = x.ProductName, // Table mein ProductName nvarchar column hai
-                SoldQty = x.Qty,            // Schema mein column 'Qty' hai
-                Rate = x.Rate,              // Schema mein column 'Rate' hai
-                TaxPercentage = x.GSTPercent // Schema mein column 'GSTPercent' hai
+                ProductName = x.ProductName,
+                Rate = x.Rate,
+                TaxPercentage = x.GSTPercent,
+
+                // CRITICAL FIX: Original Sold (10) minus Already Returned (5) = Display (5)
+                // Isse user ko wahi dikhega jo uske paas bacha hai
+                SoldQty = x.Qty - (_context.SaleReturnItems
+                    .Where(sr => sr.ProductId == x.ProductId &&
+                                sr.SaleReturnHeader.SaleOrderId == saleOrderId &&
+                                sr.SaleReturnHeader.Status == "Confirmed")
+                    .Sum(sr => (decimal?)sr.ReturnQty) ?? 0)
             })
+            .Where(x => x.SoldQty > 0) // Agar pura maal wapas aa gaya (0 bacha), toh grid mein mat dikhao
             .ToListAsync();
     }
 }

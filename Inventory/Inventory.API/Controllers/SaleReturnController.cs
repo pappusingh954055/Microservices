@@ -1,5 +1,7 @@
 ﻿using Inventory.Application.Clients;
+using Inventory.Application.SaleOrders.SaleReturn.Command;
 using Inventory.Application.Services;
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -9,15 +11,18 @@ public class SaleReturnController : ControllerBase
     private readonly ISaleReturnRepository _repo;
     private readonly ISaleReturnService _service;
     private readonly ICustomerClient _customerClient;
+    private readonly IMediator _mediator;
     public SaleReturnController(
         ISaleReturnRepository repo, 
         ISaleReturnService saleReturnService,
-        ICustomerClient customerClient
+        ICustomerClient customerClient,
+        IMediator mediator
         ) 
     { 
     _repo = repo; 
     _service = saleReturnService;
         _customerClient = customerClient;
+        _mediator = mediator;
     }
 
     [HttpGet("list")]
@@ -35,20 +40,27 @@ public class SaleReturnController : ControllerBase
         return Ok(result);
     }
 
+    //[HttpPost("create")]
+    //public async Task<IActionResult> CreateSaleReturn([FromBody] CreateSaleReturnDto dto)
+    //{
+    //    if (dto == null || !dto.Items.Any()) return BadRequest("Invalid Data");
+
+    //    var result = await _service.SaveReturnAsync(dto);
+
+    //    if (result) return Ok(new { message = "Sale Return Saved & Stock Updated (+)" });
+    //    return BadRequest("Error saving return");
+    //}
+    //[HttpGet("customers-lookup")]
+    //public async Task<IActionResult> GetCustomersLookup()
+    //{
+    //    var customers = await _customerClient.GetCustomersForLookupAsync();
+    //    return Ok(customers);
+    //}
+
     [HttpPost("create")]
-    public async Task<IActionResult> CreateSaleReturn([FromBody] CreateSaleReturnDto dto)
+    public async Task<IActionResult> Create([FromBody] CreateSaleReturnDto dto)
     {
-        if (dto == null || !dto.Items.Any()) return BadRequest("Invalid Data");
-
-        var result = await _service.SaveReturnAsync(dto);
-
-        if (result) return Ok(new { message = "Sale Return Saved & Stock Updated (+)" });
-        return BadRequest("Error saving return");
-    }
-    [HttpGet("customers-lookup")]
-    public async Task<IActionResult> GetCustomersLookup()
-    {
-        var customers = await _customerClient.GetCustomersForLookupAsync();
-        return Ok(customers);
+        var result = await _mediator.Send(new CreateSaleReturnCommand(dto));
+        return result ? Ok(new { message = "Return Saved & Stock Updated" }) : BadRequest();
     }
 }

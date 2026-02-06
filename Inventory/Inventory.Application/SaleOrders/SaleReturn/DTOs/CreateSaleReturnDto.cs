@@ -12,6 +12,7 @@ public class SaleReturnItemDto
     public Guid ProductId { get; set; } //
     public decimal ReturnQty { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal TotalAmount { get; set; }
     public decimal TaxPercentage { get; set; }
     public string? Reason { get; set; }
     public string? ItemCondition { get; set; }
