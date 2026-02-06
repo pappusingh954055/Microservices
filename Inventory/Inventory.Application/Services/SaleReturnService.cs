@@ -54,25 +54,39 @@ public class SaleReturnService : ISaleReturnService
 
     public async Task<bool> SaveReturnAsync(CreateSaleReturnDto dto)
     {
-        var entity = new SaleReturnHeader
-        {
-            // Auto-generate Return Number (Example logic)
-            ReturnNumber = "SR-" + DateTime.Now.ToString("yyyyMMddHHmm"),
-            ReturnDate = dto.ReturnDate,
-            SaleOrderId = dto.SaleOrderId,
-            CustomerId = dto.CustomerId,
-            Remarks = dto.Remarks,
-            Status = "Confirmed", //
-            TotalAmount = dto.Items.Sum(x => x.ReturnQty * x.UnitPrice),
-            ReturnItems = dto.Items.Select(i => new SaleReturnItem
+        // Item level calculations pehle kar lete hain
+        var returnItems = dto.Items.Where(i => i.ReturnQty > 0).Select(i => {
+            var subTotal = i.ReturnQty * i.UnitPrice;
+            var taxAmount = subTotal * (i.TaxPercentage / 100);
+
+            return new SaleReturnItem
             {
                 ProductId = i.ProductId,
                 ReturnQty = i.ReturnQty,
                 UnitPrice = i.UnitPrice,
                 TaxPercentage = i.TaxPercentage,
+                TaxAmount = taxAmount,       // Schema requirement
+                TotalAmount = subTotal + taxAmount, // Schema requirement
                 Reason = i.Reason,
                 ItemCondition = i.ItemCondition
-            }).ToList()
+            };
+        }).ToList();
+
+        var entity = new SaleReturnHeader
+        {
+            ReturnNumber = "SR-" + DateTime.Now.ToString("yyyyMMddHHmm"),
+            ReturnDate = dto.ReturnDate,
+            SaleOrderId = dto.SaleOrderId,
+            CustomerId = dto.CustomerId,
+            Remarks = dto.Remarks,
+            Status = "Confirmed",
+
+            // Header Level Calculations
+            SubTotal = returnItems.Sum(x => x.ReturnQty * x.UnitPrice),
+            TaxAmount = returnItems.Sum(x => x.TaxAmount),
+            TotalAmount = returnItems.Sum(x => x.TotalAmount), // Final Amount
+
+            ReturnItems = returnItems
         };
 
         return await _repository.CreateSaleReturnAsync(entity);

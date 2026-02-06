@@ -207,16 +207,16 @@ namespace Inventory.Infrastructure.Repositories
         //        };
         //    }
 
-     public async Task<StockPagedResponseDto> GetCurrentStockAsync(
-     string? search,
-     string? sortField,
-     string? sortOrder,
-     int pageIndex,
-     int pageSize,
-     DateTime? startDate = null,
-     DateTime? endDate = null)
+        public async Task<StockPagedResponseDto> GetCurrentStockAsync(
+       string? search,
+       string? sortField,
+       string? sortOrder,
+       int pageIndex,
+       int pageSize,
+       DateTime? startDate = null,
+       DateTime? endDate = null)
         {
-            // STEP 1: Base Query - Data ko fast fetch karne ke liye AsNoTracking [cite: 2026-02-04]
+            // STEP 1: Base Query - GRNDetails se start karenge traceability ke liye
             var baseQuery = _context.GRNDetails.AsNoTracking().AsQueryable();
 
             if (startDate.HasValue)
@@ -231,7 +231,9 @@ namespace Inventory.Infrastructure.Repositories
                     g.ProductId,
                     ProductName = g.Product.Name,
                     UnitName = g.Product.Unit,
-                    MinStock = g.Product.MinStock
+                    MinStock = g.Product.MinStock,
+                    // DIRECT LINK: Products table ka CurrentStock column
+                    ActualCurrentStock = g.Product.CurrentStock
                 })
                 .Select(group => new StockSummaryDto
                 {
@@ -239,18 +241,19 @@ namespace Inventory.Infrastructure.Repositories
                     ProductName = group.Key.ProductName,
                     Unit = group.Key.UnitName,
                     MinStockLevel = group.Key.MinStock,
-                    // TotalReceived: Ye total kitna mal andar aaya hai (#8 for Test-001)
+
+                    // TotalReceived: GRN se total kitna aaya
                     TotalReceived = group.Sum(x => x.ReceivedQty),
                     TotalRejected = group.Sum(x => x.RejectedQty),
 
-                    // AvailableStock: Initial value same as TotalReceived [cite: 2026-02-04]
-                    AvailableStock = group.Sum(x => x.ReceivedQty),
+                    // FIX: Calculation ki jagah direct DB Column bind karein
+                    AvailableStock = group.Key.ActualCurrentStock,
 
                     LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
                     LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault()
                 });
 
-            // STEP 3: Search & Sorting [cite: 2026-02-04]
+            // STEP 3: Search & Sorting
             if (!string.IsNullOrEmpty(search))
                 groupedQuery = groupedQuery.Where(x => x.ProductName.Contains(search));
 
@@ -263,34 +266,19 @@ namespace Inventory.Infrastructure.Repositories
                 _ => groupedQuery.OrderBy(x => x.ProductName)
             };
 
-            // Execution of count and paged items [cite: 2026-02-04]
             var totalCount = await groupedQuery.CountAsync();
             var items = await groupedQuery.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
 
-            // STEP 4: Real-Time Sales & Returns Fix [cite: 2026-02-04]
+            // STEP 4: Real-Time Stats (Without overriding AvailableStock)
             foreach (var item in items)
             {
-                // 1. Confirmed Sales fetch karein (Confirmed and Completed) [cite: 2026-02-04]
-                // Ye wahi 2 units hain jo Sale Order mein minus ho rahi hain
-                var totalSold = await _context.SaleOrderItems
+                // 1. Confirmed Sales fetch karein sirf information ke liye
+                item.TotalSold = await _context.SaleOrderItems
                     .Where(si => si.ProductId == item.ProductId &&
                                 (si.SaleOrder.Status == "Confirmed" || si.SaleOrder.Status == "Completed"))
                     .SumAsync(si => (decimal?)si.Qty) ?? 0;
 
-                item.TotalSold = totalSold;
-
-                // 2. Purchase Returns fetch karein (Debit Note) [cite: 2026-02-04]
-                var totalReturned = await _context.PurchaseReturnItems
-                    .Where(ri => ri.ProductId == item.ProductId)
-                    .SumAsync(ri => (decimal?)ri.ReturnQty) ?? 0;
-
-                item.TotalRejected = totalReturned; // Optional: Syncing rejected with returns
-
-                // --- FINAL SYNC CALCULATION ---
-                // Dashboard ab 8 - 2 = 6 hi dikhayega
-                item.AvailableStock = item.TotalReceived - (item.TotalSold + totalReturned);
-
-                // --- Audit Trail Logic ---
+                // 2. Audit Trail Logic (History list)
                 item.History = await _context.GRNDetails
                     .Where(g => g.ProductId == item.ProductId)
                     .OrderByDescending(g => g.GRNHeader.ReceivedDate)
@@ -304,6 +292,9 @@ namespace Inventory.Infrastructure.Repositories
                         ReceivedQty = allG.ReceivedQty,
                         RejectedQty = allG.RejectedQty
                     }).ToListAsync();
+
+                // NOTE: Humne yahan 'item.AvailableStock =' waali manual calculation hata di hai 
+                // taaki wo Products table ke data ko overwrite na kare. [cite: 2026-02-06]
             }
 
             return new StockPagedResponseDto

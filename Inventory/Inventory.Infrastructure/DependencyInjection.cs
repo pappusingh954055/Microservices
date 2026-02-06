@@ -1,5 +1,6 @@
 ﻿using Inventory.Application.Clients;
 using Inventory.Application.Common.Interfaces;
+using Inventory.Application.Services;
 using Inventory.Infrastructure.Clients;
 using Inventory.Infrastructure.Persistence;
 using Inventory.Infrastructure.Repositories;
@@ -37,6 +38,7 @@ namespace Inventory.Infrastructure
             services.AddScoped<IPurchaseReturnRepository, PurchaseReturnRepository>();
             services.AddScoped<ICustomerClient, CustomerClient>();
             services.AddScoped<ISaleReturnRepository, SaleReturnRepository>();
+            services.AddScoped<ISaleReturnService, SaleReturnService>();
 
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());

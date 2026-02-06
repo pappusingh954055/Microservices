@@ -138,14 +138,25 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 }
 
                 // 5. STOCK LOGIC FIX (Important) [cite: 2026-02-04]
-                // Aapke UI dashboard ke liye ReceivedQty kam karna zaroori hai.
-                // Isse Total Received (100 -> 99) hoga aur Current Stock sahi dikhega.
                 grnDetail.ReceivedQty -= item.ReturnQty;
-                grnDetail.RejectedQty -= item.ReturnQty; // Rejected bucket (10 -> 9)
+                grnDetail.RejectedQty -= item.ReturnQty;
 
-                // Safety: Quantity minus mein na jaye [cite: 2026-02-04]
                 if (grnDetail.ReceivedQty < 0) grnDetail.ReceivedQty = 0;
                 if (grnDetail.RejectedQty < 0) grnDetail.RejectedQty = 0;
+
+                // ========================================================
+                // ADDITIONAL LOGIC: UPDATE PRODUCT CURRENT STOCK
+                // ========================================================
+                // Dashboard par "Current Stock" isi Products table se aata hai
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+                if (product != null)
+                {
+                    // Purchase Return = Stock warehouse se kam hoga (-)
+                    product.CurrentStock -= item.ReturnQty;
+                }
+                // ========================================================
             }
 
             // 6. Header Totals Update

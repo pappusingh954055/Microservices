@@ -72,25 +72,27 @@ namespace Inventory.Infrastructure.Repositories
             return new SaleReturnPagedResponse { Items = items, TotalCount = totalCount };
         }
 
-        public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader returnHeader)
+        public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
         {
-            // Transaction start taaki dono kaam ek saath hon [cite: 2026-02-05]
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Sale Return Table mein insert
-                await _context.SaleReturnHeaders.AddAsync(returnHeader);
+                // 1. Sale Return entry save karo
+                _context.SaleReturnHeaders.Add(header);
 
-                // 2. Stock Update Logic [cite: 2026-02-05]
-                foreach (var item in returnHeader.ReturnItems)
+                // 2. Product Table mein CurrentStock update karo
+                foreach (var item in header.ReturnItems)
                 {
-                    // PK 'Id' hai as per your error check
-                    var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    // Yahan 'Id' column use hoga (schema dekho)
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
 
                     if (product != null)
                     {
-                        // Maal wapas aaya toh CurrentStock badhao
+                        // Sales Return = Stock increase (+)
                         product.CurrentStock += item.ReturnQty;
+                        product.ModifiedOn = DateTime.Now; // Schema requirement
+                        product.ModifiedBy = item.ModifiedBy;
                     }
                 }
 
@@ -98,7 +100,7 @@ namespace Inventory.Infrastructure.Repositories
                 await transaction.CommitAsync();
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 return false;

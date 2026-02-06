@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inventory.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    [Migration("20260202142955_Initials")]
-    partial class Initials
+    [Migration("20260206025244_AddInitials")]
+    partial class AddInitials
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -177,6 +177,122 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.HasIndex("PurchaseOrderId");
 
                     b.ToTable("GRNHeaders");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.SaleReturnHeader", b =>
+                {
+                    b.Property<int>("SaleReturnHeaderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SaleReturnHeaderId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Remarks")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ReturnDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SaleOrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SaleReturnHeaderId");
+
+                    b.HasIndex("SaleOrderId");
+
+                    b.ToTable("SaleReturnHeaders");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.SaleReturnItem", b =>
+                {
+                    b.Property<int>("SaleReturnItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SaleReturnItemId"));
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ItemCondition")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ReturnQty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SaleReturnHeaderId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxPercentage")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SaleReturnItemId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SaleReturnHeaderId");
+
+                    b.ToTable("SaleReturnItems");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Entities.Subcategory", b =>
@@ -523,6 +639,88 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("PurchaseOrderItems");
                 });
 
+            modelBuilder.Entity("PurchaseReturn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Remarks")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("ReturnDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReturnNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(max)")
+                        .HasDefaultValue("Draft");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("PurchaseReturns");
+                });
+
+            modelBuilder.Entity("PurchaseReturnItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("GrnRef")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("GstPercent")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("PurchaseReturnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ReturnQty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PurchaseReturnId");
+
+                    b.ToTable("PurchaseReturnItems");
+                });
+
             modelBuilder.Entity("YourProjectNamespace.Entities.SaleOrder", b =>
                 {
                     b.Property<int>("Id")
@@ -662,6 +860,36 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Navigation("PurchaseOrder");
                 });
 
+            modelBuilder.Entity("Inventory.Domain.Entities.SaleReturnHeader", b =>
+                {
+                    b.HasOne("YourProjectNamespace.Entities.SaleOrder", "SaleOrder")
+                        .WithMany()
+                        .HasForeignKey("SaleOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SaleOrder");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.SaleReturnItem", b =>
+                {
+                    b.HasOne("Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Inventory.Domain.Entities.SaleReturnHeader", "SaleReturnHeader")
+                        .WithMany("ReturnItems")
+                        .HasForeignKey("SaleReturnHeaderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("SaleReturnHeader");
+                });
+
             modelBuilder.Entity("Inventory.Domain.Entities.Subcategory", b =>
                 {
                     b.HasOne("Inventory.Domain.Entities.Category", "Category")
@@ -737,6 +965,17 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("PurchaseReturnItem", b =>
+                {
+                    b.HasOne("PurchaseReturn", "PurchaseReturn")
+                        .WithMany("Items")
+                        .HasForeignKey("PurchaseReturnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PurchaseReturn");
+                });
+
             modelBuilder.Entity("YourProjectNamespace.Entities.SaleOrderItem", b =>
                 {
                     b.HasOne("YourProjectNamespace.Entities.SaleOrder", "SaleOrder")
@@ -758,6 +997,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Navigation("GRNItems");
                 });
 
+            modelBuilder.Entity("Inventory.Domain.Entities.SaleReturnHeader", b =>
+                {
+                    b.Navigation("ReturnItems");
+                });
+
             modelBuilder.Entity("Inventory.Domain.PriceLists.PriceList", b =>
                 {
                     b.Navigation("PriceListItems");
@@ -767,6 +1011,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                 {
                     b.Navigation("GrnHeaders");
 
+                    b.Navigation("Items");
+                });
+
+            modelBuilder.Entity("PurchaseReturn", b =>
+                {
                     b.Navigation("Items");
                 });
 
