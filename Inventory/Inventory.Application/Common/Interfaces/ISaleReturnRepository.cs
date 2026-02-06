@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.Entities;
+﻿using Inventory.Application.SaleOrders.SaleReturn.DTOs;
+using Inventory.Domain.Entities;
 
 public interface ISaleReturnRepository
 {
@@ -13,4 +14,6 @@ public interface ISaleReturnRepository
 
     Task<bool> CreateSaleReturnAsync(SaleReturnHeader returnHeader);
     Task<decimal> GetRemainingReturnableQtyAsync(int saleOrderId, Guid productId);
+
+    Task<List<SaleReturnExportDto>> GetExportDataAsync(DateTime? fromDate, DateTime? toDate);
 }

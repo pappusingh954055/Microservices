@@ -15,8 +15,7 @@ public class SaleOrderRepository : ISaleOrderRepository
     private IDbContextTransaction? _transaction; 
     private readonly HttpClient _httpClient;
    
-    public SaleOrderRepository(InventoryDbContext context, 
-        IHttpClientFactory httpClientFactory)
+    public SaleOrderRepository(InventoryDbContext context, IHttpClientFactory httpClientFactory)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
        
@@ -168,31 +167,6 @@ public class SaleOrderRepository : ISaleOrderRepository
         return (orders, totalCount);
     }
 
-    // Helper method jo actual Microservice call handle karega
-    private async Task<Dictionary<int, string>> GetCustomerNamesFromService(List<int> customerIds)
-    {
-        try
-        {
-            // Note: URL wahi hona chahiye jo Customers.API ke controller mein defined hai
-            var response = await _httpClient.PostAsJsonAsync("api/customers/get-names", customerIds);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var data = await response.Content.ReadFromJsonAsync<Dictionary<int, string>>();
-                return data ?? new Dictionary<int, string>();
-            }
-        }
-        catch (Exception ex)
-        {
-            // Agar Microservice band hai toh crash na ho
-            Console.WriteLine($"Microservice call failed: {ex.Message}");
-        }
-
-        return new Dictionary<int, string>();
-    }
-
-
-
     public async Task<bool> UpdateSaleOrderStatusAsync(int id, string status)
     {
         // 1. Pehle Order fetch karein
@@ -286,21 +260,7 @@ public class SaleOrderRepository : ISaleOrderRepository
             }).ToListAsync();
     }
 
-    //public async Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId)
-    //{
-    //    return await _context.SaleOrderItems
-    //        .AsNoTracking()
-    //        .Where(x => x.SaleOrderId == saleOrderId)
-    //        .Select(x => new SaleOrderItemGridDto
-    //        {
-    //            ProductId = x.ProductId,
-    //            ProductName = x.ProductName,
-    //            SoldQty = x.Qty,
-    //            Rate = x.Rate, 
-    //            TaxPercentage = x.GSTPercent
-    //        })
-    //        .ToListAsync();
-    //}
+
 
     public async Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId)
     {
@@ -324,5 +284,29 @@ public class SaleOrderRepository : ISaleOrderRepository
             })
             .Where(x => x.SoldQty > 0) // Agar pura maal wapas aa gaya (0 bacha), toh grid mein mat dikhao
             .ToListAsync();
+    }
+
+
+    // Helper method jo actual Microservice call handle karega
+    private async Task<Dictionary<int, string>> GetCustomerNamesFromService(List<int> customerIds)
+    {
+        try
+        {
+            // Note: URL wahi hona chahiye jo Customers.API ke controller mein defined hai
+            var response = await _httpClient.PostAsJsonAsync("api/customers/get-names", customerIds);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var data = await response.Content.ReadFromJsonAsync<Dictionary<int, string>>();
+                return data ?? new Dictionary<int, string>();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Agar Microservice band hai toh crash na ho
+            Console.WriteLine($"Microservice call failed: {ex.Message}");
+        }
+
+        return new Dictionary<int, string>();
     }
 }

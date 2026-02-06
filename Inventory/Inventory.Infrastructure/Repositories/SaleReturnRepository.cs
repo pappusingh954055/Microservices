@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Clients;
+using Inventory.Application.SaleOrders.SaleReturn.DTOs;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -296,6 +297,26 @@ namespace Inventory.Infrastructure.Repositories
             var remaining = totalSold - totalReturned;
 
             return remaining > 0 ? remaining : 0;
+        }
+
+        public async Task<List<SaleReturnExportDto>> GetExportDataAsync(DateTime? fromDate, DateTime? toDate)
+        {
+            return await _context.SaleReturnHeaders
+                .AsNoTracking()
+                .Include(h => h.SaleOrder) // Join for SONumber
+                .Where(h => (!fromDate.HasValue || h.ReturnDate >= fromDate) &&
+                            (!toDate.HasValue || h.ReturnDate <= toDate))
+                .Select(h => new SaleReturnExportDto
+                {
+                    ReturnNumber = h.ReturnNumber,
+                    ReturnDate = h.ReturnDate.ToString("dd-MM-yyyy"),
+                    SONumber = h.SaleOrder.SONumber ?? "N/A", // From SaleOrders table
+                    TotalAmount = h.TotalAmount, //
+                    Status = h.Status,
+                    // CustomerId hum bad mein name se replace karenge
+                    CustomerName = h.CustomerId.ToString()
+                })
+                .ToListAsync();
         }
     }
 }

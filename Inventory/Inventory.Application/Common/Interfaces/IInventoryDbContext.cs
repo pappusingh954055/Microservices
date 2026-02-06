@@ -9,6 +9,8 @@ namespace Inventory.Application.Common.Interfaces
     public interface IInventoryDbContext
     {
         DbSet<GRNDetail> GRNDetails { get; }
+
+        DbSet<SaleOrder> SaleOrders { get; }
         DbSet<SaleOrderItem> SaleOrderItems { get; }
         DbSet<PurchaseReturnItem> PurchaseReturnItems { get; }
 

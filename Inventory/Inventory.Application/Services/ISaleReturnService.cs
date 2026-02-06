@@ -17,5 +17,8 @@ namespace Inventory.Application.Services
             string sortOrder);
 
         Task<bool> SaveReturnAsync(CreateSaleReturnDto dto);
+        Task<CreditNotePrintDto?> GetPrintDataAsync(int id);
+
+        Task<byte[]> GenerateExcelExportAsync(DateTime? fromDate, DateTime? toDate);
     }
 }

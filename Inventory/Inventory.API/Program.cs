@@ -1,3 +1,4 @@
+using Inventory.API.Helper;
 using Inventory.Application;
 using Inventory.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -64,7 +65,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
+PDFHelper.CustomAssemblyLoadContext.LoadNativeLibrary();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();

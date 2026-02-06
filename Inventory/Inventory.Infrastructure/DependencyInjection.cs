@@ -1,4 +1,6 @@
-﻿using Inventory.Application.Clients;
+﻿using DinkToPdf;
+using DinkToPdf.Contracts;
+using Inventory.Application.Clients;
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Services;
 using Inventory.Infrastructure.Clients;
@@ -39,6 +41,12 @@ namespace Inventory.Infrastructure
             services.AddScoped<ICustomerClient, CustomerClient>();
             services.AddScoped<ISaleReturnRepository, SaleReturnRepository>();
             services.AddScoped<ISaleReturnService, SaleReturnService>();
+
+            services.AddSingleton(typeof(IConverter), new SynchronizedConverter(new PdfTools()));
+
+            services.AddScoped<IPdfService, PdfService>();
+
+            services.AddScoped<ICustomerHttpService, CustomerHttpService>();
 
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());
