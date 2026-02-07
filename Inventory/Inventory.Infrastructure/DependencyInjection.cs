@@ -46,6 +46,8 @@ namespace Inventory.Infrastructure
 
             services.AddScoped<IPdfService, PdfService>();
 
+            services.AddScoped<IDashboardRepository, DashboardRepository>();
+
             services.AddScoped<ICustomerHttpService, CustomerHttpService>();
 
             services.AddScoped<IInventoryDbContext>(

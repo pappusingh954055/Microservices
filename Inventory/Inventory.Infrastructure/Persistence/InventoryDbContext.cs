@@ -95,5 +95,13 @@ public sealed class InventoryDbContext : DbContext,
                   .HasForeignKey(c => c.ParentCategoryId)
                   .OnDelete(DeleteBehavior.NoAction); // Cascade ki jagah NoAction use karein
         });
+
+        modelBuilder.Entity<PurchaseOrderItem>(entity =>
+        {
+            entity.HasOne(d => d.PurchaseOrder)
+                  .WithMany(p => p.Items)
+                  .HasForeignKey(d => d.PurchaseOrderId) // Purana ID use karein
+                  .OnDelete(DeleteBehavior.NoAction);     // Cascade Error fix karne ke liye
+        });
     }
 }
