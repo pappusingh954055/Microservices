@@ -81,4 +81,11 @@ public class CustomersController : ControllerBase
         var customers = await _customerRepo.GetCustomersLookupAsync();
         return Ok(customers);
     }
+
+    [HttpGet("search-ids")]
+    public async Task<ActionResult<List<int>>> SearchIdsByName([FromQuery] string name)
+    {
+        var ids = await _customerRepo.GetIdsByNameAsync(name);
+        return Ok(ids);
+    }
 }

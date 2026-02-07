@@ -37,7 +37,7 @@ namespace Inventory.Application.Services
             }
             catch (Exception ex)
             {
-                // Logging framework use karein (e.g., Serilog) [cite: 2026-02-06]
+             
                 Console.WriteLine($"Customer Microservice call failed: {ex.Message}");
             }
 

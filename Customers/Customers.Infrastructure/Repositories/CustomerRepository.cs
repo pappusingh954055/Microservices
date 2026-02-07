@@ -91,5 +91,15 @@ namespace Customers.Infrastructure.Repositories
                 })
                 .ToListAsync();
         }
+
+        public async Task<List<int>> GetIdsByNameAsync(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return new List<int>();
+            return await _context.Customers
+                .AsNoTracking()
+                .Where(c => EF.Functions.Like(c.CustomerName, $"%{name}%"))
+                .Select(c => c.Id)
+                .ToListAsync();
+        }
     }
 }

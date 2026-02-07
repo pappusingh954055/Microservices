@@ -14,7 +14,7 @@ public class CustomerClient : ICustomerClient
 
     public async Task<Dictionary<int, string>> GetCustomerNamesAsync(List<int> customerIds)
     {
-        // Aapka wahi "CustomerService" yahan call ho raha hai [cite: 2026-02-05]
+        
         var client = _httpClientFactory.CreateClient("CustomerService");
 
         // Batch API call: Customer Microservice ko IDs bhejein
@@ -32,5 +32,29 @@ public class CustomerClient : ICustomerClient
     {
         var client = _httpClientFactory.CreateClient("CustomerService"); // Aapka 7173 wala client
         return await client.GetFromJsonAsync<List<CustomerLookupDto>>("api/customers/lookup") ?? new();
+    }
+
+    public async Task<List<int>> SearchCustomerIdsByNameAsync(string searchName)
+    {
+        if (string.IsNullOrWhiteSpace(searchName)) return new List<int>();
+
+        var client = _httpClientFactory.CreateClient("CustomerService");
+
+        try
+        {
+            var response = await client.GetAsync($"api/customers/search-ids?name={Uri.EscapeDataString(searchName)}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<int>>() ?? new List<int>();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Logging error for better debugging
+            Console.WriteLine($"Error in SearchCustomerIdsByNameAsync: {ex.Message}");
+        }
+
+        return new List<int>();
     }
 }

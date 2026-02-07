@@ -2,6 +2,7 @@
 using Inventory.Application.Common.Interfaces;
 using Inventory.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Net.NetworkInformation;
 
 namespace Inventory.Application.Services;
 
@@ -9,67 +10,30 @@ public class SaleReturnService : ISaleReturnService
 {
     private readonly ISaleReturnRepository _repository;
     private readonly IInventoryDbContext _context;
-   
+
     private readonly ICustomerHttpService _customerHttpService;
 
     public SaleReturnService(
         ISaleReturnRepository repository,
         IInventoryDbContext context,
         ICustomerHttpService httpService
-       
+
 
         )
     {
         _repository = repository;
         _context = context;
         _customerHttpService = httpService;
-       
+
     }
 
-    public async Task<SaleReturnPagedResponse> GetSaleReturnListAsync(string? search, int pageIndex, int pageSize, DateTime? fromDate, DateTime? toDate, string sortField, string sortOrder)
-    {
-        // 1. Inventory Database se returns lo (Paging ke saath) [cite: 2026-02-05]
-        var response = await _repository.GetSaleReturnsAsync(search, pageIndex, pageSize, fromDate, toDate, sortField, sortOrder);
 
-        if (response.Items != null && response.Items.Any())
-        {
-            // 2. Sirf unique Customer IDs nikalien jo is page par dikh rahe hain [cite: 2026-02-05]
-            var uniqueIds = response.Items.Select(x => x.CustomerId).Distinct().ToList();
-
-            try
-            {
-                // 3. Batch call to Customer Microservice [cite: 2026-02-05]
-                //var customerMap = await _customerClient.GetCustomerNamesAsync(uniqueIds);
-
-                var customerMap = await _customerHttpService.GetCustomerNamesAsync(uniqueIds);
-
-                // 4. Map names back to our DTO [cite: 2026-02-05]
-                foreach (var item in response.Items)
-                {
-                    if (customerMap.TryGetValue(item.CustomerId, out var name))
-                    {
-                        item.CustomerName = name; // UI par name dikhane ke liye
-                    }
-                    else
-                    {
-                        item.CustomerName = "Unknown Customer";
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Agar Customer Service down hai, toh default text dikhao taaki page load ho jaye
-                response.Items.ForEach(x => x.CustomerName = "Name Unavailable");
-            }
-        }
-
-        return response;
-    }
 
     public async Task<bool> SaveReturnAsync(CreateSaleReturnDto dto)
     {
         // Item level calculations pehle kar lete hain
-        var returnItems = dto.Items.Where(i => i.ReturnQty > 0).Select(i => {
+        var returnItems = dto.Items.Where(i => i.ReturnQty > 0).Select(i =>
+        {
             var subTotal = i.ReturnQty * i.UnitPrice;
             var taxAmount = subTotal * (i.TaxPercentage / 100);
 
@@ -79,8 +43,8 @@ public class SaleReturnService : ISaleReturnService
                 ReturnQty = i.ReturnQty,
                 UnitPrice = i.UnitPrice,
                 TaxPercentage = i.TaxPercentage,
-                TaxAmount = taxAmount,   
-                TotalAmount = subTotal + taxAmount, 
+                TaxAmount = taxAmount,
+                TotalAmount = subTotal + taxAmount,
                 Reason = i.Reason,
                 ItemCondition = i.ItemCondition
             };
@@ -203,4 +167,5 @@ public class SaleReturnService : ISaleReturnService
             }
         }
     }
+
 }

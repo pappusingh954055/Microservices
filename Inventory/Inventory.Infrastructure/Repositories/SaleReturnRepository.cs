@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Clients;
+using Inventory.Application.SaleOrders.DTOs;
 using Inventory.Application.SaleOrders.SaleReturn.DTOs;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
@@ -9,7 +10,7 @@ namespace Inventory.Infrastructure.Repositories
     public class SaleReturnRepository : ISaleReturnRepository
     {
         private readonly InventoryDbContext _context;
-        private readonly ICustomerClient _customerClient;   
+        private readonly ICustomerClient _customerClient;
 
         public SaleReturnRepository(InventoryDbContext context, ICustomerClient customerClient
             )
@@ -19,43 +20,70 @@ namespace Inventory.Infrastructure.Repositories
         }
 
         public async Task<SaleReturnPagedResponse> GetSaleReturnsAsync(
-     string? search,
-     int pageIndex,
-     int pageSize,
-     DateTime? fromDate,
-     DateTime? toDate,
-     string sortField,
-     string sortOrder)
+         string? search,
+         string? status,
+         int pageIndex,
+         int pageSize,
+         DateTime? fromDate,
+         DateTime? toDate,
+         string sortField,
+         string sortOrder)
         {
+            // AsNoTracking performance ke liye zaroori hai
             var query = _context.SaleReturnHeaders.AsNoTracking().AsQueryable();
 
-            // 1. Filters
+            // 1. Optimized Date Range Filters (SARGable)
             if (fromDate.HasValue)
                 query = query.Where(x => x.ReturnDate >= fromDate.Value);
 
             if (toDate.HasValue)
                 query = query.Where(x => x.ReturnDate <= toDate.Value);
 
-            // 2. Search Logic
-            if (!string.IsNullOrEmpty(search))
+            // 2. Optimized Status Widget Filter (Range check for TODAY performance)
+            if (!string.IsNullOrEmpty(status))
             {
-                query = query.Where(x => x.ReturnNumber.Contains(search) ||
-                                        x.SaleOrder.SONumber.Contains(search));
+                if (status == "TODAY")
+                {
+                    var today = DateTime.Today;
+                    var tomorrow = today.AddDays(1);
+                    query = query.Where(x => x.ReturnDate >= today && x.ReturnDate < tomorrow);
+                }
+                else
+                {
+                    query = query.Where(x => x.Status == status);
+                }
             }
 
-            // 3. Sorting
+            // 3. Global Search Fix: ReturnNo + SO Ref + Optimized Customer Name Lookup
+            if (!string.IsNullOrEmpty(search))
+            {
+                // STEP: Naye optimized Microservice endpoint ko call karna [cite: 2026-02-06]
+                // Yeh memory mein filter nahi karega, seedha matching IDs laayega
+                var matchingCustomerIds = await _customerClient.SearchCustomerIdsByNameAsync(search);
+
+                query = query.Where(x => x.ReturnNumber.Contains(search) ||
+                                         (x.SaleOrder != null && x.SaleOrder.SONumber.Contains(search)) ||
+                                         (matchingCustomerIds != null && matchingCustomerIds.Contains(x.CustomerId)));
+            }
+
+            // 4. Server-Side Sorting Fix: Added Date, SO Ref, and Customer sorting cases
             bool isDesc = sortOrder?.ToLower() == "desc";
             query = sortField?.ToLower() switch
             {
                 "returnnumber" => isDesc ? query.OrderByDescending(x => x.ReturnNumber) : query.OrderBy(x => x.ReturnNumber),
+                "returndate" => isDesc ? query.OrderByDescending(x => x.ReturnDate) : query.OrderBy(x => x.ReturnDate),
                 "totalamount" => isDesc ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
                 "status" => isDesc ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+                "soref" => isDesc ? query.OrderByDescending(x => x.SaleOrder.SONumber) : query.OrderBy(x => x.SaleOrder.SONumber),
+                // Customer Name remote hai, isliye ID par sorting proxy karte hain [cite: 2026-02-06]
+                "customername" => isDesc ? query.OrderByDescending(x => x.CustomerId) : query.OrderBy(x => x.CustomerId),
                 _ => query.OrderByDescending(x => x.ReturnDate)
             };
 
+            // Calculate count before Skip/Take for accuracy
             var totalCount = await query.CountAsync();
 
-            // 4. Projection
+            // 5. Execution & Projection
             var items = await query
                 .Skip(pageIndex * pageSize)
                 .Take(pageSize)
@@ -70,178 +98,50 @@ namespace Inventory.Infrastructure.Repositories
                     Status = x.Status
                 }).ToListAsync();
 
-            // ==========================================================
-            // STEP 5: MICROSERVICE MAPPING LOGIC (The Fix)
-            // ==========================================================
-            // 1. Saare Unique CustomerIds nikaalein
+            // 6. Microservice Mapping logic (External Name Binding for Display) [cite: 2026-02-06]
             var customerIds = items.Select(i => i.CustomerId).Distinct().ToList();
-
-            // 2. CustomerMicroservice se Names fetch karein [cite: 2026-02-06]
-            // Note: Yahan aapka existing internal service call aayega
-            var customerMap = await _customerClient.GetCustomerNamesAsync(customerIds);
-
-            // 3. Names ko list mein bind karein
-            foreach (var item in items)
+            if (customerIds.Any())
             {
-                if (customerMap.ContainsKey(item.CustomerId))
+                var customerMap = await _customerClient.GetCustomerNamesAsync(customerIds);
+                foreach (var item in items)
                 {
-                    item.CustomerName = customerMap[item.CustomerId];
-                }
-                else
-                {
-                    item.CustomerName = "Unknown Customer"; // Fallback
+                    item.CustomerName = customerMap != null && customerMap.ContainsKey(item.CustomerId)
+                                        ? customerMap[item.CustomerId]
+                                        : "Unknown Customer";
                 }
             }
-            // ==========================================================
 
             return new SaleReturnPagedResponse { Items = items, TotalCount = totalCount };
         }
 
-        //public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
-        //{
-        //    using var transaction = await _context.Database.BeginTransactionAsync();
-        //    try
-        //    {
-        //        // 1. Sale Return entry save karo
-        //        _context.SaleReturnHeaders.Add(header);
 
-        //        // 2. Product Table mein CurrentStock update karo
-        //        foreach (var item in header.ReturnItems)
-        //        {
-        //            // Yahan 'Id' column use hoga (schema dekho)
-        //            var product = await _context.Products
-        //                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
-
-        //            if (product != null)
-        //            {
-        //                // Sales Return = Stock increase (+)
-        //                product.CurrentStock += item.ReturnQty;
-        //                product.ModifiedOn = DateTime.Now; // Schema requirement
-        //                product.ModifiedBy = item.ModifiedBy;
-        //            }
-        //        }
-
-        //        await _context.SaveChangesAsync();
-        //        await transaction.CommitAsync();
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await transaction.RollbackAsync();
-        //        return false;
-        //    }
-        //}
-
-        //public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
-        //{
-        //    using var transaction = await _context.Database.BeginTransactionAsync();
-        //    try
-        //    {
-
-        //        header.ReturnNumber = $"SR-{DateTime.Now:yyyyMMddHHmmss}";
-        //        header.CreatedOn = DateTime.Now;
-        //        header.Status = "CONFIRMED"; 
-
-        //        decimal totalHeaderAmount = 0;
-
-
-        //        foreach (var item in header.ReturnItems)
-        //        {
-
-
-        //            decimal baseAmt = item.ReturnQty * item.UnitPrice;
-        //            item.TaxAmount = baseAmt * (item.TaxPercentage / 100m);
-
-
-        //            totalHeaderAmount += item.TotalAmount;
-
-        //            var product = await _context.Products
-        //                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
-
-        //            if (product != null)
-        //            {
-
-        //                product.CurrentStock += item.ReturnQty;
-        //                product.ModifiedOn = DateTime.Now; 
-        //                product.ModifiedBy = header.ModifiedBy ?? "system";
-        //            }
-
-        //            item.CreatedOn = DateTime.Now;
-        //        }
-
-        //        header.TotalAmount = totalHeaderAmount;
-
-        //        _context.SaleReturnHeaders.Add(header);
-
-        //        await _context.SaveChangesAsync();
-        //        await transaction.CommitAsync();
-        //        return true;
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        await transaction.RollbackAsync();
-        //        return false;
-        //    }
-        //}
-
-        //public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
-        //{
-        //    using var transaction = await _context.Database.BeginTransactionAsync();
-        //    try
-        //    {
-        //        // 1. Save Sale Return
-        //        _context.SaleReturnHeaders.Add(header);
-
-        //        // 2. Stock Recovery (Restock logic)
-        //        foreach (var item in header.ReturnItems)
-        //        {
-        //            var product = await _context.Products.FindAsync(item.ProductId);
-        //            if (product != null)
-        //            {
-        //                // Return = Increase Current Stock
-        //                product.CurrentStock += item.ReturnQty;
-        //                product.ModifiedOn = DateTime.Now;
-        //            }
-        //        }
-
-        //        await _context.SaveChangesAsync();
-        //        await transaction.CommitAsync();
-        //        return true;
-        //    }
-        //    catch (Exception)
-        //    {
-        //        await transaction.RollbackAsync();
-        //        return false;
-        //    }
-        //}
 
         public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Financial totals calculate karne ke liye variables
+
                 decimal calculatedSubTotal = 0;
                 decimal calculatedTaxAmount = 0;
 
-                // 2. Stock Recovery aur Calculations Loop
+
                 foreach (var item in header.ReturnItems)
                 {
-                    // Item level financial calculations
-                    // UnitPrice (95.00) * ReturnQty (1) = 95.00
+
                     decimal itemSubTotal = item.ReturnQty * item.UnitPrice;
                     decimal itemTax = itemSubTotal * (item.TaxPercentage / 100m);
 
-                    // Item level financial fields update
+
                     item.TaxAmount = itemTax;
                     item.TotalAmount = itemSubTotal + itemTax;
                     item.CreatedOn = DateTime.Now;
 
-                    // Header totals accumulate karein
+
                     calculatedSubTotal += itemSubTotal;
                     calculatedTaxAmount += itemTax;
 
-                    // STOCK LOGIC (No changes here, as requested)
+
                     var product = await _context.Products.FindAsync(item.ProductId);
                     if (product != null)
                     {
@@ -283,8 +183,7 @@ namespace Inventory.Infrastructure.Repositories
                 .Select(soi => soi.Qty)
                 .FirstOrDefaultAsync();
 
-            // 2. Iss Order ke liye ab tak kitna return ho chuka hai (e.g., 2)
-            // Kewal "Confirmed" status wale returns ginein taaki logic dashboard se match kare
+
             var totalReturned = await _context.SaleReturnItems
                 .AsNoTracking()
                 .Where(sri => sri.SaleReturnHeader.SaleOrderId == saleOrderId &&
@@ -318,5 +217,34 @@ namespace Inventory.Infrastructure.Repositories
                 })
                 .ToListAsync();
         }
+
+        public async Task<SaleReturnSummaryDto> GetDashboardSummaryAsync()
+        {
+            var today = DateTime.Today;
+
+            // 1. Aaj kitne returns aaye
+            var totalToday = await _context.SaleReturnHeaders
+                .CountAsync(x => x.ReturnDate.Date == today);
+
+            // 2. Confirmed returns ka count aur refund value
+            var confirmedData = await _context.SaleReturnHeaders
+                .Where(x => x.Status == "CONFIRMED")
+                .Select(x => x.TotalAmount)
+                .ToListAsync();
+
+            // 3. Stock re-filled pcs (Items table se sum)
+            var totalPcs = await _context.SaleReturnItems
+                .SumAsync(x => x.ReturnQty);
+
+            return new SaleReturnSummaryDto
+            {
+                TotalReturnsToday = totalToday,
+                TotalRefundValue = confirmedData.Sum(), // ₹5,062.20 logic
+                ConfirmedReturns = confirmedData.Count, // 10 logic
+                StockRefilledPcs = totalPcs
+            };
+        }
+
+       
     }
 }

@@ -10,5 +10,7 @@ namespace Inventory.Application.Clients
         Task<Dictionary<int, string>> GetCustomerNamesAsync(List<int> customerIds);
 
         Task<List<CustomerLookupDto>> GetCustomersForLookupAsync();
+
+        Task<List<int>> SearchCustomerIdsByNameAsync(string searchName);
     }
 }

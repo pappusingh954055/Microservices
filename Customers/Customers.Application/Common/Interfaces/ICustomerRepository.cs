@@ -20,5 +20,7 @@ namespace Customers.Application.Common.Interfaces
         Task<string?> GetCustomerNameByIdAsync(int id);
 
         Task<List<CustomerLookupDto>> GetCustomersLookupAsync();
+
+        Task<List<int>> GetIdsByNameAsync(string name);
     }
 }

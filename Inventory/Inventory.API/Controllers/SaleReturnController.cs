@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Clients;
+using Inventory.Application.SaleOrders.DTOs;
 using Inventory.Application.SaleOrders.SaleReturn.Command;
 using Inventory.Application.Services;
 using MediatR;
@@ -35,20 +36,20 @@ public class SaleReturnController : ControllerBase
 
     [HttpGet("list")]
     public async Task<IActionResult> GetSaleReturns(
-        [FromQuery] string? search, // Yahan 'filter' ki jagah 'search' karein [cite: 2026-02-05]
-        [FromQuery] int pageIndex = 0,
-        [FromQuery] int pageSize = 10,
-        [FromQuery] DateTime? fromDate = null,
-        [FromQuery] DateTime? toDate = null,
-        [FromQuery] string sortField = "ReturnDate",
-        [FromQuery] string sortOrder = "desc")
+    [FromQuery] string? search,
+    [FromQuery] string? status, // Naya Parameter
+    [FromQuery] int pageIndex = 0,
+    [FromQuery] int pageSize = 10,
+    [FromQuery] DateTime? fromDate = null,
+    [FromQuery] DateTime? toDate = null,
+    [FromQuery] string sortField = "ReturnDate",
+    [FromQuery] string sortOrder = "desc")
     {
-        // Repository ko search pass karein [cite: 2026-02-05]
-        var result = await _repo.GetSaleReturnsAsync(search, pageIndex, pageSize, fromDate, toDate, sortField, sortOrder);
+        var result = await _repo.GetSaleReturnsAsync(search, status, pageIndex, pageSize, fromDate, toDate, sortField, sortOrder);
         return Ok(result);
     }
 
- 
+
 
     [HttpPost("create")]
     public async Task<IActionResult> Create([FromBody] CreateSaleReturnDto dto)
@@ -90,5 +91,12 @@ public class SaleReturnController : ControllerBase
         var fileName = $"SaleReturns_{DateTime.Now:yyyyMMdd}.xlsx";
 
         return File(content, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+    }
+
+    [HttpGet("summary")]
+    public async Task<ActionResult<SaleReturnSummaryDto>> GetSummary()
+    {
+        var summary = await _repo.GetDashboardSummaryAsync();
+        return Ok(summary);
     }
 }
