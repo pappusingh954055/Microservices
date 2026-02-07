@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Common.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -6,13 +7,16 @@ using Microsoft.AspNetCore.Mvc;
 public class DashboardController : ControllerBase
 {
     private readonly IDashboardRepository _dashboardRepo;
+    private readonly IProductRepository _productRepo;
 
-    public DashboardController(IDashboardRepository dashboardRepo)
+    public DashboardController(IDashboardRepository dashboardRepo, IProductRepository productRepository)
     {
         _dashboardRepo = dashboardRepo;
+        _productRepo = productRepository;
     }
 
     [HttpGet("summary")]
+    [Authorize(Roles = "Manager,Admin, User")]
     public async Task<ActionResult<DashboardSummaryDto>> GetSummary()
     {
         // Top 4 widgets ka data return karega
@@ -21,6 +25,7 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("charts")]
+    [Authorize(Roles = "Manager,Admin, User")]
     public async Task<ActionResult<DashboardChartDto>> GetChartData()
     {
         // Line chart aur Donut chart ka dynamic data return karega
@@ -29,10 +34,19 @@ public class DashboardController : ControllerBase
     }
 
     [HttpGet("recent-activities")]
+    [Authorize(Roles = "Manager,Admin, User")]
     public async Task<ActionResult<List<RecentActivityDto>>> GetRecentActivities()
     {
         // Recent Stock Movements table ke liye dynamic feed
         var activities = await _dashboardRepo.GetRecentActivitiesAsync();
         return Ok(activities);
+    }
+
+    [HttpGet("recent-movements")]
+    [Authorize(Roles = "Manager,Admin, User")]
+    public async Task<IActionResult> GetRecentMovements([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        var data = await _productRepo.GetRecentMovementsPagedAsync(pageNumber, pageSize);
+        return Ok(data);
     }
 }

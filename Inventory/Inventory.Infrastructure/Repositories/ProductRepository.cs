@@ -1,6 +1,7 @@
 ﻿using DocumentFormat.OpenXml.InkML;
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Products.DTOs;
+using Inventory.Application.Stock;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -155,6 +156,39 @@ public sealed class ProductRepository : IProductRepository
                 MinStock = p.MinStock,
                 Unit = p.Unit
             })
+            .ToListAsync();
+    }
+    public async Task<List<StockMovementDto>> GetRecentMovementsPagedAsync(int pageNumber, int pageSize)
+    {
+        // 1. Purchase Orders se movements nikalna
+        var purchases = _db.PurchaseOrders
+            .AsNoTracking()
+            .Select(po => new StockMovementDto
+            {
+                Product = "PO: " + po.PoNumber, // Ya item name join karke
+                Type = "Purchase",
+                Qty = po.GrandTotal, // Simplified for example
+                Date = po.CreatedDate,
+                Status = po.Status
+            });
+
+        // 2. Sale Orders se movements nikalna
+        var sales = _db.SaleOrders
+            .AsNoTracking()
+            .Select(so => new StockMovementDto
+            {
+                Product = "SO: " + so.Id,
+                Type = "Sale",
+                Qty = so.GrandTotal,
+                Date = so.CreatedAt,
+                Status = "Completed"
+            });
+
+        // 3. Combine, Sort aur Paginate karna (Virtual Scroll support)
+        return await purchases.Union(sales)
+            .OrderByDescending(x => x.Date)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
             .ToListAsync();
     }
 }

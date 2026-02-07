@@ -34,6 +34,12 @@ namespace Inventory.Application.Common.Interfaces
         Task<POHeaderDetailsDto?> GetPOHeaderAsync(int lastPurchaseOrderId);
 
         Task<ProductPriceDto?> GetPriceListRateAsync( Guid productId, Guid priceListId);
+
+        Task<bool> BulkSentForApprovalAsync(List<long> ids);
+
+        Task<bool> BulkApprovePOsAsync(List<long> ids, string approvedBy);
+
+        Task<bool> BulkRejectPOsAsync(List<long> ids, string rejectedBy);
     }
 
     public interface IUnitOfWork

@@ -1,4 +1,5 @@
 ﻿using Inventory.Application.Products.DTOs;
+using Inventory.Application.Stock;
 using Inventory.Domain.Entities;
 using Inventory.Domain.PriceLists;
 
@@ -27,4 +28,6 @@ public interface IProductRepository
     Task<IEnumerable<LowStockProductDto>> GetLowStockProductsAsync();
 
     Task<List<ExcelExportDto>> GetLowStockExportDataAsync();
+
+    Task<List<StockMovementDto>> GetRecentMovementsPagedAsync(int pageNumber, int pageSize);
 }

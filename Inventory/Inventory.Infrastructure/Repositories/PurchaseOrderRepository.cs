@@ -22,7 +22,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<string?> GetLastPoNumberAsync()
     {
-        return await _context.PurchaseOrders
+        return await _context.PurchaseOrders.AsNoTracking()
             .OrderByDescending(x => x.Id)
             .Select(x => x.PoNumber)
             .FirstOrDefaultAsync();
@@ -30,7 +30,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<string?> GetLatestPoNumberAsync()
     {
-        return await _context.PurchaseOrders
+        return await _context.PurchaseOrders.AsNoTracking()
             .OrderByDescending(x => x.Id)
             .Select(x => x.PoNumber)
             .FirstOrDefaultAsync();
@@ -40,7 +40,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     int pageIndex, int pageSize, string? sortField, string? sortOrder, string? filter)
     {
         // 1. Base Query with Eager Loading for Items and Products
-        var query = _context.PurchaseOrders
+        var query = _context.PurchaseOrders.AsNoTracking()
             .Include(x => x.Items)
                 .ThenInclude(i => i.Product) // Product data load karega taaki null error na aaye
             .AsSplitQuery()
@@ -176,7 +176,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     }
     public async Task<PurchaseOrder?> GetByIdWithItemsAsync(int id, CancellationToken ct)
     {
-      var data= await _context.PurchaseOrders
+      var data= await _context.PurchaseOrders.AsNoTracking()
             .Include(x => x.Items) // Yeh child table 'PurchaseOrderItems' se data layega
             .ThenInclude(i => i.Product)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -198,7 +198,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task UpdatePOTotalsAsync(int poId)
     {
-        var items = await _context.PurchaseOrderItems
+        var items = await _context.PurchaseOrderItems.AsNoTracking()
                                   .Where(x => x.PurchaseOrderId == poId)
                                   .ToListAsync();
 
@@ -222,7 +222,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<bool> BulkDeleteItemsAsync(List<int> itemIds)
     {
-        var items = await _context.PurchaseOrderItems
+        var items = await _context.PurchaseOrderItems.AsNoTracking()
                                   .Where(x => itemIds.Contains(x.Id))
                                   .ToListAsync();
 
@@ -235,7 +235,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     public async Task<PurchaseOrder> GetByIdAsync(int id)
     {
         // .Include() tab use karein agar delete se pehle Items ka status check karna ho
-        return await _context.PurchaseOrders
+        return await _context.PurchaseOrders.AsNoTracking()
             .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
@@ -247,7 +247,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<List<PurchaseOrder>> GetByIdsAsync(List<int> ids)
     {
-        return await _context.PurchaseOrders
+        return await _context.PurchaseOrders.AsNoTracking()
             .Where(x => ids.Contains(x.Id))
             .ToListAsync();
     }
@@ -272,7 +272,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     public async Task<PurchaseOrder> GetByIdAsyncForUpdateStatus(int id)
     {
         // PO ke saath uske items ko bhi load karna behtar hota hai (Optional)
-        return await _context.PurchaseOrders
+        return await _context.PurchaseOrders.AsNoTracking()
                              .FirstOrDefaultAsync(p => p.Id == id);
     }
 
@@ -287,8 +287,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync()
     {
-        return await _context.PurchaseOrders
-            // Condition: Status 'Approved' ho AUR uska koi GRN na bana ho
+        return await _context.PurchaseOrders.AsNoTracking()
             .Where(po => po.Status == "Approved" && !_context.GRNHeaders.Any(grn => grn.PurchaseOrderId == po.Id))
             .Select(po => new PendingPODto
             {
@@ -303,18 +302,19 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     }
     public async Task<IEnumerable<POItemForGRNDto>> GetPOItemsForGRNAsync(int poId)
     {
-        var poItems = await _context.PurchaseOrderItems
+        var poItems = await _context.PurchaseOrderItems.AsNoTracking()
             .Where(poi => poi.PurchaseOrderId == poId)
             .Include(poi => poi.Product)
             .ToListAsync();
 
-        var receivedQuantities = await _context.Set<GRNDetail>() // Entity name check karein
+        var receivedQuantities = await _context.Set<GRNDetail>()
+
             .Where(gi => gi.GRNHeader.PurchaseOrderId == poId)
             .GroupBy(gi => gi.ProductId)
             .Select(g => new { ProductId = g.Key, Total = g.Sum(x => (decimal?)x.ReceivedQty) ?? 0 })
             .ToListAsync();
 
-        // '.map' ki jagah '.Select' use karein
+       
         return poItems.Select(poi => new POItemForGRNDto
         {
             ProductId = poi.ProductId,
@@ -327,7 +327,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<POHeaderDetailsDto?> GetPOHeaderAsync(int lastPurchaseOrderId)
     {
-        return await _context.PurchaseOrders
+        return await _context.PurchaseOrders.AsNoTracking()
         .Where(x => x.Id == lastPurchaseOrderId)
         
         .Select(x => new POHeaderDetailsDto
@@ -346,7 +346,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<ProductPriceDto?> GetPriceListRateAsync( Guid productId, Guid priceListId)
     {
-        return await _context.PriceListItems
+        return await _context.PriceListItems.AsNoTracking()
             .Where(pi => pi.PriceListId == priceListId && pi.ProductId == productId)
             .Select(pi => new ProductPriceDto
             {
@@ -357,5 +357,71 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                 GstPercent = pi.Product.DefaultGst??0
             })
             .FirstOrDefaultAsync();
+    }
+    public async Task<bool> BulkSentForApprovalAsync(List<long> ids)
+    {
+        
+        var pos = await _context.PurchaseOrders
+            .Where(x => ids.Contains(x.Id) && x.Status == "Draft")
+            .ToListAsync();
+
+     
+        if (pos == null || !pos.Any())
+        {
+            return false; 
+        }
+
+        foreach (var po in pos)
+        {
+            po.Status = "Submitted"; 
+            po.UpdatedDate = DateTime.Now; 
+        }
+
+        // 3. Ab SaveChanges kaam karega kyunki tracking ON hai
+        return await _context.SaveChangesAsync() > 0;
+    }
+
+    
+    public async Task<bool> BulkApprovePOsAsync(List<long> ids, string approvedBy)
+    {
+       
+        var pos = await _context.PurchaseOrders
+            .Where(x => ids.Contains(x.Id) && x.Status == "Submitted")
+            .ToListAsync();
+
+        if (pos == null || !pos.Any()) return false;
+
+        foreach (var po in pos)
+        {
+            // 2. Status update to Approved
+            po.Status = "Approved";
+            po.UpdatedBy = approvedBy; 
+            po.UpdatedDate = DateTime.Now; 
+        }
+
+        // 3. SaveChanges execute karega kyunki tracking ON hai
+        return await _context.SaveChangesAsync() > 0;
+    }
+
+    // PORepository.cs
+    public async Task<bool> BulkRejectPOsAsync(List<long> ids, string rejectedBy)
+    {
+        // 1. Sirf 'Submitted' status wale POs hi Reject kiye ja sakte hain
+        var pos = await _context.PurchaseOrders
+            .Where(x => ids.Contains(x.Id) && x.Status == "Submitted")
+            .ToListAsync();
+
+        if (pos == null || !pos.Any()) return false;
+
+        foreach (var po in pos)
+        {
+            // 2. Status update to Rejected
+            po.Status = "Rejected";
+            po.UpdatedBy = rejectedBy;
+            po.UpdatedDate = DateTime.Now; // DB column match
+        }
+
+        // 3. Tracking ON hai isliye changes save ho jayenge
+        return await _context.SaveChangesAsync() > 0;
     }
 }

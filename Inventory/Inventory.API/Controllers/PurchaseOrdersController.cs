@@ -5,7 +5,6 @@ using Inventory.Application.PurchaseOrders.Commands.Update;
 using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using Inventory.Application.PurchaseOrders.Queries.GetPurchaseOrder;
-using Inventory.Domain.Enums;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -142,7 +141,7 @@ namespace Inventory.API.Controllers
         /// Frontend call: this.http.delete(`${this.apiUrl}/PurchaseOrders/${poId}`)
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -175,7 +174,7 @@ namespace Inventory.API.Controllers
         // URL: POST /api/PurchaseOrders/bulk-delete
         // Frontend call: this.http.post(`${this.apiUrl}/PurchaseOrders/bulk-delete`, { ids })
         [HttpPost("bulk-delete-orders")] // Name easily identifiable
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> BulkDeleteOrders([FromBody] BulkDeletePurchaseOrderCommand command)
         {
             try
@@ -191,7 +190,7 @@ namespace Inventory.API.Controllers
 
         // --- 3. BULK CHILD ITEMS DELETE ---
         [HttpPost("bulk-delete-items")] // Easily identifiable name
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,User")]
         public async Task<IActionResult> BulkDeleteItems([FromBody] BulkDeletePOItemsCommand command)
         {
             try
@@ -215,7 +214,7 @@ namespace Inventory.API.Controllers
         /// <returns></returns>
 
         [HttpPut("UpdateStatus")]
-        [Authorize(Roles = "User,Manager")]
+        [Authorize(Roles = "Admin,User,Manager")]
         public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusDTO dto)
         {
             if (dto == null || string.IsNullOrEmpty(dto.Status))
@@ -231,6 +230,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("pending-pos")]
+        [Authorize(Roles = "Admin,User,Manager")]
         public async Task<IActionResult> GetPendingPOs()
         {
             var result = await _mediator.Send(new GetPendingPOQuery());
@@ -238,6 +238,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("po-items/{poId}")]
+        [Authorize(Roles = "Admin,User,Manager")]
         public async Task<IActionResult> GetPOItemsForGRN(int poId)
         {
             var result = await _mediator.Send(new GetPOItemsForGRNQuery(poId));
@@ -249,6 +250,7 @@ namespace Inventory.API.Controllers
         /// </summary>
         /// <param name="lastPurchaseOrderId">Integer format ID</param>
         [HttpGet("header-details/{lastPurchaseOrderId:int}")]
+        [Authorize(Roles = "Admin,User,Manager")]
         public async Task<ActionResult<POHeaderDetailsDto>> GetHeaderDetails(int lastPurchaseOrderId)
         {
             // 1. Query create karein [cite: 2026-01-22]
@@ -271,6 +273,7 @@ namespace Inventory.API.Controllers
         /// Product select hone par ya Price List change hone par rate fetch karne ke liye
         /// </summary>
         [HttpGet("get-product-rate")]
+        [Authorize(Roles = "Admin,User,Manager")]
         public async Task<ActionResult<ProductPriceDto>> GetProductRate(
             
             [FromQuery] Guid productId, [FromQuery] Guid priceListId)
@@ -297,6 +300,51 @@ namespace Inventory.API.Controllers
             return Ok(result);
         }
 
+        [HttpPost("bulk-sent-for-approval")]
+        [Authorize(Roles = "Admin,User")]
+        public async Task<IActionResult> BulkSentForApproval([FromBody] List<long> ids)
+        {
+            var result = await _purchaseOrderRepository.BulkSentForApprovalAsync(ids);
+            if (result) return Ok(new { message = "Selected POs sent for approval successfully." });
+            return BadRequest(new { message = "No valid Draft POs found in selection." });
+        }
+        
+
+        [HttpPost("bulk-approve")]
+        [Authorize(Roles = "Manager, Admin")]
+        public async Task<IActionResult> BulkApprove([FromBody] List<long> ids)
+        {
+            if (ids == null || !ids.Any())
+                return BadRequest(new { message = "No POs selected for approval." });
+
+            var userEmail = User.Identity?.Name ?? "Admin";
+
+            var result = await _purchaseOrderRepository.BulkApprovePOsAsync(ids, userEmail);
+
+            if (result)
+                return Ok(new { message = $"{ids.Count} Purchase Orders approved successfully." });
+
+            return BadRequest(new { message = "Approval failed. Please ensure selected POs are in 'Submitted' status." });
+        }
+
+       
+
+        [HttpPost("bulk-reject")]
+        public async Task<IActionResult> BulkReject([FromBody] List<long> ids)
+        {
+            if (ids == null || !ids.Any())
+                return BadRequest(new { message = "No POs selected for rejection." });
+
+            // Current user ka identity nikaalein
+            var userEmail = User.Identity?.Name ?? "Manager";
+
+            var result = await _purchaseOrderRepository.BulkRejectPOsAsync(ids, userEmail);
+
+            if (result)
+                return Ok(new { message = $"{ids.Count} Purchase Orders rejected successfully." });
+
+            return BadRequest(new { message = "Rejection failed. Only 'Submitted' POs can be rejected." });
+        }
     }
 }
 

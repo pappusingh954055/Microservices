@@ -14,7 +14,7 @@ public class DashboardRepository : IDashboardRepository
 
     public async Task<DashboardSummaryDto> GetDashboardSummaryAsync()
     {
-        // AsNoTracking performance ke liye zaroori hai
+        // AsNoTracking read-only operations ke liye fast hai
         var purchaseOrders = _context.PurchaseOrders.AsNoTracking();
         var products = _context.Products.AsNoTracking();
         var saleOrders = _context.SaleOrders.AsNoTracking();
@@ -24,17 +24,18 @@ public class DashboardRepository : IDashboardRepository
             // 1. Total Sales: SaleOrders table ke GrandTotal column ka sum
             TotalSales = await saleOrders.SumAsync(x => x.GrandTotal),
 
-            // 2. Pending Purchase Orders: Status "Pending" wale orders ka count
-            PendingPurchaseOrders = await purchaseOrders.CountAsync(x => x.Status == "Pending"),
+            // 2. FIX: Dashboard par Manager ko approval ke liye "Submitted" orders dikhne chahiye
+            // Status "Submitted" matlab user ne bhej diya hai aur Manager ke Approval ka wait hai
+            PendingPurchaseOrders = await purchaseOrders.CountAsync(x => x.Status == "Submitted"),
 
             // 3. Total Stock Units: Products table ke CurrentStock column ka sum
             TotalStockItems = (int)await products.SumAsync(x => x.CurrentStock),
 
             // 4. Low Stock Alert: CurrentStock jab MinStock se kam ya barabar ho
-            LowStockAlertCount = await products.CountAsync(x => x.CurrentStock <= x.MinStock),
+            LowStockAlertCount = await products.CountAsync(x => x.IsActive && x.CurrentStock <= x.MinStock),
 
-            // 5. NEW: Total Stock Value (CurrentStock * BasePurchasePrice)
-            // Yeh batayega ki warehouse mein kitne rupaye ka maal pada hai
+            // 5. Total Stock Value: (CurrentStock * BasePurchasePrice)
+            // Isse warehouse mein pade total maal ki keemat pata chalti hai
             TotalStockValue = await products
                 .Where(x => x.IsActive)
                 .SumAsync(x => x.CurrentStock * x.BasePurchasePrice)
