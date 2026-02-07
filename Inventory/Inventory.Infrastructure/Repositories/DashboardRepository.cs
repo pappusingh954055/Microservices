@@ -31,7 +31,13 @@ public class DashboardRepository : IDashboardRepository
             TotalStockItems = (int)await products.SumAsync(x => x.CurrentStock),
 
             // 4. Low Stock Alert: CurrentStock jab MinStock se kam ya barabar ho
-            LowStockAlertCount = await products.CountAsync(x => x.CurrentStock <= x.MinStock)
+            LowStockAlertCount = await products.CountAsync(x => x.CurrentStock <= x.MinStock),
+
+            // 5. NEW: Total Stock Value (CurrentStock * BasePurchasePrice)
+            // Yeh batayega ki warehouse mein kitne rupaye ka maal pada hai
+            TotalStockValue = await products
+                .Where(x => x.IsActive)
+                .SumAsync(x => x.CurrentStock * x.BasePurchasePrice)
         };
     }
 
@@ -39,7 +45,7 @@ public class DashboardRepository : IDashboardRepository
     {
         var currentYear = DateTime.Now.Year;
 
-        // Sales Trends: SODate ke basis par month-wise group karke GrandTotal sum karna
+        // 1. Sales Trends: SODate ke basis par month-wise group karke GrandTotal sum karna
         var salesTrends = await _context.SaleOrders
             .AsNoTracking()
             .Where(x => x.SODate.Year == currentYear)
@@ -47,7 +53,7 @@ public class DashboardRepository : IDashboardRepository
             .Select(g => new { Month = g.Key, Total = g.Sum(x => x.GrandTotal) })
             .ToListAsync();
 
-        // Purchase Trends: PoDate ke basis par month-wise group karke GrandTotal sum karna
+        // 2. Purchase Trends: PoDate ke basis par month-wise group karke GrandTotal sum karna
         var purchaseTrends = await _context.PurchaseOrders
             .AsNoTracking()
             .Where(x => x.PoDate.Year == currentYear)
@@ -67,11 +73,24 @@ public class DashboardRepository : IDashboardRepository
             chart.PurchaseData.Add(purchaseTrends.FirstOrDefault(x => x.Month == i)?.Total ?? 0);
         }
 
-        // Stock Distribution (Donut Chart)
-        // Example: IsActive products ko Finished Goods maan rahe hain
-        chart.FinishedGoods = await _context.Products.CountAsync(x => x.IsActive);
-        chart.RawMaterials = await _context.Products.CountAsync(x => !x.IsActive);
-        chart.DamagedItems = 0; // Agar damaged flag nahi hai toh default 0
+        // 3. Stock Distribution (Donut Chart) - Updated with new columns
+
+        // Finished Goods: Jahan ProductType 1 hai (Maan lijiye 1 = Finished) aur active hai
+        chart.FinishedGoods = (int)await _context.Products
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.ProductType == "1")
+            .SumAsync(x => x.CurrentStock);
+
+        // Raw Material: Jahan ProductType 2 hai (Maan lijiye 2 = Raw Material)
+        chart.RawMaterials = (int)await _context.Products
+            .AsNoTracking()
+            .Where(x => x.IsActive && x.ProductType == "2")
+            .SumAsync(x => x.CurrentStock);
+
+        // Damaged Items: Naye DamagedStock column ka total sum
+        chart.DamagedItems = (int)await _context.Products
+            .AsNoTracking()
+            .SumAsync(x => x.DamagedStock);
 
         return chart;
     }

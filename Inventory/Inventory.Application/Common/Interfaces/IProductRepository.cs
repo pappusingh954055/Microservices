@@ -23,4 +23,8 @@ public interface IProductRepository
 
     Task<List<Product>> SearchActiveProductsAsync(string term);
     Task<ProductRateDto> GetProductRateAsync(Guid productId, Guid? priceListId);
+
+    Task<IEnumerable<LowStockProductDto>> GetLowStockProductsAsync();
+
+    Task<List<ExcelExportDto>> GetLowStockExportDataAsync();
 }

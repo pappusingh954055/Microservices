@@ -1,4 +1,8 @@
-﻿using Inventory.API.Common;
+﻿using ClosedXML.Excel;
+using DinkToPdf;
+using DinkToPdf.Contracts;
+using Inventory.API.Common;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Common.Models;
 using Inventory.Application.Products.Commands.DeleteProduct;
 using Inventory.Application.Products.Commands.UpdateProduct;
@@ -17,9 +21,16 @@ namespace Inventory.API.Controllers
     {
         private readonly IMediator _mediator;
 
-        public ProductsController(IMediator mediator)
+        private readonly IProductRepository _productRepository;
+        private readonly IConverter _converter;
+
+        public ProductsController(IMediator mediator, 
+            IProductRepository productRepository,
+            IConverter converter)
         {
             _mediator = mediator;
+            _productRepository = productRepository;
+            _converter = converter;
         }
 
         [HttpPost]
@@ -149,5 +160,173 @@ namespace Inventory.API.Controllers
             var result = await _mediator.Send(query);
             return Ok(result);
         }
+
+        [HttpGet("low-stock")]
+        public async Task<ActionResult<IEnumerable<LowStockProductDto>>> GetLowStock()
+        {
+            var products = await _productRepository.GetLowStockProductsAsync();
+
+            if (products == null || !products.Any())
+            {
+                return Ok(new List<LowStockProductDto>()); // Empty list agar sab khairiyat hai
+            }
+
+            return Ok(products);
+        }
+
+
+        /// <summary>
+        /// Export to excel
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("export-low-stock")]
+        public async Task<IActionResult> ExportLowStock()
+        {
+            var data = await _productRepository.GetLowStockExportDataAsync();
+
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Low Stock Report");
+
+                // Headers setup
+                worksheet.Cell(1, 1).Value = "Product Name";
+                worksheet.Cell(1, 2).Value = "SKU";
+                worksheet.Cell(1, 3).Value = "Category";
+                worksheet.Cell(1, 4).Value = "Min Stock";
+                worksheet.Cell(1, 5).Value = "Current Stock";
+                worksheet.Cell(1, 6).Value = "Unit";
+
+                // Styling: Bold headers and background color
+                var headerRow = worksheet.Row(1);
+                headerRow.Style.Font.Bold = true;
+                headerRow.Style.Fill.BackgroundColor = XLColor.LightBlue;
+
+                // Data insertion
+                for (int i = 0; i < data.Count; i++)
+                {
+                    var row = i + 2;
+                    worksheet.Cell(row, 1).Value = data[i].ProductName;
+                    worksheet.Cell(row, 2).Value = data[i].SKU;
+                    worksheet.Cell(row, 3).Value = data[i].Category;
+                    worksheet.Cell(row, 4).Value = data[i].MinStock;
+                    worksheet.Cell(row, 5).Value = data[i].CurrentStock;
+                    worksheet.Cell(row, 6).Value = data[i].Unit;
+
+                    // Low stock indication (Optional highlighting)
+                    worksheet.Cell(row, 5).Style.Font.FontColor = XLColor.Red;
+                }
+
+                worksheet.Columns().AdjustToContents(); // Auto-fit columns
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    var content = stream.ToArray();
+
+                    // Return as File
+                    return File(
+                        content,
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        $"LowStockReport_{DateTime.Now:yyyyMMdd}.xlsx");
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// export to pdf
+        /// </summary>
+        /// <returns></returns>
+        [HttpGet("export-low-stock-pdf")]
+        public async Task<IActionResult> ExportLowStockPdf()
+        {
+            // 1. Excel wala hi Repository method call karein
+            var data = await _productRepository.GetLowStockExportDataAsync();
+
+            // 2. HTML Template design karein
+            var htmlContent = $@"
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Segoe UI', Arial; padding: 20px; }}
+                    .header {{ text-align: center; color: #2c3e50; margin-bottom: 30px; border-bottom: 2px solid #3498db; padding-bottom: 10px; }}
+                    table {{ width: 100%; border-collapse: collapse; margin-top: 20px; }}
+                    th {{ background-color: #3498db; color: white; padding: 12px; text-align: left; }}
+                    td {{ border: 1px solid #ddd; padding: 10px; }}
+                    tr:nth-child(even) {{ background-color: #f9f9f9; }}
+                    .low-stock-alert {{ color: #e74c3c; font-weight: bold; }}
+                    .footer {{ margin-top: 30px; font-size: 10px; text-align: right; color: #7f8c8d; }}
+                </style>
+            </head>
+            <body>
+                <div class='header'>
+                    <h1>Electric Inventory System</h1>
+                    <h3>Low Stock Report</h3>
+                    <p>Generated Date: {DateTime.Now:dd MMM yyyy HH:mm}</p>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Product Name</th>
+                            <th>SKU</th>
+                            <th>Category</th>
+                            <th>Current Stock</th>
+                            <th>Min Stock</th>
+                            <th>Unit</th>
+                        </tr>
+                    </thead>
+                    <tbody>";
+
+            foreach (var item in data)
+            {
+                htmlContent += $@"
+                <tr>
+                    <td>{item.ProductName}</td>
+                    <td>{item.SKU}</td>
+                    <td>{item.Category}</td>
+                    <td class='low-stock-alert'>{item.CurrentStock}</td>
+                    <td>{item.MinStock}</td>
+                    <td>{item.Unit}</td>
+                </tr>";
+            }
+
+            htmlContent += $@"
+                    </tbody>
+                </table>
+                <div class='footer'>
+                    This is a computer generated inventory report.
+                </div>
+            </body>
+        </html>";
+
+            // 3. DinkToPdf Settings
+            var globalSettings = new GlobalSettings
+            {
+                ColorMode = ColorMode.Color,
+                Orientation = Orientation.Portrait,
+                PaperSize = PaperKind.A4,
+                Margins = new MarginSettings { Top = 10, Bottom = 10, Left = 10, Right = 10 }
+            };
+
+            var objectSettings = new ObjectSettings
+            {
+                PagesCount = true,
+                HtmlContent = htmlContent,
+                WebSettings = { DefaultEncoding = "utf-8" },
+                HeaderSettings = { FontName = "Arial", FontSize = 9, Right = "Page [page] of [toPage]", Line = true },
+                FooterSettings = { FontName = "Arial", FontSize = 9, Center = "Inventory Management System", Line = true }
+            };
+
+            var pdf = new HtmlToPdfDocument()
+            {
+                GlobalSettings = globalSettings,
+                Objects = { objectSettings }
+            };
+
+            // 4. Conversion aur File return
+            var file = _converter.Convert(pdf);
+            return File(file, "application/pdf", $"LowStockReport_{DateTime.Now:yyyyMMdd}.pdf");
+        }
     }
 }
+

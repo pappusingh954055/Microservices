@@ -18,6 +18,9 @@ public sealed class ProductDto
     public string? hsnCode { get; set; }
     public decimal? defaultGst { get; set; }
     public int minStock { get; set; }
+    public decimal currentStock { get; set; }
+    public decimal damagedStock { get; set; }
+    public int productType { get; set; }
     public bool trackInventory { get; set; }
     public bool? isActive { get; set; }
     public string? description { get; set; }

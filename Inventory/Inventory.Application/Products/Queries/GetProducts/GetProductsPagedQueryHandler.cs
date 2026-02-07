@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using ClosedXML;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Common.Models;
 using Inventory.Application.Products.Queries.GetProducts;
 using Inventory.Domain.Entities;
@@ -78,6 +79,9 @@ internal sealed class GetProductsPagedQueryHandler
                 unit = p.Unit,
                 hsnCode = p.HSNCode,
                 minStock = p.MinStock,
+                basePurchasePrice = p.BasePurchasePrice,
+                currentStock=p.CurrentStock,
+                damagedStock=p.DamagedStock,
                 defaultGst = p.DefaultGst,
                 description = p.Description,
                 createdBy = p.CreatedBy,

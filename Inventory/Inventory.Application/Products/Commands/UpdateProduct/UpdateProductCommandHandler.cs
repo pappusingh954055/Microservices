@@ -42,7 +42,9 @@ internal sealed class UpdateProductCommandHandler
             request.trackinventory,
             request.isactive,
             request.description,
-            request.updatedby
+            request.updatedby,
+            request.productType,
+            request.damagedStock
             
         );
 

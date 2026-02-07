@@ -16,5 +16,7 @@ public sealed record CreateProductCommand(
     bool trackinventory,
     bool isactive,
     string? description,
-    string createdby
+    string createdby,
+    string productType,
+    decimal damagedStock
 ) : IRequest<Guid>;

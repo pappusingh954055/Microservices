@@ -27,6 +27,8 @@ public class Product
     public DateTime? CreatedOn { get; set; } = DateTime.Now;
     public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
     public string? ModifiedBy { get; set; }
+    public string ProductType { get; set; } = string.Empty;
+    public decimal DamagedStock { get; set; } = 0;
 
     private Product() { }
 
@@ -46,7 +48,9 @@ public class Product
         bool isactive,
         string? description,
         string createdby,
-        decimal saleRate
+        decimal saleRate,
+        string productType,
+        decimal damagedStock
         )
     {
         Id = Guid.NewGuid();
@@ -66,7 +70,8 @@ public class Product
         IsActive = isactive;
         Description = description;
         CreatedBy = createdby;
-        
+        ProductType = productType;
+        DamagedStock = damagedStock;
     }
 
     public void Update(        
@@ -86,7 +91,8 @@ public class Product
         bool isactive,
         string? description,
         string updatedby,
-       
+       string ? productType,
+       decimal damagedStock,
         DateTime? modifiedon = null
         
         )
@@ -107,7 +113,8 @@ public class Product
         IsActive = isactive;
         Description = description;    
         ModifiedBy = updatedby;
-        ModifiedOn = modifiedon ?? DateTime.UtcNow;
-       
+        ProductType = productType; 
+        DamagedStock = damagedStock;
+        ModifiedOn = modifiedon ?? DateTime.UtcNow;       
     }
 }

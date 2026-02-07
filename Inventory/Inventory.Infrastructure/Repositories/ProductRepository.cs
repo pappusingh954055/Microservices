@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using DocumentFormat.OpenXml.InkML;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Products.DTOs;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -118,5 +119,42 @@ public sealed class ProductRepository : IProductRepository
         }
 
         return result;
+    }
+
+    public async Task<IEnumerable<LowStockProductDto>> GetLowStockProductsAsync()
+    {
+        return await _db.Products
+            .AsNoTracking()
+            .Where(p => p.IsActive && p.CurrentStock <= p.MinStock) // Dashboard wala logic
+            .Select(p => new LowStockProductDto
+            {
+                Id = p.Id,
+                CategoryName = p.Category.CategoryName, // Join logic
+                SubCategoryName = p.Subcategory.SubcategoryName,
+                ProductName = p.Name,
+                SKU = p.Sku,
+                Unit = p.Unit,
+                CurrentStock = p.CurrentStock,
+                MinStock = p.MinStock,
+                BasePurchasePrice = p.BasePurchasePrice
+            })
+            .ToListAsync();
+    }
+
+    public async Task<List<ExcelExportDto>> GetLowStockExportDataAsync()
+    {
+        return await _db.Products
+            .AsNoTracking()
+            .Where(p => p.IsActive && p.CurrentStock <= p.MinStock)
+            .Select(p => new ExcelExportDto
+            {
+                ProductName = p.Name,
+                SKU = p.Sku,
+                Category = p.Category.CategoryName,
+                CurrentStock = p.CurrentStock,
+                MinStock = p.MinStock,
+                Unit = p.Unit
+            })
+            .ToListAsync();
     }
 }

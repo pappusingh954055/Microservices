@@ -36,7 +36,9 @@ public sealed class CreateProductCommandHandler
             request.isactive,
             request.description,
             request.createdby,
-            request.saleRate
+            request.saleRate,
+            request.productType,
+            request.damagedStock
         )
         {
 

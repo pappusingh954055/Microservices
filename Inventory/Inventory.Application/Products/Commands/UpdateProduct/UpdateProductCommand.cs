@@ -19,5 +19,7 @@ public sealed record UpdateProductCommand(
     bool isactive,
     string? description,
     string updatedby,
-    decimal saleRate
+    decimal saleRate,
+    string productType,
+    decimal damagedStock
 ) : IRequest<Guid>;

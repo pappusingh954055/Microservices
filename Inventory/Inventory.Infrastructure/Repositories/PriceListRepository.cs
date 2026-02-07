@@ -34,7 +34,7 @@ internal sealed class PriceListRepository : IPriceListRepository
 
     public async Task<PriceList?> GetByIdAsync(Guid id)
     {
-        return await _context.PriceLists
+        return await _context.PriceLists.AsNoTracking()
             .Include(x => x.PriceListItems)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
@@ -42,6 +42,7 @@ internal sealed class PriceListRepository : IPriceListRepository
     public async Task<List<PriceList>> GetAllAsync()
     {
         return await _context.PriceLists
+            .AsNoTracking()
             .Include(x => x.PriceListItems)
             .ToListAsync();
     }
@@ -57,13 +58,14 @@ internal sealed class PriceListRepository : IPriceListRepository
     public async Task<List<PriceList>> GetByIdsAsync(List<Guid> ids)
     {
         return await _context.PriceLists
+            .AsNoTracking()
             .Where(x => ids.Contains(x.Id))
             .ToListAsync();
     }
 
     public async Task<bool> HasPriceListAsync(List<Guid> pricelistIds)
     {
-        return await _context.PriceLists
+        return await _context.PriceLists.AsNoTracking()
            .AnyAsync(x => pricelistIds.Contains(x.Id));
     }
 
@@ -79,7 +81,7 @@ internal sealed class PriceListRepository : IPriceListRepository
 
     public async Task<PriceList?> GetByIdWithItemsAsync(Guid id, CancellationToken cancellationToken)
     {
-        return await _context.PriceLists
+        return await _context.PriceLists.AsNoTracking()
             .Include(p => p.PriceListItems)
                 .ThenInclude(i => i.Product) // Ye line zaroori hai
             .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
@@ -94,6 +96,7 @@ internal sealed class PriceListRepository : IPriceListRepository
     public async Task<List<PriceListItemDto>> GetPriceListItemsAsync(Guid priceListId)
     {
         return await _context.PriceListItems
+            .AsNoTracking()
             .Where(x => x.PriceListId == priceListId)
             .Select(x => new PriceListItemDto
             {
