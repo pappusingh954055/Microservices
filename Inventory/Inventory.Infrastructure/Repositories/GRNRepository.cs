@@ -11,9 +11,13 @@ namespace Inventory.Infrastructure.Repositories
     {
         private readonly InventoryDbContext _context;
 
-        public GRNRepository(InventoryDbContext context)
+        private readonly INotificationRepository _notificationRepository;
+
+        public GRNRepository(InventoryDbContext context,
+            INotificationRepository notificationRepository)
         {
             _context = context;
+            _notificationRepository = notificationRepository;
         }
 
         public async Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details)
@@ -78,6 +82,16 @@ namespace Inventory.Infrastructure.Repositories
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // --- NOTIFICATION TRIGGER START ---
+                // Goods receive hone par "Goods Received" ka alert bhejein
+                await _notificationRepository.AddNotificationAsync(
+                    "Goods Received",
+                    $"Inventory updated for PO #{header.PurchaseOrderId}. GRN {header.GRNNumber} generated successfully.",
+                    "Inventory",
+                    "/app/inventory/grn-list"
+                );
+                // --- NOTIFICATION TRIGGER END ---
 
                 return header.GRNNumber;
             }
@@ -154,53 +168,7 @@ namespace Inventory.Infrastructure.Repositories
                 }).FirstOrDefaultAsync();
         }
 
-        //public async Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
-        //{
-        //    var query = _context.GRNHeaders.AsQueryable();
-
-        //    // 1. Searching Logic (Fix: Null checks for safe searching)
-        //    if (!string.IsNullOrWhiteSpace(search))
-        //    {
-        //        string s = search.Trim().ToLower();
-        //        query = query.Where(x =>
-        //            (x.GRNNumber != null && x.GRNNumber.ToLower().Contains(s)) ||
-        //            (x.PurchaseOrder.PoNumber != null && x.PurchaseOrder.PoNumber.ToLower().Contains(s)) ||
-        //            (x.PurchaseOrder.SupplierName != null && x.PurchaseOrder.SupplierName.ToLower().Contains(s)));
-        //    }
-
-        //    // 2. Projection to DTO
-        //    var projectedQuery = query.Select(g => new GRNListDto
-        //    {
-        //        Id = g.Id,
-        //        GRNNo = g.GRNNumber,
-        //        RefPO = g.PurchaseOrder.PoNumber,
-        //        SupplierName = g.PurchaseOrder.SupplierName,
-        //        ReceivedDate = g.ReceivedDate,
-        //        Status = g.Status
-        //    });
-
-        //    // 3. Sorting Fix (Matching with frontend field names)
-        //    bool isDesc = sortOrder?.ToLower() == "desc";
-        //    string field = sortField?.ToLower().Trim();
-
-        //    projectedQuery = field switch
-        //    {
-        //        "grnno" or "grnnumber" => isDesc ? projectedQuery.OrderByDescending(x => x.GRNNo) : projectedQuery.OrderBy(x => x.GRNNo),
-        //        "refpo" => isDesc ? projectedQuery.OrderByDescending(x => x.RefPO) : projectedQuery.OrderBy(x => x.RefPO),
-        //        "suppliername" => isDesc ? projectedQuery.OrderByDescending(x => x.SupplierName) : projectedQuery.OrderBy(x => x.SupplierName),
-        //        "receiveddate" => isDesc ? projectedQuery.OrderByDescending(x => x.ReceivedDate) : projectedQuery.OrderBy(x => x.ReceivedDate),
-        //        _ => isDesc ? projectedQuery.OrderByDescending(x => x.Id) : projectedQuery.OrderByDescending(x => x.Id)
-        //    };
-
-        //    // 4. Final Execution with Pagination [cite: 2026-01-22]
-        //    var totalCount = await projectedQuery.CountAsync();
-        //    var items = await projectedQuery
-        //        .Skip(pageIndex * pageSize) // Page skip logic
-        //        .Take(pageSize)             // Page size logic
-        //        .ToListAsync();
-
-        //    return new GRNPagedResponseDto { Items = items, TotalCount = totalCount };
-        //}
+        
 
         public async Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize)
         {

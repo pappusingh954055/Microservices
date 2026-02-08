@@ -12,11 +12,16 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
     private readonly InventoryDbContext _context;
     private readonly IConverter _converter;
+    private readonly INotificationRepository _notificationRepository;
 
-    public PurchaseOrderRepository(InventoryDbContext context, IConverter converter)
+    public PurchaseOrderRepository(InventoryDbContext context, 
+        INotificationRepository notificationRepository,
+        IConverter converter)
     {
         _context = context;
         _converter = converter;
+
+        _notificationRepository = notificationRepository;
     }
 
     public async Task AddAsync(PurchaseOrder po, CancellationToken ct)
@@ -282,11 +287,41 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<bool> UpdatePOStatusAsync(int id, string status)
     {
+        // Id check aur fetch
         var po = await _context.PurchaseOrders.FindAsync(id);
         if (po == null) return false;
 
-        po.Status = status; 
-        return await _context.SaveChangesAsync() > 0;
+        po.Status = status; // Status database mein update hua
+
+        if (await _context.SaveChangesAsync() > 0)
+        {
+            // FIX: Sirf tabhi notification bhejein jab status 'Draft' na ho
+            if (status != "Draft")
+            {
+                // 3 Specific Updates: Submitted, Rejected, aur Approved
+                string title = status switch
+                {
+                    "Approved" => "PO Approved",
+                    "Rejected" => "PO Rejected",
+                    "Submitted" => "PO Submitted",
+                    _ => "PO Status Updated" // Backup title
+                };
+
+                string message = $"Purchase Order {po.PoNumber} status has been changed to {status}.";
+
+                // DATA SAVE HOGA APPNOTIFICATIONS TABLE MEIN
+                await _notificationRepository.AddNotificationAsync(
+                    title,
+                    message,
+                    "PO",
+                    "/app/inventory/polist"
+                );
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     public async Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync()
@@ -362,52 +397,103 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             })
             .FirstOrDefaultAsync();
     }
+
+    /// <summary>
+    /// bulk submitted
+    /// </summary>
+    /// <param name="ids"></param>
+    /// <returns></returns>
     public async Task<bool> BulkSentForApprovalAsync(List<long> ids)
     {
-        
+        // 1. Fetch Draft POs
         var pos = await _context.PurchaseOrders
             .Where(x => ids.Contains(x.Id) && x.Status == "Draft")
             .ToListAsync();
 
-     
         if (pos == null || !pos.Any())
         {
-            return false; 
+            return false;
         }
 
+        // 2. Status Update
         foreach (var po in pos)
         {
-            po.Status = "Submitted"; 
-            po.UpdatedDate = DateTime.Now; 
+            po.Status = "Submitted"; // Status Submitted kiya
+            po.UpdatedDate = DateTime.Now;
         }
 
-        // 3. Ab SaveChanges kaam karega kyunki tracking ON hai
-        return await _context.SaveChangesAsync() > 0;
+        // 3. Save Changes
+        if (await _context.SaveChangesAsync() > 0)
+        {
+            // --- BULK NOTIFICATION TRIGGER ---
+            // Har PO ke liye alag alag nahi, balki ek summary alert bhejein
+            int count = pos.Count;
+            string title = "Bulk PO Submitted";
+            string message = $"{count} Purchase Orders have been submitted for your approval.";
+
+            await _notificationRepository.AddNotificationAsync(
+                title,
+                message,
+                "PO",
+                "/app/inventory/polist" // Seedha list page par navigate karega
+            );
+
+            return true;
+        }
+
+        return false;
     }
 
-    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="ids"></param>
+    /// <param name="approvedBy"></param>
+    /// <returns></returns>
     public async Task<bool> BulkApprovePOsAsync(List<long> ids, string approvedBy)
     {
-       
+        // 1. Fetch Submitted POs
         var pos = await _context.PurchaseOrders
             .Where(x => ids.Contains(x.Id) && x.Status == "Submitted")
             .ToListAsync();
 
         if (pos == null || !pos.Any()) return false;
 
+        // 2. Status update to Approved
         foreach (var po in pos)
         {
-            // 2. Status update to Approved
             po.Status = "Approved";
-            po.UpdatedBy = approvedBy; 
-            po.UpdatedDate = DateTime.Now; 
+            po.UpdatedBy = approvedBy;
+            po.UpdatedDate = DateTime.Now;
         }
 
-        // 3. SaveChanges execute karega kyunki tracking ON hai
-        return await _context.SaveChangesAsync() > 0;
+        // 3. Save Changes
+        if (await _context.SaveChangesAsync() > 0)
+        {
+            // --- BULK APPROVAL NOTIFICATION TRIGGER ---
+            int count = pos.Count;
+            string title = "Bulk PO Approved";
+            string message = $"{count} Purchase Orders have been approved and are ready for receipt.";
+
+            await _notificationRepository.AddNotificationAsync(
+                title,
+                message,
+                "PO",
+                "/app/inventory/polist" // Redirect to PO list
+            );
+
+            return true;
+        }
+
+        return false;
     }
 
-    // PORepository.cs
+    /// <summary>
+    /// bilk rejected
+    /// </summary>
+    /// <param name="ids"></param>
+    /// <param name="rejectedBy"></param>
+    /// <returns></returns>
     public async Task<bool> BulkRejectPOsAsync(List<long> ids, string rejectedBy)
     {
         // 1. Sirf 'Submitted' status wale POs hi Reject kiye ja sakte hain
@@ -422,11 +508,28 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             // 2. Status update to Rejected
             po.Status = "Rejected";
             po.UpdatedBy = rejectedBy;
-            po.UpdatedDate = DateTime.Now; // DB column match
+            po.UpdatedDate = DateTime.Now;
         }
 
-        // 3. Tracking ON hai isliye changes save ho jayenge
-        return await _context.SaveChangesAsync() > 0;
+        // 3. Save Changes
+        if (await _context.SaveChangesAsync() > 0)
+        {
+            // --- BULK REJECTION NOTIFICATION TRIGGER ---
+            int count = pos.Count;
+            string title = "Bulk PO Rejected";
+            string message = $"{count} Purchase Orders have been rejected. Please check the list for details.";
+
+            await _notificationRepository.AddNotificationAsync(
+                title,
+                message,
+                "PO",
+                "/app/inventory/polist" // Redirect to PO list to take action
+            );
+
+            return true;
+        }
+
+        return false;
     }
 
     public async Task<PODocumentDto> GetPODetailsForPrintAsync(long id)
