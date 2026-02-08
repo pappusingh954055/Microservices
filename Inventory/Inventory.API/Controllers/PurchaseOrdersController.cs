@@ -372,14 +372,21 @@ namespace Inventory.API.Controllers
         /// <returns></returns>
 
         [HttpGet("{id}/download-pdf")]
+        [Authorize(Roles = "Manager, Admin, User")] 
         public async Task<IActionResult> DownloadPdf(long id)
         {
-            var pdfBytes = await _purchaseOrderRepository.GeneratePOReportPdfAsync(id);
-
-            if (pdfBytes == null) return NotFound();
-
-            // File return kar rahe hain jo client side par auto-download hogi
-            return File(pdfBytes, "application/pdf", $"PO_{id}_{DateTime.Now:yyyyMMdd}.pdf");
+            
+            var response = await _purchaseOrderRepository.GeneratePOReportPdfAsync(id);
+          
+            if (response == null || response.PdfBytes == null)
+            {
+                return NotFound(new { message = "Purchase Order document not found." });
+            }
+          
+            string safeTitle = response.HeaderTitle?.Replace(" ", "_") ?? "PO_Document";
+            string fileName = $"{safeTitle}_{id}_{DateTime.Now:yyyyMMdd}.pdf";
+           
+            return File(response.PdfBytes, "application/pdf", fileName);
         }
     }
 }

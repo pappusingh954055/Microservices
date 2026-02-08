@@ -43,7 +43,7 @@ namespace Inventory.Application.Common.Interfaces
 
         Task<PODocumentDto> GetPODetailsForPrintAsync(long id);
 
-        Task<byte[]> GeneratePOReportPdfAsync(long id);
+        Task<PORepoPrintResponse> GeneratePOReportPdfAsync(long id);
     }
 
     public interface IUnitOfWork

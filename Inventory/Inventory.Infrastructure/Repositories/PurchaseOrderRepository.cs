@@ -431,9 +431,15 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<PODocumentDto> GetPODetailsForPrintAsync(long id)
     {
-        // 1. Join ka use karke Header aur Items (Product Name ke saath) fetch karein
+        // 1. FIX: StringComparison ko hata kar simple '==' use karein taaki EF ise SQL mein translate kar sake
+        // SQL Server default mein case-insensitive match hi karta hai
+        bool isReceived = await _context.GRNHeaders
+            .AsNoTracking()
+            .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "Received");
+
+        // 2. Data fetch karein optimized join ke saath
         return await _context.PurchaseOrders
-            .AsNoTracking() // Performance ke liye zaroori hai
+            .AsNoTracking()
             .Where(x => x.Id == id)
             .Select(po => new PODocumentDto
             {
@@ -442,14 +448,17 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                 SupplierName = po.SupplierName,
                 PoDate = po.PoDate,
                 Remarks = po.Remarks,
-                TotalTax = po.TotalTax,
+
+                // Tax aur SubTotal details for Modal UI
                 SubTotal = po.SubTotal,
+                TotalTax = po.TotalTax,
                 GrandTotal = po.GrandTotal,
-                Status = po.Status,
+
+                // Dynamic Title based on GRN status
+                Status = isReceived ? "TAX INVOICE" : "BILL OF SUPPLY",
                 CreatedBy = po.CreatedBy,
 
-                // Items Mapping with Product Join
-                // Note: Hum Items table se Product table ka data access kar rahe hain
+                // Items Mapping with Products Table Join
                 Items = _context.PurchaseOrderItems
                     .AsNoTracking()
                     .Where(item => item.PurchaseOrderId == po.Id)
@@ -458,9 +467,8 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                           prod => prod.Id,
                           (item, prod) => new POItemDocumentDto
                           {
-                              // FIX: Ab yahan actual Product Name aur ID dono milenge
                               ProductId = item.ProductId,
-                              ProductName = prod.Name, // Products table se name uthaya
+                              ProductName = prod.Name, // Actual Name
                               Qty = item.Qty,
                               Unit = item.Unit,
                               Rate = item.Rate,
@@ -470,16 +478,23 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             }).FirstOrDefaultAsync();
     }
 
-    public async Task<byte[]> GeneratePOReportPdfAsync(long id)
+    public async Task<PORepoPrintResponse> GeneratePOReportPdfAsync(long id)
     {
-        // 1. Data fetch karna (Header aur Items with Product Names)
+        // 1. Timeout Fix: Simple query bina nested include ke
         var po = await _context.PurchaseOrders
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.Id == id);
 
         if (po == null) return null;
 
-        // Items aur Product Names ko join karke fetch karein
+        // 2. STATUS FIX: GRNHeaders table mein check karein ki kya ye PO receive ho chuka hai
+        // Hum check kar rahe hain ki kya is PurchaseOrderId ke liye koi GRN entry exist karti hai
+        bool isReceived = await _context.GRNHeaders
+            .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "Received");
+
+        string documentTitle = isReceived ? "TAX INVOICE" : "PURCHASE ORDER";
+
+        // 3. Items fetch optimized: Timeout se bachne ke liye alag query
         var itemsWithNames = await (from item in _context.PurchaseOrderItems
                                     join prod in _context.Products on item.ProductId equals prod.Id
                                     where item.PurchaseOrderId == id
@@ -492,10 +507,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                                         item.Total
                                     }).ToListAsync();
 
-        // 2. Status based Title fix: Received = TAX INVOICE, Approved = PURCHASE ORDER
-        string documentTitle = po.Status == "Received" ? "TAX INVOICE" : "PURCHASE ORDER";
-
-        // 3. HTML Template design with Encoding Fix (&#8377; for Rupee)
+        // 4. HTML Template with dynamic documentTitle
         var htmlContent = $@"
 <!DOCTYPE html>
 <html>
@@ -508,11 +520,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         .po-table {{ width: 100%; border-collapse: collapse; margin-top: 25px; }}
         .po-table th {{ background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: center; font-size: 14px; }}
         .po-table td {{ border: 1px solid #dee2e6; padding: 10px; font-size: 13px; }}
-        .info-table {{ width: 100%; margin: 20px 0; border: none; }}
-        .info-table td {{ border: none; padding: 5px; }}
-        .total-box {{ float: right; width: 40%; margin-top: 30px; }}
-        .total-box td {{ border: none; padding: 8px; }}
-        .footer-sig {{ margin-top: 120px; clear: both; }}
+        .total-box {{ float: right; width: 40%; margin-top: 30px; border: none; }}
     </style>
 </head>
 <body>
@@ -523,14 +531,14 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     
     <hr style='border: 1px solid #eee;'/>
     
-    <table class='info-table'>
+    <table style='width: 100%; margin: 20px 0;'>
         <tr>
             <td><strong>PO Number:</strong> {po.PoNumber}</td>
             <td style='text-align: right;'><strong>Date:</strong> {po.PoDate:dd MMM yyyy}</td>
         </tr>
         <tr>
             <td><strong>Supplier:</strong> {po.SupplierName}</td>
-            <td style='text-align: right;'><strong>Status:</strong> <span style='color: {(po.Status == "Received" ? "#28a745" : "#007bff")}; font-weight: bold;'>{po.Status}</span></td>
+            <td style='text-align: right;'><strong>Type:</strong> {documentTitle}</td>
         </tr>
     </table>
 
@@ -538,10 +546,10 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         <thead>
             <tr>
                 <th style='text-align: left;'>Product Description</th>
-                <th style='width: 80px;'>Qty</th>
-                <th style='width: 80px;'>Unit</th>
-                <th style='text-align: right; width: 120px;'>Rate</th>
-                <th style='text-align: right; width: 120px;'>Total</th>
+                <th>Qty</th>
+                <th>Unit</th>
+                <th style='text-align: right;'>Rate</th>
+                <th style='text-align: right;'>Total</th>
             </tr>
         </thead>
         <tbody>";
@@ -573,27 +581,23 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         </table>
     </div>
     
-    <div class='footer-sig'>
-        <p style='border-top: 1px solid #333; width: 220px; text-align: center; font-weight: bold; padding-top: 5px;'>Authorized Signatory</p>
+    <div style='margin-top: 100px; clear: both;'>
+        <p style='border-top: 1px solid #333; width: 220px; text-align: center; font-weight: bold;'>Authorized Signatory</p>
     </div>
 </body>
 </html>";
 
-        // 4. PDF Generation with UTF-8 Support
-        var doc = new HtmlToPdfDocument()
+        // 5. PDF generation
+        var pdfBytes = _converter.Convert(new HtmlToPdfDocument()
         {
-            GlobalSettings = {
-            ColorMode = ColorMode.Color,
-            Orientation = Orientation.Portrait,
-            PaperSize = PaperKind.A4,
-            Margins = new MarginSettings { Top = 10, Bottom = 10, Left = 10, Right = 10 }
-        },
-            Objects = { new ObjectSettings {
-            HtmlContent = htmlContent,
-            WebSettings = { DefaultEncoding = "utf-8" } // Symbol fix
-        } }
-        };
+            GlobalSettings = { PaperSize = PaperKind.A4, Margins = new MarginSettings { Top = 10, Bottom = 10 } },
+            Objects = { new ObjectSettings { HtmlContent = htmlContent, WebSettings = { DefaultEncoding = "utf-8" } } }
+        });
 
-        return _converter.Convert(doc);
+        return new PORepoPrintResponse
+        {
+            PdfBytes = pdfBytes,
+            HeaderTitle = documentTitle // Controller ko dynamic title milega
+        };
     }
 }
