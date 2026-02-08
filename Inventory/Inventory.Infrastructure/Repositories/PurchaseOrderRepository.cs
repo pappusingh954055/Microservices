@@ -285,7 +285,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         var po = await _context.PurchaseOrders.FindAsync(id);
         if (po == null) return false;
 
-        po.Status = status; // String value save hogi (e.g., "Submitted")
+        po.Status = status; 
         return await _context.SaveChangesAsync() > 0;
     }
 

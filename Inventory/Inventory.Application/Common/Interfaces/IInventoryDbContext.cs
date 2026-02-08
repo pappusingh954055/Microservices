@@ -24,6 +24,8 @@ namespace Inventory.Application.Common.Interfaces
         DbSet<PurchaseOrder> PurchaseOrders { get; }
         DbSet<PurchaseOrderItem> PurchaseOrderItems { get; }
 
+        public DbSet<AppNotification> AppNotifications { get; }
+
         // Is property se Handler ka error fix ho jayega
         DatabaseFacade Database { get; }
 

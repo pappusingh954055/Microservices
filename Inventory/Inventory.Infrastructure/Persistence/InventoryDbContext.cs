@@ -34,6 +34,8 @@ public sealed class InventoryDbContext : DbContext,
 
     public DbSet<SaleReturnItem> SaleReturnItems { get; set; }
 
+    public DbSet<AppNotification> AppNotifications { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
