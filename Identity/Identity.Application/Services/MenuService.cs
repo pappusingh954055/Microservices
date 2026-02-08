@@ -1,0 +1,39 @@
+using Identity.Application.Interfaces;
+using Identity.Domain.Menus;
+
+namespace Identity.Application.Services;
+
+public class MenuService : IMenuService
+{
+    private readonly IMenuRepository _menuRepository;
+
+    public MenuService(IMenuRepository menuRepository)
+    {
+        _menuRepository = menuRepository;
+    }
+
+    public async Task<IEnumerable<Menu>> GetUserMenuAsync(Guid userId)
+    {
+        return await _menuRepository.GetMenuByUserIdAsync(userId);
+    }
+
+    public async Task<IEnumerable<Menu>> GetAllMenusAsync()
+    {
+        return await _menuRepository.GetAllMenusAsync();
+    }
+
+    public async Task CreateAsync(Menu menu)
+    {
+        await _menuRepository.AddAsync(menu);
+    }
+
+    public async Task UpdateAsync(Menu menu)
+    {
+        await _menuRepository.UpdateAsync(menu);
+    }
+
+    public async Task DeleteAsync(int id)
+    {
+        await _menuRepository.DeleteAsync(id);
+    }
+}

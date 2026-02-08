@@ -6,12 +6,12 @@ namespace Identity.Domain.Menus;
 public class Menu : AuditableEntity
 {
     [Key]
-    public int Id { get; private set; }
-    public string Title { get; private set; } = string.Empty;
-    public string Url { get; private set; } = string.Empty;
-    public string? Icon { get; private set; }
-    public int? ParentId { get; private set; }
-    public int Order { get; private set; }
+    public int Id { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string? Icon { get; set; }
+    public int? ParentId { get; set; }
+    public int Order { get; set; }
 
     public Menu? Parent { get; private set; }
     public ICollection<Menu> Children { get; private set; } = new List<Menu>();

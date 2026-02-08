@@ -2,10 +2,9 @@
 
 public class Role
 {
-    public int Id { get; private set; }
+    public int Id { get; set; }
 
-    // ✅ MUST be settable for EF seeding
-    public string RoleName { get; private set; } = default!;
+    public string RoleName { get; set; } = default!;
 
     private Role() { } // EF Core
 

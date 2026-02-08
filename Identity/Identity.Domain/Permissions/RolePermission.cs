@@ -9,12 +9,12 @@ public class RolePermission
 {
     [Key]
     public int Id { get; set; }
-    public int RoleId { get; private set; }
-    public int MenuId { get; private set; }
-    public bool CanView { get; private set; }
-    public bool CanAdd { get; private set; }
-    public bool CanEdit { get; private set; }
-    public bool CanDelete { get; private set; }
+    public int RoleId { get; set; }
+    public int MenuId { get; set; }
+    public bool CanView { get; set; }
+    public bool CanAdd { get; set; }
+    public bool CanEdit { get; set; }
+    public bool CanDelete { get; set; }
 
     public Role Role { get; private set; } = default!;
     public Menu Menu { get; private set; } = default!;
