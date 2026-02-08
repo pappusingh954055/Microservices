@@ -29,8 +29,9 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                 TotalTax = x.TotalTax,
                 GrandTotal = x.GrandTotal,
                 SubTotal = x.SubTotal,
-
-               
+                ExpectedDeliveryDate=x.ExpectedDeliveryDate,
+                CreatedBy=x.CreatedBy,
+                Remarks=x.Remarks,
                 Status = (x.GrnHeaders != null && x.GrnHeaders.Any())
                          ? "Received"
                          : x.Status,
