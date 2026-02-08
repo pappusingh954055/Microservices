@@ -17,10 +17,12 @@ namespace Inventory.API.Controllers
     public sealed class CategoriesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly ICategoryRepository _categoryRepository;
 
-        public CategoriesController(IMediator mediator)
+        public CategoriesController(IMediator mediator, ICategoryRepository categoryRepository)
         {
             _mediator = mediator;
+            _categoryRepository = categoryRepository;
         }
 
         [HttpPost]
@@ -148,6 +150,21 @@ namespace Inventory.API.Controllers
         {
             var result = await _mediator.Send(new GetCategoriesQuery());
             return Ok(result);
+        }
+
+        [HttpPost("upload-excel")]
+        [Authorize(Roles = "Manager, Admin,User")]
+        public async Task<IActionResult> UploadExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest("Please upload an excel file.");
+
+            var result = await _categoryRepository.UploadCategoriesAsync(file);
+
+            return Ok(new
+            {
+                Message = $"{result.successCount} Categories uploaded successfully.",
+                Errors = result.errors
+            });
         }
 
     }

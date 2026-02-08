@@ -3,16 +3,16 @@
 public class Category
 {
     public Guid Id { get; private set; }
-    public string? CategoryCode { get; private set; } = null!;
-    public string? CategoryName { get; private set; } = null!;
-    public decimal DefaultGst { get; private set; }
-    public string? Description { get; private set; }
-    public bool IsActive { get; private set; }
+    public string? CategoryCode { get; set; } = null!;
+    public string? CategoryName { get; set; } = null!;
+    public decimal DefaultGst { get;  set; }
+    public string? Description { get;  set; }
+    public bool IsActive { get;  set; }
 
     // --- Subcategory Logic Start ---
-    public Guid? ParentCategoryId { get; private set; } // Nullable Guid
-    public virtual Category? ParentCategory { get; private set; } // Self-referencing property
-    public virtual ICollection<Category> SubCategories { get; private set; } = new List<Category>();
+    public Guid? ParentCategoryId { get;  set; } // Nullable Guid
+    public virtual Category? ParentCategory { get;  set; } // Self-referencing property
+    public virtual ICollection<Category> SubCategories { get;  set; } = new List<Category>();
     // --- Subcategory Logic End ---
 
     public DateTime? CreatedOn { get; set; } = DateTime.UtcNow;
@@ -20,7 +20,7 @@ public class Category
     public int? UpdatedBy { get; set; }
     public int? CreatedBy { get; set; }
 
-    private Category() { } // EF Core
+    public Category() { } // EF Core
 
     public Category(
         string name,

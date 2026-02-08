@@ -1,4 +1,5 @@
 ﻿using Inventory.Domain.Entities;
+using Microsoft.AspNetCore.Http;
 
 public interface ICategoryRepository
 {
@@ -18,4 +19,6 @@ public interface ICategoryRepository
     void DeleteRange(List<Category> categories);
 
     IQueryable<Category> Query();
+
+    Task<(int successCount, List<string> errors)> UploadCategoriesAsync(IFormFile file);
 }
