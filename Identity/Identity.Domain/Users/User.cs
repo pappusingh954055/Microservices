@@ -48,4 +48,9 @@ public class User : AuditableEntity
         var rt = _refreshTokens.Single(x => x.Token == token);
         rt.Revoke();
     }
+
+    public void SetActive(bool isActive)
+    {
+        IsActive = isActive;
+    }
 }

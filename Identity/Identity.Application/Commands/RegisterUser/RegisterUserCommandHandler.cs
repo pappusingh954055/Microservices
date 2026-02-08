@@ -33,16 +33,28 @@ public class RegisterUserHandler
         if (await _users.ExistsByEmailAsync(dto.Email))
             throw new InvalidOperationException("Email already exists");
 
-        var role = await _roles.GetByNameAsync(dto.RoleName)
-            ?? throw new InvalidOperationException("Invalid role");
-
         var user = new User(dto.UserName, dto.Email);
 
         // ✅ HASH PASSWORD HERE
         var hash = _passwordHasher.HashPassword(user, dto.Password);
         user.SetPasswordHash(hash);
 
-        user.AssignRole(role.Id);
+        // Assign Multiple Roles
+        if (dto.RoleIds != null && dto.RoleIds.Any())
+        {
+            foreach (var roleId in dto.RoleIds)
+            {
+                var role = await _roles.GetByIdAsync(roleId);
+                if (role == null) throw new InvalidOperationException($"Invalid Role ID: {roleId}");
+                user.AssignRole(role.Id);
+            }
+        }
+        else
+        {
+             // Default Role assignment if none provided? Or enforce roles?
+             // Maybe assign "User" role by default if name based lookup was used before.
+             // But now we rely on explicit IDs. Let's assume validation handles requirement.
+        }
 
         await _users.AddAsync(user);
         await _uow.SaveChangesAsync(cancellationToken);

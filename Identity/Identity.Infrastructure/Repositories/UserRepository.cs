@@ -65,4 +65,19 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u =>
                 u.RefreshTokens.Any(rt => rt.Token == refreshToken));
     }
+
+    public async Task<List<User>> GetAllUsersAsync()
+    {
+        return await _context.Users
+            .Include(u => u.UserRoles)
+            .ThenInclude(ur => ur.Role)
+            .OrderBy(u => u.UserName)
+            .ToListAsync();
+    }
+
+    public async Task UpdateAsync(User user)
+    {
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
+    }
 }

@@ -10,4 +10,6 @@ public interface IUserRepository
     Task<User?> GetWithRolesByEmailAsync(string email);
     Task<User?> GetByRefreshTokenAsync(string refreshToken);
     Task<User?> GetByIdAsync(Guid id);
+    Task<List<User>> GetAllUsersAsync();
+    Task UpdateAsync(User user);
 }

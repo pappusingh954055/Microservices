@@ -17,13 +17,15 @@ public static class DependencyInjection
     {
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseSqlServer(
-                configuration.GetConnectionString("Default")));
+                configuration.GetConnectionString("IdentityDb")));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IJwtService, JwtService>();
         services.AddScoped<IRefreshTokenRepository,  RefreshTokenRepository>();
+        services.AddScoped<IMenuRepository, MenuRepository>();
+        services.AddScoped<IRolePermissionRepository, RolePermissionRepository>();
 
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 

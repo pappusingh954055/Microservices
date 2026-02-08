@@ -4,6 +4,7 @@ using Identity.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Identity.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(IdentityDbContext))]
-    partial class IdentityDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260208162328_UserPermissionRole")]
+    partial class UserPermissionRole
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -50,79 +53,6 @@ namespace Identity.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("RefreshTokens", (string)null);
-                });
-
-            modelBuilder.Entity("Identity.Domain.Menus.Menu", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Icon")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ParentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ParentId");
-
-                    b.ToTable("Menus");
-                });
-
-            modelBuilder.Entity("Identity.Domain.Permissions.RolePermission", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("CanAdd")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("CanDelete")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("CanEdit")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("CanView")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("MenuId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MenuId");
-
-                    b.HasIndex("RoleId");
-
-                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("Identity.Domain.Roles.Role", b =>
@@ -195,6 +125,71 @@ namespace Identity.Infrastructure.Persistence.Migrations
                     b.ToTable("UserRoles", (string)null);
                 });
 
+            modelBuilder.Entity("Menu", b =>
+                {
+                    b.Property<int>("MenuId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MenuId"));
+
+                    b.Property<string>("Icon")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("MenuId");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("Menus");
+                });
+
+            modelBuilder.Entity("RolePermission", b =>
+                {
+                    b.Property<int>("RolePermissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RolePermissionId"));
+
+                    b.Property<bool>("CanAdd")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanDelete")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanEdit")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("CanView")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("MenuId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RolePermissionId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("RolePermissions");
+                });
+
             modelBuilder.Entity("User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -243,34 +238,6 @@ namespace Identity.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Menus.Menu", b =>
-                {
-                    b.HasOne("Identity.Domain.Menus.Menu", "Parent")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentId");
-
-                    b.Navigation("Parent");
-                });
-
-            modelBuilder.Entity("Identity.Domain.Permissions.RolePermission", b =>
-                {
-                    b.HasOne("Identity.Domain.Menus.Menu", "Menu")
-                        .WithMany()
-                        .HasForeignKey("MenuId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Identity.Domain.Roles.Role", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Menu");
-
-                    b.Navigation("Role");
-                });
-
             modelBuilder.Entity("Identity.Domain.Users.UserRole", b =>
                 {
                     b.HasOne("Identity.Domain.Roles.Role", "Role")
@@ -290,7 +257,27 @@ namespace Identity.Infrastructure.Persistence.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Identity.Domain.Menus.Menu", b =>
+            modelBuilder.Entity("Menu", b =>
+                {
+                    b.HasOne("Menu", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId");
+
+                    b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("RolePermission", b =>
+                {
+                    b.HasOne("Identity.Domain.Roles.Role", "Role")
+                        .WithMany()
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Menu", b =>
                 {
                     b.Navigation("Children");
                 });

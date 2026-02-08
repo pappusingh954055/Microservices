@@ -4,5 +4,5 @@ public record RegisterUserDto(
     string UserName,
     string Email,
     string Password,
-    string RoleName
+    List<int> RoleIds
 );
