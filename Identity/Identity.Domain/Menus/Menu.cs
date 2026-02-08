@@ -1,9 +1,8 @@
-﻿using Identity.Domain.Common;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace Identity.Domain.Menus;
 
-public class Menu : AuditableEntity
+public class Menu
 {
     [Key]
     public int Id { get; set; }
@@ -13,6 +12,7 @@ public class Menu : AuditableEntity
     public int? ParentId { get; set; }
     public int Order { get; set; }
 
+    [System.Text.Json.Serialization.JsonIgnore]
     public Menu? Parent { get; private set; }
     public ICollection<Menu> Children { get; private set; } = new List<Menu>();
 

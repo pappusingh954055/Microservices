@@ -1,8 +1,7 @@
-﻿using Identity.Domain.Common;
-using Identity.Domain.Entities;
+﻿using Identity.Domain.Entities;
 using Identity.Domain.Users;
 
-public class User : AuditableEntity
+public class User
 {
     private readonly List<UserRole> _userRoles = new();
     private readonly List<RefreshToken> _refreshTokens = new();

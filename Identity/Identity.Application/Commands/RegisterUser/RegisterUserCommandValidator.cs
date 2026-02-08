@@ -7,15 +7,15 @@ public class RegisterUserCommandValidator
 {
     public RegisterUserCommandValidator()
     {
-        RuleFor(x => x.Dto.UserName)
+        RuleFor(x => x.UserName)
             .NotEmpty()
             .MinimumLength(3);
 
-        RuleFor(x => x.Dto.Email)
+        RuleFor(x => x.Email)
             .NotEmpty()
             .EmailAddress();
 
-        RuleFor(x => x.Dto.Password)
+        RuleFor(x => x.Password)
             .NotEmpty()
             .MinimumLength(6);
     }

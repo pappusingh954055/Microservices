@@ -28,21 +28,19 @@ public class RegisterUserHandler
         RegisterUserCommand request,
         CancellationToken cancellationToken)
     {
-        var dto = request.Dto;
-
-        if (await _users.ExistsByEmailAsync(dto.Email))
+        if (await _users.ExistsByEmailAsync(request.Email))
             throw new InvalidOperationException("Email already exists");
 
-        var user = new User(dto.UserName, dto.Email);
+        var user = new User(request.UserName, request.Email);
 
         // ✅ HASH PASSWORD HERE
-        var hash = _passwordHasher.HashPassword(user, dto.Password);
+        var hash = _passwordHasher.HashPassword(user, request.Password);
         user.SetPasswordHash(hash);
 
         // Assign Multiple Roles
-        if (dto.RoleIds != null && dto.RoleIds.Any())
+        if (request.RoleIds != null && request.RoleIds.Any())
         {
-            foreach (var roleId in dto.RoleIds)
+            foreach (var roleId in request.RoleIds)
             {
                 var role = await _roles.GetByIdAsync(roleId);
                 if (role == null) throw new InvalidOperationException($"Invalid Role ID: {roleId}");
