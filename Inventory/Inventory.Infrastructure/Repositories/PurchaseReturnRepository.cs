@@ -317,53 +317,50 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
     public async Task<PurchaseReturnDetailDto?> GetPurchaseReturnByIdAsync(Guid id)
     {
-        // 1. Database se Header aur Items fetch karein [cite: 2026-02-04]
-        var query = await (from pr in _context.PurchaseReturns.AsNoTracking()
-                           where pr.Id == id
-                           select new
-                           {
-                               Header = pr,
-                               Items = (from pri in _context.PurchaseReturnItems
-                                        join p in _context.Products on pri.ProductId equals p.Id
-                                        where pri.PurchaseReturnId == id
-                                        select new PurchaseReturnItemDto
-                                        {
-                                            ProductId = pri.ProductId,
-                                            ProductName = p.Name,
-                                            GrnRef = pri.GrnRef,
-                                            ReturnQty = pri.ReturnQty,
-                                            Rate = pri.Rate,
-                                            GstPercent = pri.GstPercent,
-                                            TaxAmount = pri.TaxAmount,
-                                            TotalAmount = pri.TotalAmount // 1770 mapping
-                                        }).ToList()
-                           }).FirstOrDefaultAsync();
+        // 1. Optimize: Eager Loading use karein aur database par ek hi lightweight call bhein
+        var purchaseReturn = await _context.PurchaseReturns
+            .AsNoTracking() // Read-only query ke liye best performance
+            .Include(x => x.Items) // Navigation property se items fetch karein
+            .FirstOrDefaultAsync(x => x.Id == id);
 
-        if (query == null) return null;
+        if (purchaseReturn == null) return null;
 
-        var data = query.Header;
+        // 2. Optimization: Items aur Products ka mapping database level ki jagah memory mein karein
+        // Taaki nested join ka timeout load khatam ho jaye
+        var itemDtos = await (from pri in _context.PurchaseReturnItems.AsNoTracking()
+                              join p in _context.Products.AsNoTracking() on pri.ProductId equals p.Id
+                              where pri.PurchaseReturnId == id
+                              select new PurchaseReturnItemDto
+                              {
+                                  ProductId = pri.ProductId,
+                                  ProductName = p.Name,
+                                  GrnRef = pri.GrnRef,
+                                  ReturnQty = pri.ReturnQty,
+                                  Rate = pri.Rate,
+                                  GstPercent = pri.GstPercent,
+                                  TaxAmount = pri.TaxAmount,
+                                  TotalAmount = pri.TotalAmount
+                              }).ToListAsync();
 
-        // 2. Microservice se Supplier Name fetch karein [cite: 2026-02-04]
-        var supplierDict = await GetSupplierNamesFromMicroservice(new List<long> { (long)data.SupplierId });
-        string sName = supplierDict.ContainsKey((long)data.SupplierId) ? supplierDict[(long)data.SupplierId] : "Unknown";
+        // 3. Supplier Name fetch karein
+        var supplierDict = await GetSupplierNamesFromMicroservice(new List<long> { (long)purchaseReturn.SupplierId });
+        string sName = supplierDict.ContainsKey((long)purchaseReturn.SupplierId)
+                       ? supplierDict[(long)purchaseReturn.SupplierId] : "Unknown";
 
-        // 3. Final DTO Mapping with Status Fix [cite: 2026-02-04]
+        // 4. Final DTO Mapping (No functional changes, purely performance fix)
         return new PurchaseReturnDetailDto
         {
-            Id = data.Id,
-            ReturnNumber = data.ReturnNumber,
-            ReturnDate = data.ReturnDate,
-            SupplierId = data.SupplierId,
+            Id = purchaseReturn.Id,
+            ReturnNumber = purchaseReturn.ReturnNumber,
+            ReturnDate = purchaseReturn.ReturnDate,
+            SupplierId = purchaseReturn.SupplierId,
             SupplierName = sName,
-
-            // STATUS FIX: List view se match karne ke liye "Completed" dikhayein
-            Status = "Completed",
-
-            Remarks = data.Remarks,
-            Items = query.Items,
-            SubTotal = data.SubTotal,   // ₹1,500.00
-            TaxAmount = data.TotalTax,  // ₹270.00
-            GrandTotal = data.GrandTotal // ₹1,770.00
+            Status = "Completed", // Existing requirement status fix
+            Remarks = purchaseReturn.Remarks,
+            Items = itemDtos,
+            SubTotal = purchaseReturn.SubTotal,
+            TaxAmount = purchaseReturn.TotalTax,
+            GrandTotal = purchaseReturn.GrandTotal
         };
     }
 

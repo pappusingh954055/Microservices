@@ -1,4 +1,6 @@
-﻿using Inventory.Application.Common.DTOs;
+﻿using DinkToPdf;
+using DinkToPdf.Contracts;
+using Inventory.Application.Common.DTOs;
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Domain.Entities;
@@ -9,10 +11,12 @@ using System.Linq;
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 {
     private readonly InventoryDbContext _context;
+    private readonly IConverter _converter;
 
-    public PurchaseOrderRepository(InventoryDbContext context)
+    public PurchaseOrderRepository(InventoryDbContext context, IConverter converter)
     {
         _context = context;
+        _converter = converter;
     }
 
     public async Task AddAsync(PurchaseOrder po, CancellationToken ct)
@@ -423,5 +427,173 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
         // 3. Tracking ON hai isliye changes save ho jayenge
         return await _context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<PODocumentDto> GetPODetailsForPrintAsync(long id)
+    {
+        // 1. Join ka use karke Header aur Items (Product Name ke saath) fetch karein
+        return await _context.PurchaseOrders
+            .AsNoTracking() // Performance ke liye zaroori hai
+            .Where(x => x.Id == id)
+            .Select(po => new PODocumentDto
+            {
+                // Header Mapping
+                PoNumber = po.PoNumber,
+                SupplierName = po.SupplierName,
+                PoDate = po.PoDate,
+                Remarks = po.Remarks,
+                TotalTax = po.TotalTax,
+                SubTotal = po.SubTotal,
+                GrandTotal = po.GrandTotal,
+                Status = po.Status,
+                CreatedBy = po.CreatedBy,
+
+                // Items Mapping with Product Join
+                // Note: Hum Items table se Product table ka data access kar rahe hain
+                Items = _context.PurchaseOrderItems
+                    .AsNoTracking()
+                    .Where(item => item.PurchaseOrderId == po.Id)
+                    .Join(_context.Products,
+                          item => item.ProductId,
+                          prod => prod.Id,
+                          (item, prod) => new POItemDocumentDto
+                          {
+                              // FIX: Ab yahan actual Product Name aur ID dono milenge
+                              ProductId = item.ProductId,
+                              ProductName = prod.Name, // Products table se name uthaya
+                              Qty = item.Qty,
+                              Unit = item.Unit,
+                              Rate = item.Rate,
+                              TaxAmount = item.TaxAmount,
+                              Total = item.Total
+                          }).ToList()
+            }).FirstOrDefaultAsync();
+    }
+
+    public async Task<byte[]> GeneratePOReportPdfAsync(long id)
+    {
+        // 1. Data fetch karna (Header aur Items with Product Names)
+        var po = await _context.PurchaseOrders
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+        if (po == null) return null;
+
+        // Items aur Product Names ko join karke fetch karein
+        var itemsWithNames = await (from item in _context.PurchaseOrderItems
+                                    join prod in _context.Products on item.ProductId equals prod.Id
+                                    where item.PurchaseOrderId == id
+                                    select new
+                                    {
+                                        ProductName = prod.Name,
+                                        item.Qty,
+                                        item.Unit,
+                                        item.Rate,
+                                        item.Total
+                                    }).ToListAsync();
+
+        // 2. Status based Title fix: Received = TAX INVOICE, Approved = PURCHASE ORDER
+        string documentTitle = po.Status == "Received" ? "TAX INVOICE" : "PURCHASE ORDER";
+
+        // 3. HTML Template design with Encoding Fix (&#8377; for Rupee)
+        var htmlContent = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='UTF-8'>
+    <style>
+        body {{ font-family: Arial, sans-serif; padding: 30px; color: #333; line-height: 1.4; }}
+        .header-title {{ color: #1a73e8; margin: 0; text-align: center; font-size: 28px; }}
+        .bill-label {{ border: 2px solid #333; display: inline-block; padding: 8px 25px; margin-top: 15px; font-weight: bold; text-transform: uppercase; }}
+        .po-table {{ width: 100%; border-collapse: collapse; margin-top: 25px; }}
+        .po-table th {{ background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: center; font-size: 14px; }}
+        .po-table td {{ border: 1px solid #dee2e6; padding: 10px; font-size: 13px; }}
+        .info-table {{ width: 100%; margin: 20px 0; border: none; }}
+        .info-table td {{ border: none; padding: 5px; }}
+        .total-box {{ float: right; width: 40%; margin-top: 30px; }}
+        .total-box td {{ border: none; padding: 8px; }}
+        .footer-sig {{ margin-top: 120px; clear: both; }}
+    </style>
+</head>
+<body>
+    <div style='text-align: center; margin-bottom: 25px;'>
+        <h1 class='header-title'>ELECTRIC INVENTORY</h1>
+        <p style='margin: 5px 0; color: #666; font-size: 14px;'>PREMIUM INVENTORY MANAGEMENT SYSTEM</p>
+        <h2 class='bill-label'>{documentTitle}</h2> </div>
+    
+    <hr style='border: 1px solid #eee;'/>
+    
+    <table class='info-table'>
+        <tr>
+            <td><strong>PO Number:</strong> {po.PoNumber}</td>
+            <td style='text-align: right;'><strong>Date:</strong> {po.PoDate:dd MMM yyyy}</td>
+        </tr>
+        <tr>
+            <td><strong>Supplier:</strong> {po.SupplierName}</td>
+            <td style='text-align: right;'><strong>Status:</strong> <span style='color: {(po.Status == "Received" ? "#28a745" : "#007bff")}; font-weight: bold;'>{po.Status}</span></td>
+        </tr>
+    </table>
+
+    <table class='po-table'>
+        <thead>
+            <tr>
+                <th style='text-align: left;'>Product Description</th>
+                <th style='width: 80px;'>Qty</th>
+                <th style='width: 80px;'>Unit</th>
+                <th style='text-align: right; width: 120px;'>Rate</th>
+                <th style='text-align: right; width: 120px;'>Total</th>
+            </tr>
+        </thead>
+        <tbody>";
+
+        foreach (var item in itemsWithNames)
+        {
+            htmlContent += $@"
+        <tr>
+            <td><b>{item.ProductName}</b></td>
+            <td style='text-align: center;'>{item.Qty}</td>
+            <td style='text-align: center;'>{item.Unit}</td>
+            <td style='text-align: right;'>&#8377;{item.Rate:N2}</td>
+            <td style='text-align: right;'>&#8377;{item.Total:N2}</td>
+        </tr>";
+        }
+
+        htmlContent += $@"
+        </tbody>
+    </table>
+
+    <div class='total-box'>
+        <table style='width: 100%;'>
+            <tr>
+                <td><strong>Grand Total:</strong></td>
+                <td style='text-align: right; color: #1a73e8; font-size: 1.3em;'>
+                    <strong>&#8377;{po.GrandTotal:N2}</strong>
+                </td>
+            </tr>
+        </table>
+    </div>
+    
+    <div class='footer-sig'>
+        <p style='border-top: 1px solid #333; width: 220px; text-align: center; font-weight: bold; padding-top: 5px;'>Authorized Signatory</p>
+    </div>
+</body>
+</html>";
+
+        // 4. PDF Generation with UTF-8 Support
+        var doc = new HtmlToPdfDocument()
+        {
+            GlobalSettings = {
+            ColorMode = ColorMode.Color,
+            Orientation = Orientation.Portrait,
+            PaperSize = PaperKind.A4,
+            Margins = new MarginSettings { Top = 10, Bottom = 10, Left = 10, Right = 10 }
+        },
+            Objects = { new ObjectSettings {
+            HtmlContent = htmlContent,
+            WebSettings = { DefaultEncoding = "utf-8" } // Symbol fix
+        } }
+        };
+
+        return _converter.Convert(doc);
     }
 }

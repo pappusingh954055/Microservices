@@ -40,6 +40,10 @@ namespace Inventory.Application.Common.Interfaces
         Task<bool> BulkApprovePOsAsync(List<long> ids, string approvedBy);
 
         Task<bool> BulkRejectPOsAsync(List<long> ids, string rejectedBy);
+
+        Task<PODocumentDto> GetPODetailsForPrintAsync(long id);
+
+        Task<byte[]> GeneratePOReportPdfAsync(long id);
     }
 
     public interface IUnitOfWork

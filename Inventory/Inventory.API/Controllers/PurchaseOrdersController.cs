@@ -330,6 +330,7 @@ namespace Inventory.API.Controllers
        
 
         [HttpPost("bulk-reject")]
+        [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> BulkReject([FromBody] List<long> ids)
         {
             if (ids == null || !ids.Any())
@@ -344,6 +345,41 @@ namespace Inventory.API.Controllers
                 return Ok(new { message = $"{ids.Count} Purchase Orders rejected successfully." });
 
             return BadRequest(new { message = "Rejection failed. Only 'Submitted' POs can be rejected." });
+        }
+
+        /// <summary>
+        /// Print po
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+
+        [HttpGet("{id}/print-details")]
+        [Authorize(Roles = "Manager, Admin, User")]
+        public async Task<IActionResult> GetPrintDetails(long id)
+        {
+            var result = await _purchaseOrderRepository.GetPODetailsForPrintAsync(id);
+
+            if (result == null)
+                return NotFound(new { message = "Purchase Order not found." });
+
+            return Ok(result);
+        }
+
+        /// <summary>
+        /// download pdf
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+
+        [HttpGet("{id}/download-pdf")]
+        public async Task<IActionResult> DownloadPdf(long id)
+        {
+            var pdfBytes = await _purchaseOrderRepository.GeneratePOReportPdfAsync(id);
+
+            if (pdfBytes == null) return NotFound();
+
+            // File return kar rahe hain jo client side par auto-download hogi
+            return File(pdfBytes, "application/pdf", $"PO_{id}_{DateTime.Now:yyyyMMdd}.pdf");
         }
     }
 }
