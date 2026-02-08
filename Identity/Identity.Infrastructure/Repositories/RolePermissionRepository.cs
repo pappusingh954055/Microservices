@@ -23,15 +23,38 @@ public class RolePermissionRepository : IRolePermissionRepository
 
     public async Task UpdateRolePermissionsAsync(int roleId, IEnumerable<RolePermission> permissions)
     {
-        var existing = await GetPermissionsByRoleIdAsync(roleId);
-        _context.RolePermissions.RemoveRange(existing);
+        var existingPermissions = await _context.RolePermissions
+            .Where(rp => rp.RoleId == roleId)
+            .ToListAsync();
 
-        foreach (var perm in permissions)
+        // 1. Process Updates and Inserts
+        foreach (var incoming in permissions)
         {
-            perm.RoleId = roleId;
-            await _context.RolePermissions.AddAsync(perm);
+            var existing = existingPermissions.FirstOrDefault(p => p.MenuId == incoming.MenuId);
+            if (existing != null)
+            {
+                // Update existing record
+                existing.UpdatePermissions(incoming.CanView, incoming.CanAdd, incoming.CanEdit, incoming.CanDelete);
+                _context.RolePermissions.Update(existing);
+            }
+            else
+            {
+                // Add new record
+                incoming.RoleId = roleId;
+                incoming.Id = 0; // Ensure it's treated as new
+                await _context.RolePermissions.AddAsync(incoming);
+            }
+        }
+
+        // 2. Process Deletions
+        var incomingMenuIds = permissions.Select(p => p.MenuId).ToList();
+        var toRemove = existingPermissions.Where(p => !incomingMenuIds.Contains(p.MenuId)).ToList();
+        if (toRemove.Any())
+        {
+            _context.RolePermissions.RemoveRange(toRemove);
         }
 
         await _context.SaveChangesAsync();
     }
+
 }

@@ -1,6 +1,6 @@
 ﻿namespace Identity.Domain.Common;
 
-public abstract class AuditableEntity : BaseEntity
+public abstract class AuditableEntity
 {
     public DateTime CreatedAt { get; protected set; } = DateTime.UtcNow;
     public DateTime? ModifiedAt { get; protected set; }

@@ -2,10 +2,11 @@
 using Identity.Domain.Roles;
 using Identity.Domain.Menus;
 using System.ComponentModel.DataAnnotations;
+using Identity.Domain.Common;
 
 namespace Identity.Domain.Permissions;
 
-public class RolePermission
+public class RolePermission : AuditableEntity
 {
     [Key]
     public int Id { get; set; }
@@ -29,7 +30,7 @@ public class RolePermission
         CanDelete = canDelete;
     }
 
-    private RolePermission() { }
+    public RolePermission() { }
 
     public void UpdatePermissions(bool canView, bool canAdd, bool canEdit, bool canDelete)
     {
@@ -37,5 +38,6 @@ public class RolePermission
         CanAdd = canAdd;
         CanEdit = canEdit;
         CanDelete = canDelete;
+        SetModified();
     }
 }

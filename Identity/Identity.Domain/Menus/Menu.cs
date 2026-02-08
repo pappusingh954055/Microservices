@@ -16,7 +16,7 @@ public class Menu : AuditableEntity
     public Menu? Parent { get; private set; }
     public ICollection<Menu> Children { get; private set; } = new List<Menu>();
 
-    private Menu() { }
+    public Menu() { }
 
     public Menu(string title, string url, string? icon, int? parentId, int order)
     {
