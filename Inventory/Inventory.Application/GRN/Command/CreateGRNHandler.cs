@@ -31,6 +31,7 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
         {
             ProductId = i.ProductId,
             OrderedQty = i.OrderedQty,
+            PendingQty = i.PendingQty,
             ReceivedQty = i.ReceivedQty,
             RejectedQty = i.RejectedQty,
             AcceptedQty = i.AcceptedQty,

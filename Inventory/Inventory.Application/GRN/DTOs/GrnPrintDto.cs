@@ -25,6 +25,7 @@ public class GrnItemPrintDto
 
     // Quantities
     public decimal OrderedQty { get; set; }
+    public decimal PendingQty { get; set; }
     public decimal AcceptedQty { get; set; }
     public decimal RejectedQty { get; set; }
     public decimal ReceivedQty { get; set; }

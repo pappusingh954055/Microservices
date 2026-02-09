@@ -13,6 +13,7 @@ namespace Inventory.Domain.Entities
         public Guid ProductId { get; set; }    
         public Product Product { get; set; }
         public decimal OrderedQty { get; set; }
+        public decimal PendingQty { get; set; }
         public decimal RejectedQty { get; set; }
         public decimal AcceptedQty { get; set; }
         public decimal ReceivedQty { get; set; } // User input quantity [cite: 2026-01-22]

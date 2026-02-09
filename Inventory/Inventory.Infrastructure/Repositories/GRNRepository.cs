@@ -364,7 +364,8 @@ namespace Inventory.Infrastructure.Repositories
                                   ProductName = d.Product.Name, //
                                   Sku = d.Product.Sku,
                                   Unit = d.Product.Unit,
-                                  OrderedQty = d.OrderedQty, //
+                                  OrderedQty = d.OrderedQty,
+                                  PendingQty = d.PendingQty,
                                   ReceivedQty = d.ReceivedQty,
                                   AcceptedQty = d.AcceptedQty,
                                   RejectedQty = d.RejectedQty,
