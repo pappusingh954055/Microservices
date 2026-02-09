@@ -4,6 +4,7 @@ using Inventory.Application.GRN.DTOs;
 using Inventory.Application.GRN.DTOs.Stock;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Infrastructure.Repositories
@@ -397,6 +398,82 @@ namespace Inventory.Infrastructure.Repositories
             }
 
             return grnData;
+        }
+
+        public async Task<bool> CreateBulkGrnFromPoAsync(BulkGrnRequestDto request)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                foreach (var poId in request.PurchaseOrderIds)
+                {
+                    // 1. PO aur Items fetch karein
+                    var poHeader = await _context.PurchaseOrders
+                        .Include(p => p.Items)
+                        .FirstOrDefaultAsync(p => p.Id == poId && p.Status == "Approved");
+
+                    if (poHeader == null) continue;
+
+                    // 2. Custom function se GRN Number generate karein
+                    string newGrnNumber = await GenerateGRNNumber();
+
+                    // 3. Naya GRN Header create karein
+                    var grnHeader = new GRNHeader
+                    {
+                        GRNNumber = newGrnNumber,
+                        PurchaseOrderId = poId,
+                        SupplierId = poHeader.SupplierId,
+                        ReceivedDate = DateTime.Now,
+                        TotalAmount = poHeader.GrandTotal,
+                        Status = "Received", // Direct Received status
+                        Remarks = "Bulk Processed from PO",
+                        CreatedBy = request.CreatedBy,
+                        CreatedOn = DateTime.Now
+                    };
+
+                    _context.GRNHeaders.Add(grnHeader);
+                    await _context.SaveChangesAsync();
+
+                    // 4. PO Items ko GRN Details mein map karein
+                    foreach (var item in poHeader.Items)
+                    {
+                        var grnDetail = new GRNDetail
+                        {
+                            GRNHeaderId = grnHeader.Id,
+                            ProductId = item.ProductId,
+                            OrderedQty = item.Qty,
+                            ReceivedQty = item.Qty,
+                            AcceptedQty = item.Qty,
+                            RejectedQty = 0,
+                            UnitRate = item.Rate,
+                            CreatedBy = request.CreatedBy,
+                            CreatedOn = DateTime.Now
+                        };
+                        _context.GRNDetails.Add(grnDetail);
+                    }
+
+                    // 5. PO status update
+                    poHeader.Status = "GRN Processed";
+
+                    // 6. NOTIFICATION TRIGGER (Har individual GRN ke liye)
+                    await _notificationRepository.AddNotificationAsync(
+                        "Goods Received",
+                        $"Inventory updated for PO #{poId}. GRN {newGrnNumber} generated successfully.",
+                        "Inventory",
+                        "/app/inventory/grn-list"
+                    );
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                Console.WriteLine($"Bulk GRN Error: {ex.Message}");
+                return false;
+            }
         }
     }
 }

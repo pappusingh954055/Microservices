@@ -14,5 +14,7 @@ namespace Inventory.Application.Common.Interfaces
         Task<GRNPagedResponseDto> GetGRNPagedListAsync(string search, string sortField, string sortOrder, int pageIndex, int pageSize);
 
         Task<GrnPrintDto?> GetGrnDetailsByNumberAsync(string grnNumber);
+
+        Task<bool> CreateBulkGrnFromPoAsync(BulkGrnRequestDto request);
     }
 }

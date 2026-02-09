@@ -76,6 +76,20 @@ namespace Inventory.API.Controllers
 
             return Ok(result);
         }
+
+        [HttpPost("bulk-create")]
+        public async Task<IActionResult> CreateBulkGrn([FromBody] BulkGrnRequestDto request)
+        {
+            if (request.PurchaseOrderIds == null || !request.PurchaseOrderIds.Any())
+                return BadRequest("No Purchase Orders selected.");
+
+            var result = await _grnRepository.CreateBulkGrnFromPoAsync(request);
+
+            if (result)
+                return Ok(new { message = "Multiple GRNs created successfully!" });
+
+            return StatusCode(500, "Error processing bulk GRNs.");
+        }
     }
 
 }
