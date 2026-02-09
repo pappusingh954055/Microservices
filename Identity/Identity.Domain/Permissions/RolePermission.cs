@@ -16,8 +16,8 @@ public class RolePermission
     public bool CanEdit { get; set; }
     public bool CanDelete { get; set; }
 
-    public Role Role { get; private set; } = default!;
-    public Menu Menu { get; private set; } = default!;
+    public Role? Role { get; private set; }
+    public Menu? Menu { get; private set; }
 
     public RolePermission(int roleId, int menuId, bool canView, bool canAdd, bool canEdit, bool canDelete)
     {
