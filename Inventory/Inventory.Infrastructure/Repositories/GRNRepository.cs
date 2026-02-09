@@ -1,4 +1,5 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Clients;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.GRN.DTOs;
 using Inventory.Application.GRN.DTOs.Stock;
 using Inventory.Domain.Entities;
@@ -13,11 +14,15 @@ namespace Inventory.Infrastructure.Repositories
 
         private readonly INotificationRepository _notificationRepository;
 
+        private readonly ISupplierClient _supplierClient;
+
         public GRNRepository(InventoryDbContext context,
-            INotificationRepository notificationRepository)
+            INotificationRepository notificationRepository,
+            ISupplierClient supplierClient)
         {
             _context = context;
             _notificationRepository = notificationRepository;
+            _supplierClient = supplierClient;
         }
 
         //public async Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details)
@@ -329,6 +334,68 @@ namespace Inventory.Infrastructure.Repositories
                 .ToListAsync();
 
             return new GRNPagedResponseDto { Items = items, TotalCount = totalCount };
+        }
+
+
+        public async Task<GrnPrintDto?> GetGrnDetailsByNumberAsync(string grnNumber)
+        {
+            // Step 1: GRN Header fetch karein aur uske details ko PO items ke saath join karein
+            var grnData = await _context.GRNHeaders
+                .Where(h => h.GRNNumber == grnNumber)
+                .AsNoTracking()
+                .Select(h => new GrnPrintDto
+                {
+                    Id = h.Id,
+                    GrnNumber = h.GRNNumber,
+                    PurchaseOrderId = h.PurchaseOrderId,
+                    SupplierId = h.SupplierId,
+                    ReceivedDate = h.ReceivedDate,
+                    Status = h.Status, //
+                    Remarks = h.Remarks,
+                    TotalAmount = h.TotalAmount,
+                    // Items ko optimize tarike se fetch karne ke liye join logic
+                    Items = _context.GRNDetails
+                        .Where(d => d.GRNHeaderId == h.Id)
+                        .Join(_context.PurchaseOrderItems,
+                              d => new { h.PurchaseOrderId, d.ProductId },
+                              poi => new { poi.PurchaseOrderId, poi.ProductId },
+                              (d, poi) => new GrnItemPrintDto
+                              {
+                                  ProductName = d.Product.Name, //
+                                  Sku = d.Product.Sku,
+                                  Unit = d.Product.Unit,
+                                  OrderedQty = d.OrderedQty, //
+                                  ReceivedQty = d.ReceivedQty,
+                                  AcceptedQty = d.AcceptedQty,
+                                  RejectedQty = d.RejectedQty,
+                                  UnitRate = d.UnitRate,
+                                  // PO Table se direct data
+                                  GstPercentage = poi.GstPercent,
+                                  GstAmount = (d.ReceivedQty * d.UnitRate) * (poi.GstPercent / 100),
+                                  Total = d.ReceivedQty * d.UnitRate
+                              }).ToList()
+                })
+                .FirstOrDefaultAsync();
+
+            if (grnData == null) return null;
+
+            // Step 2: Footer Calculations (In-Memory calculation for speed)
+            grnData.SubTotal = grnData.Items.Sum(i => i.Total);
+            grnData.TotalTaxAmount = grnData.Items.Sum(i => i.GstAmount);
+            // Note: Agar header.TotalAmount me tax already added hai toh change na karein
+
+            // Step 3: Supplier Microservice Call
+            try
+            {
+                var suppliers = await _supplierClient.GetSuppliersByIdsAsync(new List<int> { grnData.SupplierId });
+                grnData.SupplierName = suppliers.FirstOrDefault()?.Name ?? "Supplier Not Found";
+            }
+            catch
+            {
+                grnData.SupplierName = "Service Unavailable";
+            }
+
+            return grnData;
         }
     }
 }

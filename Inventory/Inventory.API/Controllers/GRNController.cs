@@ -1,4 +1,5 @@
-﻿using Inventory.Application.GRN.Command;
+﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Application.GRN.Command;
 using Inventory.Application.GRN.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -11,7 +12,13 @@ namespace Inventory.API.Controllers
     public class GRNController : ControllerBase
     {
         private readonly IMediator _mediator;
-        public GRNController(IMediator mediator) => _mediator = mediator;
+
+        private readonly IGRNRepository _grnRepository; 
+        public GRNController(IMediator mediator, 
+            IGRNRepository gRNRepository)  
+        {_mediator = mediator; 
+            _grnRepository = gRNRepository;
+        }
 
         [HttpPost("Save")]
         [Authorize(Roles = "Warehouse")]
@@ -53,6 +60,20 @@ namespace Inventory.API.Controllers
         [FromQuery] int pageSize = 10)
         {
             var result = await _mediator.Send(new GetGRNListQuery(search ?? "", sortField ?? "id", sortOrder ?? "desc", pageIndex, pageSize));
+            return Ok(result);
+        }
+
+
+        [HttpGet("print-data/{grnNumber}")]
+        [Authorize(Roles = "Manager,Admin,Warehouse")]
+        public async Task<IActionResult> GetPrintData(string grnNumber)
+        {
+            // String parameter receive kar rahe hain
+            var result = await _grnRepository.GetGrnDetailsByNumberAsync(grnNumber);
+
+            if (result == null)
+                return NotFound(new { message = $"GRN {grnNumber} not found" });
+
             return Ok(result);
         }
     }
