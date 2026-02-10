@@ -1,5 +1,7 @@
 ﻿using DinkToPdf;
 using DinkToPdf.Contracts;
+using Inventory.Application.Clients;
+using Inventory.Application.Clients.DTOs;
 using Inventory.Application.Common.DTOs;
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.PurchaseOrders.DTOs;
