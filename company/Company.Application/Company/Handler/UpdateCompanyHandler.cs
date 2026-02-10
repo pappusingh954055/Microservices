@@ -19,7 +19,7 @@ namespace Company.Application.Company.Commands.Update.Handler
         public async Task<int> Handle(UpdateCompanyCommand cmd, CancellationToken ct)
         {
             // Pehle existing profile load karte hain with related data
-            var profile = await _repo.GetCompanyProfileAsync();
+            var profile = await _repo.GetByIdAsync(cmd.Id); // Fix: Use cmd.Id instead of GetCompanyProfileAsync
 
             if (profile == null) return 0;
 
@@ -48,6 +48,10 @@ namespace Company.Application.Company.Commands.Update.Handler
                 await File.WriteAllBytesAsync(fullPath, imageBytes);
 
                 profile.LogoUrl = $"/uploads/logos/{fileName}"; // Relative path update
+            }
+            else
+            {
+                profile.LogoUrl = cmd.Request.LogoUrl; // Fix: Keep existing logo URL if simple path
             }
 
             // 1. Main Profile Fields Update
@@ -92,12 +96,27 @@ namespace Company.Application.Company.Commands.Update.Handler
                 // Add or Update
                 foreach (var sDto in cmd.Request.AuthorizedSignatories)
                 {
+                    string signaturePath = sDto.SignatureImageUrl;
+                    if (!string.IsNullOrEmpty(sDto.SignatureImageUrl) && sDto.SignatureImageUrl.Contains("base64"))
+                    {
+                        string folderPath = Path.Combine(_environment.WebRootPath, "uploads", "signatures");
+                        if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+                        string fileName = $"sig_{Guid.NewGuid()}.png";
+                        string fullPath = Path.Combine(folderPath, fileName);
+
+                        var base64Data = sDto.SignatureImageUrl.Split(',')[1];
+                        byte[] imageBytes = Convert.FromBase64String(base64Data);
+                        await File.WriteAllBytesAsync(fullPath, imageBytes);
+                        signaturePath = $"/uploads/signatures/{fileName}";
+                    }
+
                     var existing = profile.AuthorizedSignatories.FirstOrDefault(x => x.Id == sDto.Id && x.Id != 0);
                     if (existing != null)
                     {
                         existing.PersonName = sDto.PersonName;
                         existing.Designation = sDto.Designation;
-                        existing.SignatureImageUrl = sDto.SignatureImageUrl;
+                        existing.SignatureImageUrl = signaturePath;
                         existing.IsDefault = sDto.IsDefault;
                     }
                     else
@@ -106,11 +125,12 @@ namespace Company.Application.Company.Commands.Update.Handler
                         {
                             PersonName = sDto.PersonName,
                             Designation = sDto.Designation,
-                            SignatureImageUrl = sDto.SignatureImageUrl,
+                            SignatureImageUrl = signaturePath,
                             IsDefault = sDto.IsDefault
                         });
                     }
                 }
+
             }
 
             // Database mein changes save karte hain

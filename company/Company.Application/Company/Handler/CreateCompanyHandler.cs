@@ -79,16 +79,40 @@ namespace Company.Application.Company.Commands.Create.Handler
                     AccountType = cmd.Request.BankInfo.AccountType ?? "Current"
                 },
 
-                AuthorizedSignatories = cmd.Request.AuthorizedSignatories?.Select(s => new AuthorizedSignatory
-                {
-                    PersonName = s.PersonName,
-                    Designation = s.Designation,
-                    SignatureImageUrl = s.SignatureImageUrl, // Base64 handling could be added here if needed
-                    IsDefault = s.IsDefault
-                }).ToList() ?? new List<AuthorizedSignatory>()
+                AuthorizedSignatories = new List<AuthorizedSignatory>()
             };
 
+            if (cmd.Request.AuthorizedSignatories != null)
+            {
+                foreach (var sDto in cmd.Request.AuthorizedSignatories)
+                {
+                    string signaturePath = sDto.SignatureImageUrl;
+                    if (!string.IsNullOrEmpty(sDto.SignatureImageUrl) && sDto.SignatureImageUrl.Contains("base64"))
+                    {
+                        string folderPath = Path.Combine(_environment.WebRootPath, "uploads", "signatures");
+                        if (!Directory.Exists(folderPath)) Directory.CreateDirectory(folderPath);
+
+                        string fileName = $"sig_{Guid.NewGuid()}.png";
+                        string fullPath = Path.Combine(folderPath, fileName);
+
+                        var base64Data = sDto.SignatureImageUrl.Split(',')[1];
+                        byte[] imageBytes = Convert.FromBase64String(base64Data);
+                        await File.WriteAllBytesAsync(fullPath, imageBytes);
+                        signaturePath = $"/uploads/signatures/{fileName}";
+                    }
+
+                    company.AuthorizedSignatories.Add(new AuthorizedSignatory
+                    {
+                        PersonName = sDto.PersonName,
+                        Designation = sDto.Designation,
+                        SignatureImageUrl = signaturePath,
+                        IsDefault = sDto.IsDefault
+                    });
+                }
+            }
+
             return await _repo.InsertCompanyAsync(company); //
+
 
         }
     }
