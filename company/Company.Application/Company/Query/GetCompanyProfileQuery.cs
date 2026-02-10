@@ -1,0 +1,62 @@
+﻿using Company.Application.Common.Interfaces;
+using Company.Application.DTOs;
+using MediatR;
+
+namespace Company.Application.Company.Queries
+{
+    // --- Query Definition ---
+    public record GetCompanyProfileQuery() : IRequest<CompanyProfileDto?>;
+
+    // --- Handler Definition ---
+    public class GetCompanyProfileHandler : IRequestHandler<GetCompanyProfileQuery, CompanyProfileDto?>
+    {
+        private readonly ICompanyRepository _repo;
+
+        public GetCompanyProfileHandler(ICompanyRepository repo)
+        {
+            _repo = repo; 
+        }
+
+        public async Task<CompanyProfileDto?> Handle(GetCompanyProfileQuery request, CancellationToken ct)
+        {
+           
+            var data = await _repo.GetCompanyProfileAsync();
+
+            if (data == null) return null;
+
+           
+            return new CompanyProfileDto(
+                data.Id,
+                data.Name,
+                data.Tagline,
+                data.RegistrationNumber,
+                data.Gstin, // MaxLength 15
+                data.LogoUrl,
+                data.PrimaryEmail,
+                data.PrimaryPhone,
+                data.Website,
+                data.IsActive,
+               
+                new AddressDto(
+                    data.CompanyAddress.Id,
+                    data.CompanyAddress.AddressLine1,
+                    data.CompanyAddress.AddressLine2,
+                    data.CompanyAddress.City,
+                    data.CompanyAddress.State,
+                    data.CompanyAddress.StateCode, 
+                    data.CompanyAddress.PinCode,
+                    data.CompanyAddress.Country
+                ),
+               
+                new BankDetailDto(
+                    data.BankInformation.Id,
+                    data.BankInformation.BankName,
+                    data.BankInformation.BranchName,
+                    data.BankInformation.AccountNumber,
+                    data.BankInformation.IfscCode,
+                    data.BankInformation.AccountType
+                )
+            );
+        }
+    }
+}

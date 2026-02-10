@@ -1,0 +1,58 @@
+﻿using Company.Application.Common.Interfaces;
+using Company.Application.DTOs; // Aapke Records yahan hain
+using MediatR;
+
+namespace Company.Application.Company.Queries
+{
+    // Query
+    public record GetCompanyByIdQuery(int Id) : IRequest<CompanyProfileDto?>;
+
+    // Handler
+    public class GetCompanyByIdHandler : IRequestHandler<GetCompanyByIdQuery, CompanyProfileDto?>
+    {
+        private readonly ICompanyRepository _repo;
+        public GetCompanyByIdHandler(ICompanyRepository repo) => _repo = repo;
+
+        public async Task<CompanyProfileDto?> Handle(GetCompanyByIdQuery request, CancellationToken ct)
+        {
+            // Repository se data fetch karna
+            var data = await _repo.GetByIdAsync(request.Id);
+
+            if (data == null) return null;
+
+            // Mapping logic using your final Record DTOs
+            return new CompanyProfileDto(
+                data.Id,
+                data.Name,
+                data.Tagline,
+                data.RegistrationNumber,
+                data.Gstin, // MaxLength 15
+                data.LogoUrl,
+                data.PrimaryEmail,
+                data.PrimaryPhone,
+                data.Website,
+                data.IsActive,
+                // Nested Address Record
+                new AddressDto(
+                    data.CompanyAddress.Id,
+                    data.CompanyAddress.AddressLine1,
+                    data.CompanyAddress.AddressLine2,
+                    data.CompanyAddress.City,
+                    data.CompanyAddress.State,
+                    data.CompanyAddress.StateCode, // MaxLength 2
+                    data.CompanyAddress.PinCode,
+                    data.CompanyAddress.Country
+                ),
+                // Nested BankDetail Record
+                new BankDetailDto(
+                    data.BankInformation.Id,
+                    data.BankInformation.BankName,
+                    data.BankInformation.BranchName,
+                    data.BankInformation.AccountNumber,
+                    data.BankInformation.IfscCode,
+                    data.BankInformation.AccountType
+                )
+            );
+        }
+    }
+}
