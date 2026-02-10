@@ -7,7 +7,7 @@
         string Tagline,
         string RegistrationNumber,
         string Gstin,
-        string LogoUrl,
+        string? LogoUrl,
         string PrimaryEmail,
         string PrimaryPhone,
         string Website,
@@ -22,7 +22,7 @@
 
     public record BankDetailDto(int Id, string BankName, string BranchName, string AccountNumber, string IfscCode, string AccountType);
 
-    public record AuthorizedSignatoryDto(int Id, string PersonName, string Designation, string SignatureImageUrl, bool IsDefault);
+    public record AuthorizedSignatoryDto(int Id, string PersonName, string Designation, string? SignatureImageUrl, bool IsDefault);
 
     // Request ke liye use hoga (Create/Update)
     public record UpsertCompanyRequest(
@@ -30,7 +30,7 @@
         string Tagline,
         string RegistrationNumber,
         string Gstin,
-        string LogoUrl,
+        string? LogoUrl,
         string PrimaryEmail,
         string PrimaryPhone,
         string Website,
@@ -39,3 +39,4 @@
         List<AuthorizedSignatoryDto> AuthorizedSignatories
     );
 }
+

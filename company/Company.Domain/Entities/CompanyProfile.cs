@@ -12,8 +12,9 @@ namespace Company.Domain.Entities
         public string Tagline { get; set; } = string.Empty; // Optional slogan
         public string RegistrationNumber { get; set; } = string.Empty; // PAN/VAT No.
         public string Gstin { get; set; } = string.Empty; // Tax ke liye sabse zaroori
-        public string LogoUrl { get; set; } = string.Empty; // Report ke header ke liye
+        public string? LogoUrl { get; set; } // Report ke header ke liye optional
         public string PrimaryEmail { get; set; } = string.Empty;
+
         public string PrimaryPhone { get; set; } = string.Empty;
         public string Website { get; set; } = string.Empty;
         public bool IsActive { get; set; } = true;
