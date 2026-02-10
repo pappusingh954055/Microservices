@@ -104,36 +104,41 @@ public class SaleOrderRepository : ISaleOrderRepository
      string sortBy,
      string sortOrder)
     {
-        var query = _context.SaleOrders.AsQueryable();
+        // 1. Optimized Base Query
+        var query = _context.SaleOrders
+            .AsNoTracking()
+            .AsQueryable();
 
-        // 1. Searching Logic (Existing)
+        // 2. Searching logic
         if (!string.IsNullOrEmpty(searchTerm))
         {
-            searchTerm = searchTerm.ToLower();
+            searchTerm = searchTerm.Trim().ToLower();
             query = query.Where(o =>
                 o.SONumber.ToLower().Contains(searchTerm) ||
                 o.Status.ToLower().Contains(searchTerm));
         }
 
-        // 2. FIXED Sorting Logic: Case-sensitive property mapping
-        // Frontend 'soDate' bhej raha hai, lekin Backend ko 'SODate' chahiye
-        string sortProperty = sortBy switch
-        {
-            "soNumber" => "SONumber",
-            "soDate" => "SODate",
-            "status" => "Status",
-            "grandTotal" => "GrandTotal",
-            _ => "SODate" // Default fallback
-        };
-
-        if (sortOrder?.ToLower() == "asc")
-            query = query.OrderBy(o => EF.Property<object>(o, sortProperty));
-        else
-            query = query.OrderByDescending(o => EF.Property<object>(o, sortProperty));
-
-        // 3. Count aur Pagination
+        // 3. Count (Fast performance before heavy operations)
         var totalCount = await query.CountAsync();
 
+        // 4. Enhanced Sorting Logic
+        bool isDesc = sortOrder?.ToLower() == "desc" || string.IsNullOrEmpty(sortOrder);
+        string sortProperty = (sortBy ?? "").ToLower() switch
+        {
+            "sonumber" => "SONumber",
+            "sodate" => "SODate",
+            "status" => "Status",
+            "grandtotal" => "GrandTotal",
+            "createdat" => "CreatedAt",
+            _ => "CreatedAt" // Default order by CreatedAt desc
+        };
+
+        if (isDesc)
+            query = query.OrderByDescending(o => EF.Property<object>(o, sortProperty));
+        else
+            query = query.OrderBy(o => EF.Property<object>(o, sortProperty));
+
+        // 5. Pagination and Lightweight Data Fetch
         var orders = await query
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
@@ -152,7 +157,7 @@ public class SaleOrderRepository : ISaleOrderRepository
         if (orders == null || !orders.Any())
             return (new List<SaleOrderListDto>(), 0);
 
-        // 4. Customer Mapping Logic (Existing) [cite: 2026-02-03]
+        // 6. External Service Mapping (Batched)
         var customerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
         var customerDictionary = await GetCustomerNamesFromService(customerIds);
 

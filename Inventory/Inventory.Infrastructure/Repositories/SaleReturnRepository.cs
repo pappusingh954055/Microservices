@@ -29,17 +29,23 @@ namespace Inventory.Infrastructure.Repositories
          string sortField,
          string sortOrder)
         {
-            // AsNoTracking performance ke liye zaroori hai
-            var query = _context.SaleReturnHeaders.AsNoTracking().AsQueryable();
+            // 1. Initial Query with NoTracking for high performance
+            var query = _context.SaleReturnHeaders
+                .AsNoTracking()
+                .Include(x => x.SaleOrder) // Join once for SO Ref
+                .AsQueryable();
 
-            // 1. Optimized Date Range Filters (SARGable)
+            // 2. Date filtering (Include entire end date)
             if (fromDate.HasValue)
                 query = query.Where(x => x.ReturnDate >= fromDate.Value);
 
             if (toDate.HasValue)
-                query = query.Where(x => x.ReturnDate <= toDate.Value);
+            {
+                var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.ReturnDate <= endOfToDate);
+            }
 
-            // 2. Optimized Status Widget Filter (Range check for TODAY performance)
+            // 3. Optimized Status Widget Filter
             if (!string.IsNullOrEmpty(status))
             {
                 if (status == "TODAY")
@@ -54,37 +60,44 @@ namespace Inventory.Infrastructure.Repositories
                 }
             }
 
-            // 3. Global Search Fix: ReturnNo + SO Ref + Optimized Customer Name Lookup
+            // 4. Robust Searching Logic
             if (!string.IsNullOrEmpty(search))
             {
-                // STEP: Naye optimized Microservice endpoint ko call karna [cite: 2026-02-06]
-                // Yeh memory mein filter nahi karega, seedha matching IDs laayega
-                var matchingCustomerIds = await _customerClient.SearchCustomerIdsByNameAsync(search);
+                var s = search.ToLower().Trim();
+                // Step: Fetch matching IDs from Customer Microservice
+                var matchingCustomerIds = await _customerClient.SearchCustomerIdsByNameAsync(s);
 
-                query = query.Where(x => x.ReturnNumber.Contains(search) ||
-                                         (x.SaleOrder != null && x.SaleOrder.SONumber.Contains(search)) ||
-                                         (matchingCustomerIds != null && matchingCustomerIds.Contains(x.CustomerId)));
+                query = query.Where(x => 
+                    x.ReturnNumber.ToLower().Contains(s) ||
+                    (x.SaleOrder != null && x.SaleOrder.SONumber.ToLower().Contains(s)) ||
+                    (matchingCustomerIds != null && matchingCustomerIds.Contains(x.CustomerId)));
             }
 
-            // 4. Server-Side Sorting Fix: Added Date, SO Ref, and Customer sorting cases
-            bool isDesc = sortOrder?.ToLower() == "desc";
-            query = sortField?.ToLower() switch
+            // 5. SERVER-SIDE SORTING (Default: CreatedOn DESC)
+            bool isDesc = sortOrder?.ToLower() == "desc" || string.IsNullOrEmpty(sortOrder);
+            string effectiveSortField = (sortField ?? "").ToLower().Trim() switch
             {
-                "returnnumber" => isDesc ? query.OrderByDescending(x => x.ReturnNumber) : query.OrderBy(x => x.ReturnNumber),
-                "returndate" => isDesc ? query.OrderByDescending(x => x.ReturnDate) : query.OrderBy(x => x.ReturnDate),
-                "totalamount" => isDesc ? query.OrderByDescending(x => x.TotalAmount) : query.OrderBy(x => x.TotalAmount),
-                "status" => isDesc ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
-                "soref" => isDesc ? query.OrderByDescending(x => x.SaleOrder.SONumber) : query.OrderBy(x => x.SaleOrder.SONumber),
-                // Customer Name remote hai, isliye ID par sorting proxy karte hain [cite: 2026-02-06]
-                "customername" => isDesc ? query.OrderByDescending(x => x.CustomerId) : query.OrderBy(x => x.CustomerId),
-                _ => query.OrderByDescending(x => x.ReturnDate)
+                "returnnumber" => "ReturnNumber",
+                "returndate" => "ReturnDate",
+                "totalamount" => "TotalAmount",
+                "status" => "Status",
+                "soref" => "SaleOrder.SONumber",
+                "customername" => "CustomerId", // Proxy sort by ID for remote names
+                "createdon" => "CreatedOn",
+                "id" => "SaleReturnHeaderId",
+                _ => "CreatedOn" // Default newest record first
             };
 
-            // Calculate count before Skip/Take for accuracy
+            if (isDesc)
+                query = query.OrderByDescending(x => EF.Property<object>(x, effectiveSortField));
+            else
+                query = query.OrderBy(x => EF.Property<object>(x, effectiveSortField));
+
+            // 6. Fast Server-Side Count
             var totalCount = await query.CountAsync();
 
-            // 5. Execution & Projection
-            var items = await query
+            // 7. Execution & Pagination
+            var pagedData = await query
                 .Skip(pageIndex * pageSize)
                 .Take(pageSize)
                 .Select(x => new SaleReturnListDto
@@ -98,12 +111,15 @@ namespace Inventory.Infrastructure.Repositories
                     Status = x.Status
                 }).ToListAsync();
 
-            // 6. Microservice Mapping logic (External Name Binding for Display) [cite: 2026-02-06]
-            var customerIds = items.Select(i => i.CustomerId).Distinct().ToList();
+            if (pagedData == null || !pagedData.Any())
+                return new SaleReturnPagedResponse { Items = new List<SaleReturnListDto>(), TotalCount = totalCount };
+
+            // 8. Bulk Customer Name Enrichment
+            var customerIds = pagedData.Select(i => i.CustomerId).Distinct().ToList();
             if (customerIds.Any())
             {
                 var customerMap = await _customerClient.GetCustomerNamesAsync(customerIds);
-                foreach (var item in items)
+                foreach (var item in pagedData)
                 {
                     item.CustomerName = customerMap != null && customerMap.ContainsKey(item.CustomerId)
                                         ? customerMap[item.CustomerId]
@@ -111,7 +127,7 @@ namespace Inventory.Infrastructure.Repositories
                 }
             }
 
-            return new SaleReturnPagedResponse { Items = items, TotalCount = totalCount };
+            return new SaleReturnPagedResponse { Items = pagedData, TotalCount = totalCount };
         }
 
 

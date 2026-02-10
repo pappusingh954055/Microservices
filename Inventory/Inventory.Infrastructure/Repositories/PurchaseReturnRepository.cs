@@ -186,82 +186,91 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     string? sortField = "ReturnDate",
     string? sortOrder = "desc")
     {
-        // 1. Initial Query with NoTracking for high performance [cite: 2026-02-04]
-        var query = _context.PurchaseReturns.AsNoTracking().AsQueryable();
+        // 1. Initial Query with NoTracking for high performance
+        var query = _context.PurchaseReturns
+            .AsNoTracking()
+            .AsQueryable();
 
-        // 2. Date Filtering Logic [cite: 2026-02-04]
+        // 2. Date Filtering Logic
         if (fromDate.HasValue)
             query = query.Where(x => x.ReturnDate >= fromDate.Value);
 
         if (toDate.HasValue)
-            query = query.Where(x => x.ReturnDate <= toDate.Value);
+        {
+            var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
+            query = query.Where(x => x.ReturnDate <= endOfToDate);
+        }
 
-        // 3. SEARCH FIX: Robust Supplier & Header Filtering [cite: 2026-02-04]
+        // 3. Robust Searching Logic
         if (!string.IsNullOrEmpty(search))
         {
             var s = search.ToLower().Trim();
 
-            // Step A: Microservice se matching Supplier IDs fetch karein [cite: 2026-02-04]
-            // Ensure karein ki ye method sahi IDs return kar raha hai
+            // Step A: Microservice se matching Supplier IDs fetch karein
             var matchedSupplierIds = await GetSupplierIdsByNameFromMicroservice(s);
 
-            // Step B: Use OR logic carefully for SQL Translation [cite: 2026-02-04]
+            // Step B: Search by ReturnNumber, Remarks, or Supplier
             query = query.Where(x =>
                 (x.ReturnNumber != null && x.ReturnNumber.ToLower().Contains(s)) ||
                 (x.Remarks != null && x.Remarks.ToLower().Contains(s)) ||
-                matchedSupplierIds.Contains((long)x.SupplierId)
+                (matchedSupplierIds != null && matchedSupplierIds.Contains((long)x.SupplierId))
             );
         }
 
-        // 4. Server-side Count [cite: 2026-02-04]
+        // 4. Server-side Count (Fast performance)
         var totalCount = await query.CountAsync();
 
-        // 5. SORTING LOGIC: Mapping UI fields to DB columns [cite: 2026-02-04]
-        string effectiveSortField = sortField?.ToLower() switch
+        // 5. SORTING LOGIC: Mapping UI fields to DB columns
+        bool isDesc = sortOrder?.ToLower() == "desc" || string.IsNullOrEmpty(sortOrder);
+        string effectiveSortField = sortField?.ToLower().Trim() switch
         {
-            "totalamount" => "GrandTotal",
+            "totalamount" or "grandtotal" => "GrandTotal",
             "returnnumber" => "ReturnNumber",
             "returndate" => "ReturnDate",
-            _ => "ReturnDate"
+            "id" => "Id",
+            _ => "ReturnDate" // Default: ReturnDate load orders by date
         };
 
-        bool isDbField = new[] { "returnnumber", "returndate", "totalamount" }.Contains(sortField?.ToLower());
-
-        if (isDbField)
-        {
-            query = sortOrder?.ToLower() == "asc"
-                    ? query.OrderBy(x => EF.Property<object>(x, effectiveSortField))
-                    : query.OrderByDescending(x => EF.Property<object>(x, effectiveSortField));
-        }
+        if (isDesc)
+            query = query.OrderByDescending(x => EF.Property<object>(x, effectiveSortField));
         else
-        {
-            // Fallback for non-db fields [cite: 2026-02-04]
-            query = sortOrder?.ToLower() == "asc" ? query.OrderBy(x => x.ReturnDate) : query.OrderByDescending(x => x.ReturnDate);
-        }
+            query = query.OrderBy(x => EF.Property<object>(x, effectiveSortField));
 
-        // 6. Execution & Pagination [cite: 2026-02-04]
-        var pagedData = await query.Skip(pageIndex * pageSize).Take(pageSize).ToListAsync();
+        // 6. Execution & Pagination
+        var pagedData = await query
+            .Skip(pageIndex * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
 
-        // 7. Bulk Data Enrichment (Supplier Names & Items) [cite: 2026-02-04]
+        if (pagedData == null || !pagedData.Any())
+            return new PurchaseReturnPagedResponse { Items = new List<PurchaseReturnListDto>(), TotalCount = totalCount };
+
+        // 7. Bulk Data Enrichment (Supplier Names & Items)
         var supplierIds = pagedData.Select(x => (long)x.SupplierId).Distinct().ToList();
         var supplierNames = await GetSupplierNamesFromMicroservice(supplierIds);
 
         var pagedIds = pagedData.Select(x => x.Id).ToList();
-        var grnDetails = await _context.PurchaseReturnItems
+        
+        // Items enrichment using Split Query pattern for efficiency
+        var grnDetailsList = await _context.PurchaseReturnItems
             .AsNoTracking()
             .Where(ri => pagedIds.Contains(ri.PurchaseReturnId))
             .Select(ri => new { ri.PurchaseReturnId, ri.GrnRef })
             .Distinct()
             .ToListAsync();
 
-        // 8. Final Mapping [cite: 2026-02-04]
+        var grnLookup = grnDetailsList
+            .GroupBy(x => x.PurchaseReturnId)
+            .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(i => i.GrnRef).Distinct()));
+
+        // 8. Final Mapping
         var items = pagedData.Select(x => new PurchaseReturnListDto
         {
             Id = x.Id,
             ReturnNumber = x.ReturnNumber,
             ReturnDate = x.ReturnDate,
             SupplierName = supplierNames.GetValueOrDefault((long)x.SupplierId, "Unknown"),
-            GrnRef = string.Join(", ", grnDetails.Where(g => g.PurchaseReturnId == x.Id).Select(g => g.GrnRef)),
+            GrnRef = grnLookup.GetValueOrDefault(x.Id, "N/A"),
             TotalAmount = x.GrandTotal,
             Status = "Completed"
         }).ToList();
