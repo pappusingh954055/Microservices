@@ -13,15 +13,17 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     private readonly InventoryDbContext _context;
     private readonly IConverter _converter;
     private readonly INotificationRepository _notificationRepository;
+    private readonly ICompanyClient _companyClient;
 
     public PurchaseOrderRepository(InventoryDbContext context, 
         INotificationRepository notificationRepository,
-        IConverter converter)
+        IConverter converter,
+        ICompanyClient companyClient)
     {
         _context = context;
         _converter = converter;
-
         _notificationRepository = notificationRepository;
+        _companyClient = companyClient;
     }
 
     public async Task AddAsync(PurchaseOrder po, CancellationToken ct)
@@ -590,14 +592,38 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
         if (po == null) return null;
 
-        // 2. STATUS FIX: GRNHeaders table mein check karein ki kya ye PO receive ho chuka hai
-        // Hum check kar rahe hain ki kya is PurchaseOrderId ke liye koi GRN entry exist karti hai
+        // 2. Fetch Company Profile [New Feature]
+        CompanyProfileDto? companyProfile = null;
+        try
+        {
+            companyProfile = await _companyClient.GetCompanyProfileAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching company profile: {ex.Message}");
+        }
+
+        string companyName = companyProfile?.Name ?? "ELECTRIC INVENTORY";
+        string companyTagline = companyProfile?.Tagline ?? "PREMIUM INVENTORY MANAGEMENT SYSTEM";
+        string companyLogoUrl = companyProfile?.LogoUrl;
+        
+        string companyAddress = "";
+        if (companyProfile?.Address != null)
+        {
+            var addr = companyProfile.Address;
+            companyAddress = $"{addr.AddressLine1}, {addr.City}, {addr.State} - {addr.PinCode}";
+        }
+        
+        string contactInfo = $"Ph: {companyProfile?.PrimaryPhone} | Email: {companyProfile?.PrimaryEmail}";
+
+
+        // 3. STATUS FIX: GRNHeaders table mein check karein ki kya ye PO receive ho chuka hai
         bool isReceived = await _context.GRNHeaders
             .AnyAsync(g => g.PurchaseOrderId == id && g.Status == "Received");
 
         string documentTitle = isReceived ? "TAX INVOICE" : "PURCHASE ORDER";
 
-        // 3. Items fetch optimized: Timeout se bachne ke liye alag query
+        // 4. Items fetch optimized
         var itemsWithNames = await (from item in _context.PurchaseOrderItems
                                     join prod in _context.Products on item.ProductId equals prod.Id
                                     where item.PurchaseOrderId == id
@@ -610,38 +636,62 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                                         item.Total
                                     }).ToListAsync();
 
-        // 4. HTML Template with dynamic documentTitle
+        // 5. HTML Template with dynamic header
         var htmlContent = $@"
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset='UTF-8'>
     <style>
-        body {{ font-family: Arial, sans-serif; padding: 30px; color: #333; line-height: 1.4; }}
-        .header-title {{ color: #1a73e8; margin: 0; text-align: center; font-size: 28px; }}
-        .bill-label {{ border: 2px solid #333; display: inline-block; padding: 8px 25px; margin-top: 15px; font-weight: bold; text-transform: uppercase; }}
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; color: #333; line-height: 1.4; }}
+        .header-container {{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a73e8; padding-bottom: 20px; margin-bottom: 20px; }}
+        .company-details {{ float: left; }}
+        .doc-title {{ float: right; text-align: right; }}
+        
+        .company-name {{ font-size: 24px; font-weight: bold; color: #1a73e8; margin: 0; }}
+        .company-address {{ font-size: 13px; color: #555; margin: 2px 0; }}
+        
+        .bill-label {{ background: #f1f3f4; color: #333; padding: 5px 15px; border-radius: 4px; font-weight: bold; font-size: 18px; display: inline-block; }}
+        
         .po-table {{ width: 100%; border-collapse: collapse; margin-top: 25px; }}
-        .po-table th {{ background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: center; font-size: 14px; }}
+        .po-table th {{ background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 12px; text-align: center; font-size: 14px; font-weight: 600; }}
         .po-table td {{ border: 1px solid #dee2e6; padding: 10px; font-size: 13px; }}
         .total-box {{ float: right; width: 40%; margin-top: 30px; border: none; }}
+        
+        /* Flexbox fixes for DinkToPdf (WebKit based) */
+        .clearfix::after {{ content: ''; display: table; clear: both; }}
     </style>
 </head>
 <body>
-    <div style='text-align: center; margin-bottom: 25px;'>
-        <h1 class='header-title'>ELECTRIC INVENTORY</h1>
-        <p style='margin: 5px 0; color: #666; font-size: 14px;'>PREMIUM INVENTORY MANAGEMENT SYSTEM</p>
-        <h2 class='bill-label'>{documentTitle}</h2> </div>
+    <div class='header-container clearfix'>
+        <div class='company-details'>
+            {(string.IsNullOrEmpty(companyLogoUrl) ? "" : $"<img src='{companyLogoUrl}' style='height: 60px; margin-bottom: 10px;' />")}
+            <h1 class='company-name'>{companyName}</h1>
+            <p class='company-address'>{companyTagline}</p>
+            <p class='company-address'>{companyAddress}</p>
+            <p class='company-address'>{contactInfo}</p>
+        </div>
+        <div class='doc-title'>
+            <h2 class='bill-label'>{documentTitle}</h2>
+            <p>PO #: {po.PoNumber}</p>
+            <p>Date: {po.PoDate:dd MMM yyyy}</p>
+        </div>
+    </div>
     
-    <hr style='border: 1px solid #eee;'/>
-    
-    <table style='width: 100%; margin: 20px 0;'>
+    <table style='width: 100%; margin: 20px 0; border-spacing: 0;'>
         <tr>
-            <td><strong>PO Number:</strong> {po.PoNumber}</td>
-            <td style='text-align: right;'><strong>Date:</strong> {po.PoDate:dd MMM yyyy}</td>
-        </tr>
-        <tr>
-            <td><strong>Supplier:</strong> {po.SupplierName}</td>
-            <td style='text-align: right;'><strong>Type:</strong> {documentTitle}</td>
+            <td style='vertical-align: top; padding: 10px; background: #f9f9f9; border-radius: 5px; width: 48%;'>
+                <strong style='color: #555; font-size: 12px; text-transform: uppercase;'>Vendor</strong><br/>
+                <span style='font-size: 16px; font-weight: bold;'>{po.SupplierName}</span>
+                <!-- Supplier Address could come here if available -->
+            </td>
+            <td style='width: 4%;'></td>
+            <td style='vertical-align: top; padding: 10px; background: #f9f9f9; border-radius: 5px; width: 48%;'>
+                 <!-- Optional: Ship To or Bill To details -->
+                 <strong style='color: #555; font-size: 12px; text-transform: uppercase;'>Summary</strong><br/>
+                 Expected Delivery: {po.ExpectedDeliveryDate:dd MMM yyyy}<br/>
+                 Status: {po.Status}
+            </td>
         </tr>
     </table>
 
@@ -676,8 +726,16 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     <div class='total-box'>
         <table style='width: 100%;'>
             <tr>
-                <td><strong>Grand Total:</strong></td>
-                <td style='text-align: right; color: #1a73e8; font-size: 1.3em;'>
+                <td style='padding: 5px 0;'><strong>Sub Total:</strong></td>
+                <td style='text-align: right; padding: 5px 0;'>&#8377;{po.SubTotal:N2}</td>
+            </tr>
+            <tr>
+                <td style='padding: 5px 0;'><strong>Tax:</strong></td>
+                <td style='text-align: right; padding: 5px 0;'>&#8377;{po.TotalTax:N2}</td>
+            </tr>
+            <tr>
+                <td style='border-top: 1px solid #ccc; padding-top: 10px;'><strong>Grand Total:</strong></td>
+                <td style='text-align: right; color: #1a73e8; font-size: 1.3em; border-top: 1px solid #ccc; padding-top: 10px;'>
                     <strong>&#8377;{po.GrandTotal:N2}</strong>
                 </td>
             </tr>
@@ -686,11 +744,12 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     
     <div style='margin-top: 100px; clear: both;'>
         <p style='border-top: 1px solid #333; width: 220px; text-align: center; font-weight: bold;'>Authorized Signatory</p>
+        <p style='text-align: center; width: 220px; font-size: 12px;'>For {companyName}</p>
     </div>
 </body>
 </html>";
 
-        // 5. PDF generation
+        // 6. PDF generation
         var pdfBytes = _converter.Convert(new HtmlToPdfDocument()
         {
             GlobalSettings = { PaperSize = PaperKind.A4, Margins = new MarginSettings { Top = 10, Bottom = 10 } },
@@ -700,7 +759,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         return new PORepoPrintResponse
         {
             PdfBytes = pdfBytes,
-            HeaderTitle = documentTitle // Controller ko dynamic title milega
+            HeaderTitle = documentTitle
         };
     }
 }
