@@ -31,6 +31,14 @@ builder.Services.AddHttpClient("SupplierServiceClient", client =>
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
+builder.Services.AddHttpClient("CompanyService", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7065/"); // Company API URL
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+builder.Services.AddScoped<Inventory.Application.Clients.ICompanyClient, Inventory.Application.Clients.CompanyClient>();
+
 builder.Services.AddControllers()
     .AddJsonOptions(options => {
         // Taaki dates aur complex objects sahi se serialize hon
@@ -67,6 +75,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 PDFHelper.CustomAssemblyLoadContext.LoadNativeLibrary();
 builder.Services.AddAuthorization();
+builder.Services.AddHttpContextAccessor(); // Required for IHttpContextAccessor
 
 var app = builder.Build();
 

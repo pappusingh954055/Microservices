@@ -6,25 +6,27 @@ using System.Net.NetworkInformation;
 
 namespace Inventory.Application.Services;
 
+using Inventory.Application.Clients; // Added namespace for ICompanyClient
+
 public class SaleReturnService : ISaleReturnService
 {
     private readonly ISaleReturnRepository _repository;
     private readonly IInventoryDbContext _context;
 
     private readonly ICustomerHttpService _customerHttpService;
+    private readonly ICompanyClient _companyClient; // New client
 
     public SaleReturnService(
         ISaleReturnRepository repository,
         IInventoryDbContext context,
-        ICustomerHttpService httpService
-
-
+        ICustomerHttpService httpService,
+        ICompanyClient companyClient // Injected
         )
     {
         _repository = repository;
         _context = context;
         _customerHttpService = httpService;
-
+        _companyClient = companyClient;
     }
 
 
@@ -118,6 +120,17 @@ public class SaleReturnService : ISaleReturnService
         else
         {
             data.CustomerName = "Unknown Customer";
+        }
+
+        // 3. Company Info fetch karein [New Feature]
+        try 
+        {
+            var companyProfile = await _companyClient.GetCompanyProfileAsync();
+            data.CompanyInfo = companyProfile;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Company Profile load nahi ho paya: " + ex.Message);
         }
 
         return data;

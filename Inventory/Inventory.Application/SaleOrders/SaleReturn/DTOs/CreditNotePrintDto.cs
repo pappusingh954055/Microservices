@@ -1,4 +1,6 @@
-﻿public class CreditNotePrintDto
+﻿using Inventory.Application.Clients.DTOs;
+
+public class CreditNotePrintDto
 {
     public string ReturnNumber { get; set; } // SR-202602061900
     public DateTime ReturnDate { get; set; }
@@ -9,6 +11,7 @@
     public decimal TotalTax { get; set; } // 72.90
     public decimal GrandTotal { get; set; } // 477.90
     public List<ReturnItemPrintDto> Items { get; set; }
+    public CompanyProfileDto CompanyInfo { get; set; }
 }
 
 public class ReturnItemPrintDto

@@ -1,0 +1,40 @@
+namespace Inventory.Application.Clients.DTOs
+{
+    public class CompanyProfileDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; }
+        public string Tagline { get; set; }
+        public string RegistrationNumber { get; set; }
+        public string Gstin { get; set; }
+        public string LogoUrl { get; set; }
+        public string PrimaryEmail { get; set; }
+        public string PrimaryPhone { get; set; }
+        public string Website { get; set; }
+        public bool IsActive { get; set; }
+        public AddressDto Address { get; set; }
+        public BankDetailDto BankInfo { get; set; }
+    }
+
+    public class AddressDto
+    {
+        public int Id { get; set; }
+        public string AddressLine1 { get; set; }
+        public string AddressLine2 { get; set; }
+        public string City { get; set; }
+        public string State { get; set; }
+        public string StateCode { get; set; }
+        public string PinCode { get; set; }
+        public string Country { get; set; }
+    }
+
+    public class BankDetailDto
+    {
+        public int Id { get; set; }
+        public string BankName { get; set; }
+        public string BranchName { get; set; }
+        public string AccountNumber { get; set; }
+        public string IfscCode { get; set; }
+        public string AccountType { get; set; }
+    }
+}
