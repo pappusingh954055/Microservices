@@ -1,53 +1,43 @@
-﻿using Company.Application.Common.Interfaces;
+using Company.Application.Common.Interfaces;
+using Company.Application.Common.Models;
 using Company.Application.DTOs;
 using MediatR;
+using System.Linq;
 
 namespace Company.Application.Company.Queries
 {
-    // --- Query Definition ---
-    public record GetCompanyProfileQuery() : IRequest<CompanyProfileDto?>;
+    public record GetCompaniesPagedQuery(GridRequest Request) : IRequest<GridResponse<CompanyProfileDto>>;
 
-    // --- Handler Definition ---
-    public class GetCompanyProfileHandler : IRequestHandler<GetCompanyProfileQuery, CompanyProfileDto?>
+    public class GetCompaniesPagedHandler : IRequestHandler<GetCompaniesPagedQuery, GridResponse<CompanyProfileDto>>
     {
         private readonly ICompanyRepository _repo;
+        public GetCompaniesPagedHandler(ICompanyRepository repo) => _repo = repo;
 
-        public GetCompanyProfileHandler(ICompanyRepository repo)
+        public async Task<GridResponse<CompanyProfileDto>> Handle(GetCompaniesPagedQuery request, CancellationToken ct)
         {
-            _repo = repo; 
-        }
+            var pagedData = await _repo.GetPagedAsync(request.Request);
 
-        public async Task<CompanyProfileDto?> Handle(GetCompanyProfileQuery request, CancellationToken ct)
-        {
-           
-            var data = await _repo.GetCompanyProfileAsync();
-
-            if (data == null) return null;
-
-           
-            return new CompanyProfileDto(
+            var itemsDto = pagedData.Items.Select(data => new CompanyProfileDto(
                 data.Id,
                 data.Name,
                 data.Tagline,
                 data.RegistrationNumber,
-                data.Gstin, // MaxLength 15
+                data.Gstin,
                 data.LogoUrl,
                 data.PrimaryEmail,
                 data.PrimaryPhone,
                 data.Website,
                 data.IsActive,
-               
                 new AddressDto(
                     data.CompanyAddress.Id,
                     data.CompanyAddress.AddressLine1,
                     data.CompanyAddress.AddressLine2,
                     data.CompanyAddress.City,
                     data.CompanyAddress.State,
-                    data.CompanyAddress.StateCode, 
+                    data.CompanyAddress.StateCode,
                     data.CompanyAddress.PinCode,
                     data.CompanyAddress.Country
                 ),
-               
                 new BankDetailDto(
                     data.BankInformation.Id,
                     data.BankInformation.BankName,
@@ -56,7 +46,6 @@ namespace Company.Application.Company.Queries
                     data.BankInformation.IfscCode,
                     data.BankInformation.AccountType
                 ),
-                // Authorized Signatories mapping
                 data.AuthorizedSignatories.Select(s => new AuthorizedSignatoryDto(
                     s.Id,
                     s.PersonName,
@@ -64,8 +53,13 @@ namespace Company.Application.Company.Queries
                     s.SignatureImageUrl,
                     s.IsDefault
                 )).ToList()
-            );
+            )).ToList();
 
+            return new GridResponse<CompanyProfileDto>
+            {
+                Items = itemsDto,
+                TotalCount = pagedData.TotalCount
+            };
         }
     }
 }

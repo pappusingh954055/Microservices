@@ -1,4 +1,5 @@
 ﻿using Company.Application.Common.Interfaces;
+using Company.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.Hosting; // IWebHostEnvironment ke liye
 
@@ -80,7 +81,40 @@ namespace Company.Application.Company.Commands.Update.Handler
                 profile.BankInformation.AccountType = cmd.Request.BankInfo.AccountType;
             }
 
+            // 4. Authorized Signatories Update
+            if (cmd.Request.AuthorizedSignatories != null)
+            {
+                // Remove signatories not in the request
+                var requestIds = cmd.Request.AuthorizedSignatories.Select(s => s.Id).ToList();
+                var toRemove = profile.AuthorizedSignatories.Where(s => !requestIds.Contains(s.Id)).ToList();
+                foreach (var s in toRemove) profile.AuthorizedSignatories.Remove(s);
+
+                // Add or Update
+                foreach (var sDto in cmd.Request.AuthorizedSignatories)
+                {
+                    var existing = profile.AuthorizedSignatories.FirstOrDefault(x => x.Id == sDto.Id && x.Id != 0);
+                    if (existing != null)
+                    {
+                        existing.PersonName = sDto.PersonName;
+                        existing.Designation = sDto.Designation;
+                        existing.SignatureImageUrl = sDto.SignatureImageUrl;
+                        existing.IsDefault = sDto.IsDefault;
+                    }
+                    else
+                    {
+                        profile.AuthorizedSignatories.Add(new AuthorizedSignatory
+                        {
+                            PersonName = sDto.PersonName,
+                            Designation = sDto.Designation,
+                            SignatureImageUrl = sDto.SignatureImageUrl,
+                            IsDefault = sDto.IsDefault
+                        });
+                    }
+                }
+            }
+
             // Database mein changes save karte hain
+
             return await _repo.UpsertCompanyProfileAsync(profile);
         }
     }

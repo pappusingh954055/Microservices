@@ -77,10 +77,19 @@ namespace Company.Application.Company.Commands.Create.Handler
                     AccountNumber = cmd.Request.BankInfo.AccountNumber,
                     IfscCode = cmd.Request.BankInfo.IfscCode,
                     AccountType = cmd.Request.BankInfo.AccountType ?? "Current"
-                }
+                },
+
+                AuthorizedSignatories = cmd.Request.AuthorizedSignatories?.Select(s => new AuthorizedSignatory
+                {
+                    PersonName = s.PersonName,
+                    Designation = s.Designation,
+                    SignatureImageUrl = s.SignatureImageUrl, // Base64 handling could be added here if needed
+                    IsDefault = s.IsDefault
+                }).ToList() ?? new List<AuthorizedSignatory>()
             };
 
             return await _repo.InsertCompanyAsync(company); //
+
         }
     }
 }

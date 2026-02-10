@@ -51,8 +51,17 @@ namespace Company.Application.Company.Queries
                     data.BankInformation.AccountNumber,
                     data.BankInformation.IfscCode,
                     data.BankInformation.AccountType
-                )
+                ),
+                // Authorized Signatories mapping
+                data.AuthorizedSignatories.Select(s => new AuthorizedSignatoryDto(
+                    s.Id,
+                    s.PersonName,
+                    s.Designation,
+                    s.SignatureImageUrl,
+                    s.IsDefault
+                )).ToList()
             );
+
         }
     }
 }

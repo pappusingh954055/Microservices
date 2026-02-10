@@ -1,4 +1,5 @@
 ﻿using Company.Application.Common.Interfaces;
+using Company.Application.Common.Models;
 using Company.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -30,24 +31,23 @@ namespace Company.Infrastructure.Repositories
         // --- READ: GET MASTER PROFILE (Optimized) ---
         public async Task<CompanyProfile?> GetCompanyProfileAsync()
         {
-            // AsNoTracking fast execution ensure karta hai read-only data ke liye
-            return await _context.CompanyProfiles
-                .Include(c => c.CompanyAddress)   // Related Address fetch
-                .Include(c => c.BankInformation)  // Related Bank info fetch
-                .AsNoTracking()
-                .FirstOrDefaultAsync();
-        }
-
-        // --- READ: GET BY ID (Optimized) ---
-        public async Task<CompanyProfile?> GetByIdAsync(int id)
-        {
-            // ID based search with NoTracking for performance
             return await _context.CompanyProfiles
                 .Include(c => c.CompanyAddress)
                 .Include(c => c.BankInformation)
-                .AsNoTracking()
+                .Include(c => c.AuthorizedSignatories) // Signatories load karein
+                .FirstOrDefaultAsync();
+        }
+
+        // --- READ: GET BY ID ---
+        public async Task<CompanyProfile?> GetByIdAsync(int id)
+        {
+            return await _context.CompanyProfiles
+                .Include(c => c.CompanyAddress)
+                .Include(c => c.BankInformation)
+                .Include(c => c.AuthorizedSignatories) // Signatories load karein
                 .FirstOrDefaultAsync(c => c.Id == id);
         }
+
 
         // --- DELETE ---
         public async Task<bool> DeleteCompanyProfileAsync(int id)
@@ -61,6 +61,44 @@ namespace Company.Infrastructure.Repositories
             _context.CompanyProfiles.Remove(company);
 
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        public async Task<GridResponse<CompanyProfile>> GetPagedAsync(GridRequest request)
+        {
+            var query = _context.CompanyProfiles
+                .Include(c => c.CompanyAddress)
+                .Include(c => c.BankInformation)
+                .AsQueryable();
+
+            // Search Filter
+            if (!string.IsNullOrEmpty(request.Search))
+            {
+                query = query.Where(c => c.Name.Contains(request.Search) || c.Gstin.Contains(request.Search));
+            }
+
+            // Total Count
+            var total = await query.CountAsync();
+
+            // Sorting (Simplistic)
+            if (!string.IsNullOrEmpty(request.SortBy))
+            {
+                if (request.SortDirection == "desc")
+                    query = query.OrderByDescending(c => EF.Property<object>(c, request.SortBy));
+                else
+                    query = query.OrderBy(c => EF.Property<object>(c, request.SortBy));
+            }
+            else
+            {
+                query = query.OrderBy(c => c.Name);
+            }
+
+            // Pagination
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new GridResponse<CompanyProfile> { Items = items, TotalCount = total };
         }
     }
 }

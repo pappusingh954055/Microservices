@@ -36,9 +36,10 @@ public class CompanyDbContext : DbContext
         // CompanyProfile aur AuthorizedSignatories ke beech 1-to-Many relation
         modelBuilder.Entity<AuthorizedSignatory>()
             .HasOne<CompanyProfile>()
-            .WithMany()
+            .WithMany(c => c.AuthorizedSignatories)
             .HasForeignKey(s => s.CompanyProfileId)
             .OnDelete(DeleteBehavior.Cascade);
+
 
         // GSTIN Length and Constraints
         modelBuilder.Entity<CompanyProfile>()

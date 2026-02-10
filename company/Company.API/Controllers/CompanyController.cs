@@ -3,6 +3,7 @@ using Company.Application.Company.Commands.Delete;
 using Company.Application.Company.Commands.Update;
 using Company.Application.Company.Commands.UploadLogo;
 using Company.Application.Company.Queries;
+using Company.Application.Common.Models;
 using Company.Application.DTOs;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -56,8 +57,17 @@ namespace Company.API.Controllers
             return result != null ? Ok(result) : NotFound();
         }
 
+        [HttpPost("paged")]
+        [Authorize(Roles = "Manager,Admin, User")]
+        public async Task<IActionResult> GetPaged([FromBody] GridRequest request)
+        {
+            var result = await _mediator.Send(new GetCompaniesPagedQuery(request));
+            return Ok(result);
+        }
+
         // 3. Delete Profile
         [HttpDelete("{id}")]
+
         [Authorize(Roles = "Manager,Admin")]
         public async Task<IActionResult> Delete(int id)
         {

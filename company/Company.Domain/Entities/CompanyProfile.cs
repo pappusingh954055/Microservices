@@ -24,5 +24,9 @@ namespace Company.Domain.Entities
 
         public int BankDetailId { get; set; }
         public virtual BankDetail BankInformation { get; set; }
+
+        // Authorized Signatories
+        public virtual ICollection<AuthorizedSignatory> AuthorizedSignatories { get; set; } = new List<AuthorizedSignatory>();
     }
 }
+
