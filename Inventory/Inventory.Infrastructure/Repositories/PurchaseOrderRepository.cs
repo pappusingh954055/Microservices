@@ -114,20 +114,20 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     /// <returns></returns>
     public async Task<(IEnumerable<PurchaseOrder> Data, int Total)> GetDateRangePagedOrdersAsync(GetPurchaseOrdersRequest request)
     {
-        // STEP 1: Base Query - AsNoTracking use karein fast read ke liye [cite: 2026-02-04]
-        // Include yahan se hata diya hai taaki CountAsync fast chale [cite: 2026-02-04]
+        // STEP 1: Base Query - AsNoTracking use karein fast read ke liye
         var query = _context.PurchaseOrders
             .AsNoTracking()
             .AsQueryable();
 
-        // 1. GLOBAL SEARCH FIX
+        // 1. GLOBAL SEARCH FIX (Including 'Received' status logic)
         if (!string.IsNullOrWhiteSpace(request.Filter))
         {
             var searchTerm = request.Filter.Trim().ToLower();
             query = query.Where(x =>
                 (x.PoNumber != null && x.PoNumber.ToLower().Contains(searchTerm)) ||
                 (x.SupplierName != null && x.SupplierName.ToLower().Contains(searchTerm)) ||
-                (x.Status != null && x.Status.ToLower().Contains(searchTerm))
+                (x.Status != null && x.Status.ToLower().Contains(searchTerm)) ||
+                ("received".Contains(searchTerm) && x.GrnHeaders.Any())
             );
         }
 
@@ -139,7 +139,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             query = query.Where(x => x.PoDate <= endOfToDate);
         }
 
-        // 3. COLUMN SPECIFIC FILTERS FIX
+        // 3. COLUMN SPECIFIC FILTERS FIX (Especially for Status 'Received')
         if (request.Filters != null && request.Filters.Any())
         {
             foreach (var f in request.Filters)
@@ -151,7 +151,10 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
                 query = field switch
                 {
-                    "status" => query.Where(x => x.Status != null && x.Status.ToLower() == val),
+                    "status" => query.Where(x => 
+                        (x.Status != null && x.Status.ToLower().Contains(val)) ||
+                        ("received".Contains(val) && x.GrnHeaders.Any())
+                    ),
                     "ponumber" or "po no." => query.Where(x => x.PoNumber != null && x.PoNumber.ToLower().Contains(val)),
                     "suppliername" => query.Where(x => x.SupplierName != null && x.SupplierName.ToLower().Contains(val)),
                     "id" => query.Where(x => x.Id.ToString().Contains(val)),
@@ -160,29 +163,37 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             }
         }
 
-        // STEP 2: Get Total Count before adding heavy Includes [cite: 2026-02-04]
+        // STEP 2: Get Total Count before adding heavy Includes (Fast performance)
         var total = await query.CountAsync();
 
-        // 4. DYNAMIC SORTING FIX
+        // 4. DYNAMIC SORTING FIX (Considering 'Received' status and all columns)
         bool isDesc = request.SortOrder?.ToLower() == "desc";
         string sortField = request.SortField?.ToLower().Trim();
 
         query = sortField switch
         {
-            "status" => isDesc ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+            "status" => isDesc 
+                ? query.OrderByDescending(x => x.GrnHeaders.Any() ? "Received" : x.Status)
+                : query.OrderBy(x => x.GrnHeaders.Any() ? "Received" : x.Status),
             "ponumber" => isDesc ? query.OrderByDescending(x => x.PoNumber) : query.OrderBy(x => x.PoNumber),
             "suppliername" => isDesc ? query.OrderByDescending(x => x.SupplierName) : query.OrderBy(x => x.SupplierName),
-            _ => isDesc ? query.OrderByDescending(x => x.PoDate) : query.OrderBy(x => x.PoDate)
+            "grandtotal" => isDesc ? query.OrderByDescending(x => x.GrandTotal) : query.OrderBy(x => x.GrandTotal),
+            "podate" => isDesc ? query.OrderByDescending(x => x.PoDate) : query.OrderBy(x => x.PoDate),
+            "expecteddeliverydate" => isDesc ? query.OrderByDescending(x => x.ExpectedDeliveryDate) : query.OrderBy(x => x.ExpectedDeliveryDate),
+            "id" => isDesc ? query.OrderByDescending(x => x.Id) : query.OrderBy(x => x.Id),
+            "createdby" => isDesc ? query.OrderByDescending(x => x.CreatedBy) : query.OrderBy(x => x.CreatedBy),
+            "createddate" => isDesc ? query.OrderByDescending(x => x.CreatedDate) : query.OrderBy(x => x.CreatedDate),
+            _ => isDesc ? query.OrderByDescending(x => x.CreatedDate) : query.OrderBy(x => x.CreatedDate)
         };
 
-        // STEP 3: Optimized Data Fetch [cite: 2026-02-04]
-        // Ab sirf wahi 10-20 records ke liye Include chalega jo page par hain [cite: 2026-02-04]
+        // STEP 3: Optimized Data Fetch (Fetch only required items)
         var data = await query
             .Skip(request.PageIndex * request.PageSize)
             .Take(request.PageSize)
             .Include(x => x.Items)
                 .ThenInclude(i => i.Product)
             .Include(x => x.GrnHeaders)
+            .AsSplitQuery() // Split queries for better multi-include performance
             .ToListAsync();
 
         return (data, total);

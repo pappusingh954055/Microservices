@@ -31,6 +31,8 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                 SubTotal = x.SubTotal,
                 ExpectedDeliveryDate=x.ExpectedDeliveryDate,
                 CreatedBy=x.CreatedBy,
+                CreatedDate = x.CreatedDate ?? DateTime.MinValue,
+                UpdatedDate = x.UpdatedDate,
                 Remarks=x.Remarks,
                 Status = (x.GrnHeaders != null && x.GrnHeaders.Any())
                          ? "Received"
