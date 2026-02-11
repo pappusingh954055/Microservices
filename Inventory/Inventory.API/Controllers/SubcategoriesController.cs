@@ -8,6 +8,7 @@ using Inventory.Application.Subcategories.Queries.GetSubcategoryById;
 using Inventory.Application.Subcategories.Queries.Searching;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Inventory.API.Controllers
@@ -17,10 +18,12 @@ namespace Inventory.API.Controllers
     public class SubcategoriesController : ControllerBase
     {
         private readonly IMediator _mediator;
+        private readonly Inventory.Application.Common.Interfaces.ISubcategoryRepository _repository;
 
-        public SubcategoriesController(IMediator mediator)
+        public SubcategoriesController(IMediator mediator, Inventory.Application.Common.Interfaces.ISubcategoryRepository repository)
         {
             _mediator = mediator;
+            _repository = repository;
         }
 
         [HttpPost]
@@ -120,6 +123,21 @@ namespace Inventory.API.Controllers
             {
                 success = true,
                 message = "Category deleted successfully"
+            });
+        }
+
+        [HttpPost("upload-excel")]
+        [Authorize(Roles = "Manager, Admin, User")]
+        public async Task<IActionResult> UploadExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest("Please upload an excel file.");
+
+            var result = await _repository.UploadSubcategoriesAsync(file);
+
+            return Ok(new
+            {
+                Message = $"{result.successCount} Subcategories uploaded successfully.",
+                Errors = result.errors
             });
         }
     }

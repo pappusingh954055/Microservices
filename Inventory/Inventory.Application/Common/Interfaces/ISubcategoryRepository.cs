@@ -22,5 +22,7 @@ namespace Inventory.Application.Common.Interfaces
         Task<List<Subcategory>> GetByIdsAsync(List<Guid> ids);
         Task<bool> HasSubcategoriesAsync(Guid categoryId);
         Task<bool> HasSubcategoriesAsync(List<Guid> categoryIds);
+
+        Task<(int successCount, List<string> errors)> UploadSubcategoriesAsync(Microsoft.AspNetCore.Http.IFormFile file);
     }
 }
