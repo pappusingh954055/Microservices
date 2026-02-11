@@ -1,6 +1,7 @@
 ﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Domain.PriceLists;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Application.PriceLists.Commands.CreatePriceList;
 
@@ -8,7 +9,7 @@ public sealed class CreatePriceListCommandHandler
     : IRequestHandler<CreatePriceListCommand, Guid>
 {
     private readonly IPriceListRepository _repository;
-    private readonly IInventoryDbContext _context;
+    private readonly IInventoryDbContext _context; // DB validation ke liye
 
     public CreatePriceListCommandHandler(IPriceListRepository repository, IInventoryDbContext context)
     {
@@ -18,7 +19,39 @@ public sealed class CreatePriceListCommandHandler
 
     public async Task<Guid> Handle(CreatePriceListCommand request, CancellationToken ct)
     {
-        // 1. Header mapping (UI ke naye fields ke sath)
+        // 1. Request Level Check (Taaki ek hi form mein duplicate items na hon)
+        var internalDuplicates = request.priceListItems
+            .GroupBy(x => x.productId)
+            .Where(g => g.Count() > 1)
+            .Select(y => y.Key)
+            .ToList();
+
+        if (internalDuplicates.Any())
+        {
+            throw new Exception($"Duplicate product detected in the current request list.");
+        }
+
+        // 2. Database Validation Rule (Inventory Standard)
+        // Hum check kar rahe hain ki kya koi aisi list pehle se DB mein hai jo Active hai
+        if (request.isActive)
+        {
+            foreach (var item in request.priceListItems)
+            {
+                // Ye query DB ke 'PriceLists' table se 'IsActive' status check karegi
+                var alreadyActiveInDb = await _context.PriceListItems
+                    .AnyAsync(pi => pi.ProductId == item.productId &&
+                                    pi.PriceList.PriceType == request.priceType &&
+                                    pi.PriceList.IsActive == true, ct); // DB column check
+
+                if (alreadyActiveInDb)
+                {
+                    // Agar DB mein pehle se 'Active' record hai, toh naya save nahi hone dega
+                    throw new Exception($"Product ID {item.productId} is already marked as ACTIVE in the database for '{request.priceType}' type.");
+                }
+            }
+        }
+
+        // 3. Mapping and Saving logic
         var priceList = new PriceList(
             request.name,
             request.code,
@@ -30,10 +63,8 @@ public sealed class CreatePriceListCommandHandler
             request.remarks,
             request.isActive,
             request.createdBy
-            
         );
 
-        // 2. Details mapping
         foreach (var itemDto in request.priceListItems)
         {
             var item = new PriceListItem(
@@ -41,14 +72,13 @@ public sealed class CreatePriceListCommandHandler
                 itemDto.productId,
                 itemDto.rate,
                 itemDto.unit,
-                itemDto.discountPercent, // UI column Disc (%) mapping
+                itemDto.discountPercent,
                 itemDto.minQty,
                 itemDto.maxQty
             );
             priceList.PriceListItems.Add(item);
         }
 
-        // 3. Save Atomic Transaction
         await _repository.AddAsync(priceList);
         await _context.SaveChangesAsync(ct);
 

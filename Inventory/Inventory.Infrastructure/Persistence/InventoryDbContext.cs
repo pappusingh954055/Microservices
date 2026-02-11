@@ -105,5 +105,11 @@ public sealed class InventoryDbContext : DbContext,
                   .HasForeignKey(d => d.PurchaseOrderId) // Purana ID use karein
                   .OnDelete(DeleteBehavior.NoAction);     // Cascade Error fix karne ke liye
         });
+
+        modelBuilder.Entity<PriceListItem>()
+        .HasOne(pi => pi.PriceList)
+        .WithMany(pl => pl.PriceListItems)
+        .HasForeignKey(pi => pi.PriceListId)
+        .OnDelete(DeleteBehavior.NoAction); 
     }
 }

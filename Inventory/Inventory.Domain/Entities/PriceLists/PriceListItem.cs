@@ -4,6 +4,7 @@ public class PriceListItem
 {
     public Guid Id { get;  set; }
     public Guid PriceListId { get;  set; }
+    public virtual PriceList PriceList { get; set; } = null!;
     public Guid ProductId { get;  set; }
     public Product Product { get;  set; }    
     public decimal Rate { get;  set; }
