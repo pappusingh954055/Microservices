@@ -84,7 +84,6 @@ public sealed class CategoryRepository : ICategoryRepository
     public async Task<(int successCount, List<string> errors)> UploadCategoriesAsync(IFormFile file)
     {
         var errors = new List<string>();
-        var categoriesToAdd = new List<Category>();
         int successCount = 0;
 
         using (var stream = new MemoryStream())
@@ -93,40 +92,129 @@ public sealed class CategoryRepository : ICategoryRepository
             using (var workbook = new XLWorkbook(stream))
             {
                 var worksheet = workbook.Worksheet(1); // First sheet
-                var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skip Header
+                var rows = worksheet.RangeUsed().RowsUsed();
 
-                foreach (var row in rows)
+                // 1. Header Validation
+                var headerRow = rows.FirstOrDefault();
+                if (headerRow == null)
                 {
-                    var code = row.Cell(1).GetValue<string>();
-                    var name = row.Cell(2).GetValue<string>();
+                    errors.Add("Invalid Template: File is empty.");
+                    return (0, errors);
+                }
 
-                    // --- DUPLICATE CHECK ---
-                    bool exists = await _db.Categories.AnyAsync(c => c.CategoryCode == code || c.CategoryName == name);
+                var expectedHeaders = new List<string> { "CategoryCode", "CategoryName", "DefaultGst", "Description" };
+                var actualHeaders = new List<string>();
 
-                    if (exists)
-                    {
-                        errors.Add($"Row {row.RowNumber()}: Category '{name}' or Code '{code}' already exists.");
-                        continue;
-                    }
+                for (int i = 1; i <= 4; i++)
+                {
+                     actualHeaders.Add(headerRow.Cell(i).GetValue<string>().Trim());
+                }
 
-                    categoriesToAdd.Add(new Category
-                    {
-                        CategoryCode = code,
-                        CategoryName = name,
-                        DefaultGst = row.Cell(3).GetValue<decimal>(),
-                        Description = row.Cell(4).GetValue<string>(),
-                        IsActive = true
-                    });
+                if (!expectedHeaders.SequenceEqual(actualHeaders))
+                {
+                    errors.Add($"Invalid Template: Headers do not match. Expected: {string.Join(", ", expectedHeaders)}");
+                     return (0, errors);
+                }
+
+                var dataRows = rows.Skip(1);
+
+                // 2. Pre-fetch Active Categories for duplicate check
+                var existingActiveCats = await _db.Categories
+                    .AsNoTracking()
+                    .Where(c => c.IsActive)
+                    .Select(c => new { c.CategoryCode, c.CategoryName })
+                    .ToListAsync();
+                
+                var activeCodeSet = new HashSet<string>(existingActiveCats.Select(x => x.CategoryCode.ToLower()));
+                var activeNameSet = new HashSet<string>(existingActiveCats.Select(x => x.CategoryName.ToLower()));
+
+                var newCategories = new List<Category>();
+
+                // 3. In-File Duplicate Check
+                var fileCodes = new HashSet<string>();
+                var fileNames = new HashSet<string>();
+
+                foreach (var row in dataRows)
+                {
+                     try 
+                     {
+                        var code = row.Cell(1).GetValue<string>()?.Trim();
+                        var name = row.Cell(2).GetValue<string>()?.Trim();
+                        var gstText = row.Cell(3).GetValue<string>()?.Trim();
+                        var description = row.Cell(4).GetValue<string>()?.Trim();
+                        var rowNum = row.RowNumber();
+
+                        // Empty Check
+                        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
+                        {
+                            errors.Add($"Row {rowNum}: Category Code and Name are required.");
+                            continue;
+                        }
+
+                        // Duplicate Check (In-File)
+                        if (fileCodes.Contains(code.ToLower()))
+                        {
+                            errors.Add($"Row {rowNum}: Duplicate Code '{code}' found in the file.");
+                            continue;
+                        }
+                        if (fileNames.Contains(name.ToLower()))
+                        {
+                             errors.Add($"Row {rowNum}: Duplicate Name '{name}' found in the file.");
+                             continue;
+                        }
+
+                        // Duplicate Check (DB - IsActive)
+                        if (activeCodeSet.Contains(code.ToLower()))
+                        {
+                            errors.Add($"Row {rowNum}: Category Code '{code}' already exists and is Active.");
+                            continue;
+                        }
+                        if (activeNameSet.Contains(name.ToLower()))
+                        {
+                            errors.Add($"Row {rowNum}: Category Name '{name}' already exists and is Active.");
+                            continue;
+                        }
+
+                        fileCodes.Add(code.ToLower());
+                        fileNames.Add(name.ToLower());
+
+                        // GST Parsing
+                        decimal defaultGst = 0;
+                        if (!string.IsNullOrEmpty(gstText))
+                        {
+                             if (!decimal.TryParse(gstText, out defaultGst))
+                             {
+                                 errors.Add($"Row {rowNum}: Invalid GST value '{gstText}'.");
+                                 continue;
+                             }
+                        }
+
+                        // Create Category
+                        var category = new Category(
+                            name,
+                            code,
+                            defaultGst,
+                            description,
+                            true, // IsActive
+                            null // ParentCategoryId
+                        );
+                        
+                        newCategories.Add(category);
+                        successCount++;
+                     }
+                     catch(Exception ex)
+                     {
+                         errors.Add($"Row {row.RowNumber()}: Unexpected error - {ex.Message}");
+                     }
+                }
+
+                if (newCategories.Any())
+                {
+                    await _db.Categories.AddRangeAsync(newCategories);
+                    await _db.SaveChangesAsync();
                 }
             }
         }
-
-        if (categoriesToAdd.Any())
-        {
-            await _db.Categories.AddRangeAsync(categoriesToAdd);
-            successCount = await _db.SaveChangesAsync();
-        }
-
         return (successCount, errors);
     }
 }

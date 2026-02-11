@@ -107,7 +107,7 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                     return (0, errors);
                 }
 
-                var expectedHeaders = new List<string> { "SubcategoryCode", "CategoryName", "SubcategoryName", "DefaultGst", "Description" };
+                var expectedHeaders = new List<string> { "SubcategoryCode", "CategoryCode", "SubcategoryName", "DefaultGst", "Description" };
                 var actualHeaders = new List<string>();
                 
                 // Check first 5 columns
@@ -124,10 +124,10 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
 
                 var dataRows = rows.Skip(1); 
 
-                // 2. Pre-fetch Categories for lookup (Case-insensitive)
+                // 2. Pre-fetch Categories for lookup (Case-insensitive) by Code
                 var categories = await _context.Categories
                     .AsNoTracking()
-                    .ToDictionaryAsync(c => c.CategoryName.ToLower().Trim(), c => c.Id);
+                    .ToDictionaryAsync(c => c.CategoryCode.ToLower().Trim(), c => c.Id);
 
                 // 3. Pre-fetch existing Active Subcategories for duplicate check
                 // We check against ALL active subcategories to prevent global ambiguity or per-requirement
@@ -152,7 +152,7 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                     try
                     {
                         var code = row.Cell(1).GetValue<string>()?.Trim();
-                        var catName = row.Cell(2).GetValue<string>()?.Trim();
+                        var catCode = row.Cell(2).GetValue<string>()?.Trim();
                         var name = row.Cell(3).GetValue<string>()?.Trim();
                         var gstText = row.Cell(4).GetValue<string>()?.Trim();
                         var description = row.Cell(5).GetValue<string>()?.Trim();
@@ -166,16 +166,16 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                         }
 
                         // Basic Validation
-                        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(catName))
+                        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(catCode))
                         {
-                            errors.Add($"Row {rowNum}: Code and Category Name are required.");
+                            errors.Add($"Row {rowNum}: Subcategory Code and Category Code are required.");
                             continue;
                         }
 
                         // Category Lookup
-                        if (!categories.TryGetValue(catName.ToLower(), out var categoryId))
+                        if (!categories.TryGetValue(catCode.ToLower(), out var categoryId))
                         {
-                            errors.Add($"Row {rowNum}: Category '{catName}' not found in database.");
+                            errors.Add($"Row {rowNum}: Category Code '{catCode}' not found in database.");
                             continue;
                         }
 
