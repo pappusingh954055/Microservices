@@ -6,11 +6,29 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Inventory.Infrastructure.Persistence.Migrations
 {
     /// <inheritdoc />
-    public partial class AddInitials : Migration
+    public partial class Initials : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "AppNotifications",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Message = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TargetUrl = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AppNotifications", x => x.Id);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Categories",
                 columns: table => new
@@ -273,7 +291,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     CreatedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ModifiedOn = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    ModifiedBy = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ProductType = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DamagedStock = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -341,8 +361,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         name: "FK_PriceListItems_PriceLists_PriceListId",
                         column: x => x.PriceListId,
                         principalTable: "PriceLists",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_PriceListItems_Products_ProductId",
                         column: x => x.ProductId,
@@ -380,8 +399,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         name: "FK_PurchaseOrderItems_PurchaseOrders_PurchaseOrderId",
                         column: x => x.PurchaseOrderId,
                         principalTable: "PurchaseOrders",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -430,6 +448,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     GRNHeaderId = table.Column<int>(type: "int", nullable: false),
                     ProductId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     OrderedQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PendingQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     RejectedQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     AcceptedQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ReceivedQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
@@ -563,6 +582,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "AppNotifications");
+
             migrationBuilder.DropTable(
                 name: "GRNDetails");
 

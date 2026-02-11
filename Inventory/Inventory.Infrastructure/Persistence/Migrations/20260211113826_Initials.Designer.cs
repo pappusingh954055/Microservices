@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inventory.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    [Migration("20260208085725_AddNotification")]
-    partial class AddNotification
+    [Migration("20260211113826_Initials")]
+    partial class Initials
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -136,6 +136,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<decimal>("OrderedQty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("PendingQty")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<Guid>("ProductId")
@@ -945,10 +948,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Inventory.Domain.PriceLists.PriceListItem", b =>
                 {
-                    b.HasOne("Inventory.Domain.PriceLists.PriceList", null)
+                    b.HasOne("Inventory.Domain.PriceLists.PriceList", "PriceList")
                         .WithMany("PriceListItems")
                         .HasForeignKey("PriceListId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Product", "Product")
@@ -956,6 +959,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("PriceList");
 
                     b.Navigation("Product");
                 });

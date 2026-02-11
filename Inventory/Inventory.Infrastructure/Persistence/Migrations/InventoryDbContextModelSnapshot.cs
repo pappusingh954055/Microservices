@@ -945,10 +945,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("Inventory.Domain.PriceLists.PriceListItem", b =>
                 {
-                    b.HasOne("Inventory.Domain.PriceLists.PriceList", null)
+                    b.HasOne("Inventory.Domain.PriceLists.PriceList", "PriceList")
                         .WithMany("PriceListItems")
                         .HasForeignKey("PriceListId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.HasOne("Product", "Product")
@@ -956,6 +956,8 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("PriceList");
 
                     b.Navigation("Product");
                 });
