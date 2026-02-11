@@ -2,12 +2,12 @@
 using Inventory.Application.PriceLists.Commands.UpdatePriceList;
 using Inventory.Domain.PriceLists;
 using MediatR;
-using Microsoft.EntityFrameworkCore; // AnyAsync ke liye zaroori hai
+using Microsoft.EntityFrameworkCore;
 
 public class UpdatePriceListCommandHandler : IRequestHandler<UpdatePriceListCommand, bool>
 {
     private readonly IPriceListRepository _repository;
-    private readonly IInventoryDbContext _context; // DB context validation ke liye
+    private readonly IInventoryDbContext _context;
 
     public UpdatePriceListCommandHandler(IPriceListRepository repository, IInventoryDbContext context)
     {
@@ -17,32 +17,32 @@ public class UpdatePriceListCommandHandler : IRequestHandler<UpdatePriceListComm
 
     public async Task<bool> Handle(UpdatePriceListCommand request, CancellationToken cancellationToken)
     {
-        // 1. Existing entity fetch karein with items
-        var entity = await _repository.GetByIdWithItemsAsync(request.id, cancellationToken);
+        // 1. Fetch Entity with Items (Tracking ON rakhein update ke liye)
+        var entity = await _context.PriceLists
+            .Include(x => x.PriceListItems)
+            .FirstOrDefaultAsync(x => x.Id == request.id, cancellationToken);
+
         if (entity == null) return false;
 
-        // 2. Inventory Validation Rule Check
-        // Agar ye list Active hai (IsActive = true), toh hi duplicacy check karenge
+        // 2. Global Validation: Kya koi aur list ACTIVE hai?
         if (request.isActive)
         {
             foreach (var item in request.priceListItems)
             {
-                // Check: Kya ye Product kisi aur ACTIVE list mein same PriceType ke saath hai?
                 var isAlreadyActiveElsewhere = await _context.PriceListItems
                     .AnyAsync(pi => pi.ProductId == item.productId &&
                                     pi.PriceList.PriceType == request.priceType &&
                                     pi.PriceList.IsActive == true &&
-                                    pi.PriceListId != request.id, cancellationToken); // Khud ko chhod kar
+                                    pi.PriceListId != request.id, cancellationToken);
 
                 if (isAlreadyActiveElsewhere)
                 {
-                    // Agar duplicate milta hai, toh error message throw karenge
-                    throw new Exception($"Product ID {item.productId} is already assigned to another active '{request.priceType}' price list. You must deactivate the other list first.");
+                    throw new Exception($"Product ID {item.productId} is already assigned to another ACTIVE list.");
                 }
             }
         }
 
-        // 3. Header Update karein (Mapping UI fields)
+        // 3. Header Update
         entity.Name = request.name;
         entity.Code = request.code;
         entity.PriceType = request.priceType;
@@ -51,25 +51,50 @@ public class UpdatePriceListCommandHandler : IRequestHandler<UpdatePriceListComm
         entity.IsActive = request.isActive;
         entity.Remarks = request.remarks;
 
-        // 4. Child Items Update (Clear and Re-add Strategy)
-        entity.PriceListItems.Clear();
+        // 4. SYNC LOGIC (Delete nahi, Sync karein)
+        // Pehle wo items hatayein jo request mein nahi hain (UI se delete kiye gaye)
+        var itemsToRemove = entity.PriceListItems
+            .Where(existing => !request.priceListItems.Any(req => req.productId == existing.ProductId))
+            .ToList();
 
-        foreach (var item in request.priceListItems)
+        foreach (var item in itemsToRemove)
         {
-            entity.PriceListItems.Add(new PriceListItem
-            {
-                PriceListId = entity.Id,
-                ProductId = item.productId,
-                Rate = item.rate,
-                DiscountPercent = item.discountPercent,
-                MinQty = item.minQty,
-                MaxQty = item.maxQty,
-                Unit = item.unit
-            });
+            _context.PriceListItems.Remove(item);
         }
 
-        // 5. Atomic Update Execution
-        await _repository.UpdatePriceListAsync(entity, cancellationToken);
+        // Ab naye items add karein ya purano ko update karein
+        foreach (var itemDto in request.priceListItems)
+        {
+            var existingItem = entity.PriceListItems
+                .FirstOrDefault(x => x.ProductId == itemDto.productId);
+
+            if (existingItem != null)
+            {
+                // Purana item hai? Toh sirf rate/qty update karein
+                existingItem.Rate = itemDto.rate;
+                existingItem.DiscountPercent = itemDto.discountPercent;
+                existingItem.MinQty = itemDto.minQty;
+                existingItem.MaxQty = itemDto.maxQty;
+                existingItem.Unit = itemDto.unit;
+            }
+            else
+            {
+                // Naya item hai? Toh add karein
+                entity.PriceListItems.Add(new PriceListItem
+                {
+                    PriceListId = entity.Id,
+                    ProductId = itemDto.productId,
+                    Rate = itemDto.rate,
+                    DiscountPercent = itemDto.discountPercent,
+                    MinQty = itemDto.minQty,
+                    MaxQty = itemDto.maxQty,
+                    Unit = itemDto.unit
+                });
+            }
+        }
+
+        // 5. Final Save
+        await _context.SaveChangesAsync(cancellationToken);
         return true;
     }
 }

@@ -114,32 +114,13 @@ namespace Inventory.API.Controllers
         [Authorize(Roles = "Manager, Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
-            try
-            {
-                await _mediator.Send(new BulkDeleteSubCategoriesCommand(ids));
+            await _mediator.Send(new BulkDeleteSubCategoriesCommand(ids));
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Category deleted successfully"
-                });
-            }
-            catch (InvalidOperationException ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Category deleted successfully"
+            });
         }
     }
 }

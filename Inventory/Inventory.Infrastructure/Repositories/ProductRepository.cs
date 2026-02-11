@@ -95,31 +95,54 @@ public sealed class ProductRepository : IProductRepository
     }
     public async Task<ProductRateDto> GetProductRateAsync(Guid productId, Guid? priceListId)
     {
-        // Products table se shuru karein taaki humein base details mil sakein
-        var query = from p in _db.Products.AsNoTracking()
-                    where p.Id == productId
-                    select new ProductRateDto(
-                        p.Id,
-                        priceListId,
-                        // Subquery to get PriceList Rate (agar priceListId null nahi hai toh)
-                        _db.PriceListItems
-                            .Where(pli => pli.ProductId == productId && pli.PriceListId == priceListId)
-                            .Select(pli => pli.Rate)
-                            .FirstOrDefault(), // Agar nahi mila toh 0.0m aayega
-                        p.BasePurchasePrice, // Product Master wala base price
-                        p.Unit ?? "PCS",     // Fallback Unit
-                        p.DefaultGst ?? 0m,        // Default GST %
-                        p.HSNCode            // HSN Code
-                    );
+        // 1. Pehle hum dhoondhenge ki kaunsa rate apply karna hai
+        decimal finalRate = 0;
 
-        var result = await query.FirstOrDefaultAsync();
+        var priceQuery = _db.PriceListItems.AsNoTracking()
+            .Where(pli => pli.ProductId == productId);
 
-        if (result == null)
+        if (priceListId.HasValue && priceListId != Guid.Empty)
+        {
+            finalRate = await priceQuery
+                .Where(pli => pli.PriceListId == priceListId)
+                .Select(pli => pli.Rate)
+                .FirstOrDefaultAsync();
+        }
+        else
+        {
+            // AUTOMATIC LOGIC: Latest Active Purchase PriceList dhoondho
+            finalRate = await priceQuery
+                .Where(pli => pli.PriceList.IsActive == true &&
+                              pli.PriceList.PriceType == "PURCHASE" &&
+                              pli.PriceList.ValidFrom <= DateTime.Now &&
+                              pli.PriceList.ValidTo >= DateTime.Now)
+                .OrderByDescending(pli => pli.PriceList.CreatedOn)
+                .Select(pli => pli.Rate)
+                .FirstOrDefaultAsync();
+        }
+
+        // 2. Product Master details ke saath data bind karein
+        // FIX: Record constructor syntax use karein (Order ka dhyan rakhein)
+        var productDetails = await _db.Products.AsNoTracking()
+            .Where(p => p.Id == productId)
+            .Select(p => new ProductRateDto(
+                p.Id,                                     // 1. ProductId
+                priceListId,                              // 2. PriceListId
+                finalRate,                                // 3. PriceListRate
+                p.BasePurchasePrice,                      // 4. BasePurchasePrice
+                p.Unit ?? "PCS",                          // 5. Unit
+                p.DefaultGst ?? 0m,                       // 6. GstPercent
+                p.HSNCode ?? "",                          // 7. HsnCode
+                0m                                        // 8. DiscountPercent (Aapne 0m miss kiya tha)
+            ))
+            .FirstOrDefaultAsync();
+
+        if (productDetails == null)
         {
             throw new Exception("Product not found in Master.");
         }
 
-        return result;
+        return productDetails;
     }
 
     public async Task<IEnumerable<LowStockProductDto>> GetLowStockProductsAsync()

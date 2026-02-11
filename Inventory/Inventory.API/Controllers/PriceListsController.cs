@@ -80,6 +80,14 @@ namespace Inventory.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("dropdown")]
+        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
+        public async Task<IActionResult> dropdown()
+        {
+            var result = await _mediator.Send(new GetPriceListsLookUpQuery());
+            return Ok(result);
+        }
+
         [HttpGet("paged")]
         [Authorize(Roles = "Manager, Admin, User, Warehouse")]
         public async Task<IActionResult> GetPaged(
@@ -96,32 +104,13 @@ namespace Inventory.API.Controllers
         [Authorize(Roles = "Manager, Admin, User")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
-            try
-            {
-                await _mediator.Send(new BulkDeletePricelistsCommand(ids));
+            await _mediator.Send(new BulkDeletePricelistsCommand(ids));
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Price lists deleted successfully"
-                });
-            }
-            catch (InvalidOperationException ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Price lists deleted successfully"
+            });
         }
 
         [HttpGet("price-list-items/{priceListId}")]

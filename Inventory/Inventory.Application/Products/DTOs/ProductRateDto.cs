@@ -12,7 +12,8 @@ namespace Inventory.Application.Products.DTOs
          decimal BasePurchasePrice, // Product Master wala fallback rate
          string Unit, // Unit name (e.g., PCS, BOX)
          decimal GstPercent, // Product ka default GST %
-         string? HsnCode // Tax compliance ke liye
+         string? HsnCode, // Tax compliance ke liye
+         decimal DiscountPercent
      )
     {
         // Helper Property: Agar PriceListRate 0 hai toh BasePrice bhejo

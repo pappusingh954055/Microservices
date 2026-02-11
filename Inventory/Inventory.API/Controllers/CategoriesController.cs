@@ -62,32 +62,13 @@ namespace Inventory.API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            try
-            {
-                await _mediator.Send(new DeleteCategoryCommand(id));
+            await _mediator.Send(new DeleteCategoryCommand(id));
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Category deleted successfully"
-                });
-            }
-            catch (InvalidOperationException ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Category deleted successfully"
+            });
         }
 
 
@@ -95,32 +76,13 @@ namespace Inventory.API.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
-            try
-            {
-                await _mediator.Send(new BulkDeleteCategoriesCommand(ids));
+            await _mediator.Send(new BulkDeleteCategoriesCommand(ids));
 
-                return Ok(new
-                {
-                    success = true,
-                    message = "Category deleted successfully"
-                });
-            }
-            catch (InvalidOperationException ex)
+            return Ok(new
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-            catch (KeyNotFoundException ex)
-            {
-                return NotFound(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
+                success = true,
+                message = "Category deleted successfully"
+            });
         }
 
 

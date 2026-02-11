@@ -1,0 +1,10 @@
+﻿using Inventory.Application.PriceLists.DTOs;
+using MediatR;
+using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace Inventory.Application.PriceLists.Queries.GetPriceListById
+{
+    public record GetPriceListsLookUpQuery : IRequest<List<PriceListDto>>;
+}
