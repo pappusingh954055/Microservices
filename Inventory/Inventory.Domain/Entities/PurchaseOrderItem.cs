@@ -11,6 +11,7 @@
     public decimal GstPercent { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal Total { get; set; }
+    public decimal ReceivedQty {  get; set; }
 
     public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
 }

@@ -12,6 +12,8 @@
     public decimal DiscountPercent { get; set; }
     public decimal GstPercent { get; set; }
 
+    public decimal ReceivedQty {  get; set; }
+
     // Manual Mapping from Entity to DTO
     public static PurchaseOrderItemDto FromEntity(dynamic entity)
     {
@@ -27,7 +29,8 @@
             TaxAmount = entity.TaxAmount,
             Total = entity.Total,
             DiscountPercent = entity.DiscountPercent,
-            GstPercent = entity.GstPercent
+            GstPercent = entity.GstPercent,
+            ReceivedQty = entity.ReceivedQty,
         };
     }
 }

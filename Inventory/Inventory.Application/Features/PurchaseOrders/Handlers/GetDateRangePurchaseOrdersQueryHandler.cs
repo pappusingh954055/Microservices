@@ -49,7 +49,8 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                     TaxAmount = item.TaxAmount,
                     DiscountPercent = item.DiscountPercent,
                     GstPercent = item.GstPercent,
-                    ProductName = item.Product != null ? item.Product.Name : "N/A"
+                    ProductName = item.Product != null ? item.Product.Name : "N/A",
+                    ReceivedQty = item.ReceivedQty,
                 }).ToList()
             }).ToList();
 
