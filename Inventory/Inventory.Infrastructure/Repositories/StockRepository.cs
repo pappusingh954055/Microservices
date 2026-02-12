@@ -305,7 +305,7 @@ namespace Inventory.Infrastructure.Repositories
         // }
 
 
-        public async Task<StockPagedResponseDto> GetCurrentStockAsync(
+    public async Task<StockPagedResponseDto> GetCurrentStockAsync(
     string? search,
     string? sortField,
     string? sortOrder,

@@ -434,9 +434,10 @@ namespace Inventory.Infrastructure.Repositories
                     _context.GRNHeaders.Add(grnHeader);
                     await _context.SaveChangesAsync();
 
-                    // 4. PO Items ko GRN Details mein map karein
+                    // 4. PO Items ko GRN Details mein map karein aur Stock Update karein
                     foreach (var item in poHeader.Items)
                     {
+                        // A. GRN Detail create karein
                         var grnDetail = new GRNDetail
                         {
                             GRNHeaderId = grnHeader.Id,
@@ -450,6 +451,16 @@ namespace Inventory.Infrastructure.Repositories
                             CreatedOn = DateTime.Now
                         };
                         _context.GRNDetails.Add(grnDetail);
+
+                        // B. STOCK UPDATE LOGIC: Product fetch karke current stock badhayein
+                        var product = await _context.Products
+                            .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+                        if (product != null)
+                        {
+                            // Inventory Rule: Received Qty ko existing stock mein add karein
+                            product.CurrentStock += item.Qty;
+                        }
                     }
 
                     // 5. PO status update
@@ -464,6 +475,7 @@ namespace Inventory.Infrastructure.Repositories
                     );
                 }
 
+                // Final Save: Saare POs aur Products ka stock ek saath commit hoga
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
                 return true;
