@@ -13,6 +13,9 @@
     public decimal GstPercent { get; set; }
 
     public decimal ReceivedQty {  get; set; }
+    public decimal PendingQty {  get; set; }
+    public decimal AcceptedQty {  get; set; }
+    public decimal RejectedQty {  get; set; }
 
     // Manual Mapping from Entity to DTO
     public static PurchaseOrderItemDto FromEntity(dynamic entity)

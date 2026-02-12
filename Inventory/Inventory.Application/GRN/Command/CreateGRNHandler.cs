@@ -8,14 +8,12 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
     private readonly IGRNRepository _repo;
     public CreateGRNHandler(IGRNRepository repo) => _repo = repo;
 
-    // Task<bool> ko badal kar Task<string> kiya
     public async Task<string> Handle(CreateGRNCommand request, CancellationToken ct)
     {
         var dto = request.Data;
 
         var header = new GRNHeader
         {
-           
             GRNNumber = "AUTO-GEN",
             PurchaseOrderId = dto.POHeaderId,
             SupplierId = dto.SupplierId,
@@ -23,7 +21,7 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             TotalAmount = dto.TotalAmount,
             Remarks = dto.Remarks,
             CreatedBy = dto.CreatedBy,
-            Status = "Received", 
+            Status = "Received",
             UpdatedOn = DateTime.Now
         };
 
@@ -39,7 +37,6 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             UpdatedOn = DateTime.Now
         }).ToList();
 
-        
         return await _repo.SaveGRNWithStockUpdate(header, details);
     }
 }
