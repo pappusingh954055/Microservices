@@ -93,7 +93,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
         }
         else
         {
-            query = query.OrderByDescending(x => x.PoDate);
+            query = query.OrderByDescending(x => x.PoDate).ThenByDescending(x => x.Id);
         }
 
         // 4. Execution
@@ -178,12 +178,12 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             "ponumber" => isDesc ? query.OrderByDescending(x => x.PoNumber) : query.OrderBy(x => x.PoNumber),
             "suppliername" => isDesc ? query.OrderByDescending(x => x.SupplierName) : query.OrderBy(x => x.SupplierName),
             "grandtotal" => isDesc ? query.OrderByDescending(x => x.GrandTotal) : query.OrderBy(x => x.GrandTotal),
-            "podate" => isDesc ? query.OrderByDescending(x => x.PoDate) : query.OrderBy(x => x.PoDate),
+            "podate" => isDesc ? query.OrderByDescending(x => x.PoDate).ThenByDescending(x => x.Id) : query.OrderBy(x => x.PoDate).ThenByDescending(x => x.Id),
             "expecteddeliverydate" => isDesc ? query.OrderByDescending(x => x.ExpectedDeliveryDate) : query.OrderBy(x => x.ExpectedDeliveryDate),
             "id" => isDesc ? query.OrderByDescending(x => x.Id) : query.OrderBy(x => x.Id),
             "createdby" => isDesc ? query.OrderByDescending(x => x.CreatedBy) : query.OrderBy(x => x.CreatedBy),
             "createddate" => isDesc ? query.OrderByDescending(x => x.CreatedDate) : query.OrderBy(x => x.CreatedDate),
-            _ => isDesc ? query.OrderByDescending(x => x.CreatedDate) : query.OrderBy(x => x.CreatedDate)
+            _ => query.OrderByDescending(x => x.PoDate).ThenByDescending(x => x.Id)
         };
 
         // STEP 3: Optimized Data Fetch (Fetch only required items)
