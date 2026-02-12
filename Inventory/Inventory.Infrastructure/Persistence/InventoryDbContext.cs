@@ -51,11 +51,11 @@ public sealed class InventoryDbContext : DbContext,
             builder.Metadata.FindNavigation(nameof(PurchaseOrder.Items))
                 ?.SetPropertyAccessMode(PropertyAccessMode.Field);
 
-            // One-to-Many Relationship
+            // One-to-Many Relationship (Fixed mapping to avoid shadow property PurchaseOrderId1)
             builder.HasMany(x => x.Items)
-                   .WithOne()
+                   .WithOne(x => x.PurchaseOrder) // Back navigation specify ki taaki duplicate FK na bane
                    .HasForeignKey(x => x.PurchaseOrderId)
-                   .OnDelete(DeleteBehavior.Cascade);
+                   .OnDelete(DeleteBehavior.ClientCascade); // SQL Server cascade cycle error se bachne ke liye ClientCascade use karein
         });
 
         // Configuration for PurchaseReturn
@@ -98,13 +98,7 @@ public sealed class InventoryDbContext : DbContext,
                   .OnDelete(DeleteBehavior.NoAction); // Cascade ki jagah NoAction use karein
         });
 
-        modelBuilder.Entity<PurchaseOrderItem>(entity =>
-        {
-            entity.HasOne(d => d.PurchaseOrder)
-                  .WithMany(p => p.Items)
-                  .HasForeignKey(d => d.PurchaseOrderId) // Purana ID use karein
-                  .OnDelete(DeleteBehavior.NoAction);     // Cascade Error fix karne ke liye
-        });
+
 
         modelBuilder.Entity<PriceListItem>()
         .HasOne(pi => pi.PriceList)

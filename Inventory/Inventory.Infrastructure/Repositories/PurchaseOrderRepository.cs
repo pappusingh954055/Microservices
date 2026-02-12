@@ -258,8 +258,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<PurchaseOrder> GetByIdAsync(int id)
     {
-        // .Include() tab use karein agar delete se pehle Items ka status check karna ho
-        return await _context.PurchaseOrders.AsNoTracking()
+        return await _context.PurchaseOrders
             .Include(p => p.Items)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
@@ -271,7 +270,8 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<List<PurchaseOrder>> GetByIdsAsync(List<int> ids)
     {
-        return await _context.PurchaseOrders.AsNoTracking()
+        return await _context.PurchaseOrders
+            .Include(x => x.Items)
             .Where(x => ids.Contains(x.Id))
             .ToListAsync();
     }
