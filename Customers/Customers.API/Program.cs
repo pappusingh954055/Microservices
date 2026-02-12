@@ -1,11 +1,12 @@
+using Customers.Application;
+using Customers.Infrastructure;
+using Customers.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 using System.Text.Json;
-using Customers.Infrastructure;
-using Customers.Application;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -77,6 +78,12 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 
 app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CustomerDbContext>();
+    db.Database.Migrate(); // applies migrations, creates DB if not exists
+}
 
 app.MapControllers();
 

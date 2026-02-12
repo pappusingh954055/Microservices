@@ -67,6 +67,12 @@ app.UseAuthentication();
 
 app.UseAuthorization();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<SupplierDbContext>();
+    db.Database.Migrate(); // applies migrations, creates DB if not exists
+}
+
 app.MapControllers();
 
 app.Run();

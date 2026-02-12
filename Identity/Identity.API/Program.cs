@@ -3,6 +3,7 @@ using FluentValidation.AspNetCore;
 using Identity.API.Extensions;
 using Identity.Application.Interfaces;
 using Identity.Infrastructure;
+using Identity.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -76,11 +77,11 @@ app.UseAuthorization();
 
 app.UseHttpsRedirection();
 
-//using (var scope = app.Services.CreateScope())
-//{
-//    var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-//    db.Database.Migrate(); // applies migrations, creates DB if not exists
-//}
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+    db.Database.Migrate(); // applies migrations, creates DB if not exists
+}
 
 
 app.MapControllers();

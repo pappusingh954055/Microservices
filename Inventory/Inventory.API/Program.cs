@@ -1,6 +1,7 @@
 using Inventory.API.Helper;
 using Inventory.Application;
 using Inventory.Infrastructure;
+using Inventory.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -20,20 +21,22 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 builder.Services.AddHttpClient("CustomerService", client =>
 {
-    // Yahan aapke Customers.API ka localhost URL aayega
-    client.BaseAddress = new Uri("https://localhost:7173/");
+    var url = builder.Configuration["ServiceUrls:CustomerApi"] ?? "https://localhost:7173/";
+    client.BaseAddress = new Uri(url);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
 builder.Services.AddHttpClient("SupplierServiceClient", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7224/"); // Aapki service ka URL
+    var url = builder.Configuration["ServiceUrls:SupplierApi"] ?? "https://localhost:7224/";
+    client.BaseAddress = new Uri(url);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
 builder.Services.AddHttpClient("CompanyService", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7065/"); // Company API URL
+    var url = builder.Configuration["ServiceUrls:CompanyApi"] ?? "https://localhost:7065/";
+    client.BaseAddress = new Uri(url);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
@@ -92,6 +95,12 @@ app.UseMiddleware<Inventory.API.Middleware.ExceptionHandlingMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
+    db.Database.Migrate(); // applies migrations, creates DB if not exists
+}
 
 app.MapControllers();
 

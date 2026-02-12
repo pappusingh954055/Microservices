@@ -1,0 +1,93 @@
+version: '3.4'
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=Anand@raj12345
+    ports:
+      - "1433:1433"
+
+  gateway.api:
+    image: gatewayapi
+    build:
+      context: .
+      dockerfile: Gateway/Gateway.API/Dockerfile
+    ports:
+      - "5000:8080"
+    depends_on:
+      - identity.api
+      - customers.api
+      - inventory.api
+      - suppliers.api
+      - company.api
+
+  identity.api:
+    image: identityapi
+    build:
+      context: .
+      dockerfile: Identity/Identity.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__IdentityDb=Server=sqlserver;Database=IdentityDb;user id=sa;password=Anand@raj12345;TrustServerCertificate=True
+    depends_on:
+      - sqlserver
+
+  customers.api:
+    image: customersapi
+    build:
+      context: .
+      dockerfile: Customers/Customers.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CustomersDb=Server=sqlserver;Database=CustomersDb;user id=sa;password=Anand@raj12345;TrustServerCertificate=True
+    depends_on:
+      - sqlserver
+
+  inventory.api:
+    image: inventoryapi
+    build:
+      context: .
+      dockerfile: Inventory/Inventory.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__InventoryDb=Server=sqlserver;Database=InventoryDb;user id=sa;password=Anand@raj12345;TrustServerCertificate=True
+      - ServiceUrls__CustomerApi=http://customers.api:8080/
+      - ServiceUrls__SupplierApi=http://suppliers.api:8080/
+      - ServiceUrls__CompanyApi=http://company.api:8080/
+    depends_on:
+      - sqlserver
+
+  suppliers.api:
+    image: suppliersapi
+    build:
+      context: .
+      dockerfile: Suppliers/Suppliers.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__SupplierDb=Server=sqlserver;Database=SupplierDb;user id=sa;password=Anand@raj12345;TrustServerCertificate=True
+    depends_on:
+      - sqlserver
+
+  company.api:
+    image: companyapi
+    build:
+      context: .
+      dockerfile: company/Company.API/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__CompanyDb=Server=sqlserver;Database=CompanyDb;user id=sa;password=Anand@raj12345;TrustServerCertificate=True
+    depends_on:
+      - sqlserver
+
+  electric-ui:
+    image: electricui
+    build:
+      context: ../../ElectricApps
+      dockerfile: Dockerfile
+    ports:
+      - "4201:80"
+    restart: always
+    depends_on:
+      - gateway.api

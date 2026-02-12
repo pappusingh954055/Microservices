@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Security.Claims;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -78,6 +79,12 @@ app.UseHttpsRedirection();
 // Security Middleware
 app.UseAuthentication();
 app.UseAuthorization();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<CompanyDbContext>();
+    db.Database.Migrate(); // applies migrations, creates DB if not exists
+}
 
 app.MapControllers();
 
