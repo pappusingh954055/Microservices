@@ -308,6 +308,21 @@ namespace Inventory.API.Controllers
             var file = _converter.Convert(pdf);
             return File(file, "application/pdf", $"LowStockReport_{DateTime.Now:yyyyMMdd}.pdf");
         }
+
+        [HttpPost("upload-excel")]
+        [Authorize(Roles = "Manager, Admin")]
+        public async Task<IActionResult> UploadExcel(IFormFile file)
+        {
+            if (file == null || file.Length == 0) return BadRequest("Please upload an excel file.");
+
+            var result = await _productRepository.UploadProductsAsync(file);
+
+            return Ok(new
+            {
+                Message = $"{result.successCount} Products uploaded successfully.",
+                Errors = result.errors
+            });
+        }
     }
 }
 

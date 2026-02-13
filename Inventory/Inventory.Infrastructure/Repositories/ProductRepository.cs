@@ -1,8 +1,10 @@
-﻿using DocumentFormat.OpenXml.InkML;
+﻿using ClosedXML.Excel;
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Products.DTOs;
 using Inventory.Application.Stock;
+using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
 namespace Inventory.Infrastructure.Repositories;
@@ -213,5 +215,183 @@ public sealed class ProductRepository : IProductRepository
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
+    }
+    public async Task<(int successCount, List<string> errors)> UploadProductsAsync(IFormFile file)
+    {
+        var errors = new List<string>();
+        int successCount = 0;
+
+        using (var stream = new MemoryStream())
+        {
+            await file.CopyToAsync(stream);
+            using (var workbook = new XLWorkbook(stream))
+            {
+                var worksheet = workbook.Worksheet(1);
+                var rows = worksheet.RangeUsed().RowsUsed();
+
+                // 1. Header Validation
+                var headerRow = rows.FirstOrDefault();
+                if (headerRow == null)
+                {
+                    errors.Add("Invalid Template: File is empty.");
+                    return (0, errors);
+                }
+
+                var expectedHeaders = new List<string> { 
+                    "Category", "Subcategory", "ProductName", "SKU", "Brand", "Unit", 
+                    "BasePrice", "MRP", "SaleRate", "GST%", "HSNCode", "MinStock", 
+                    "DamagedStock", "ProductType", "TrackInventory", "Active", "Description" 
+                };
+                
+                var actualHeaders = new List<string>();
+                for (int i = 1; i <= 17; i++)
+                {
+                    actualHeaders.Add(headerRow.Cell(i).Value.ToString()?.Trim());
+                }
+
+                if (!expectedHeaders.SequenceEqual(actualHeaders))
+                {
+                    errors.Add($"Invalid Template: Headers mismatch. Expected: {string.Join(", ", expectedHeaders)}");
+                    return (0, errors);
+                }
+
+                var dataRows = rows.Skip(1);
+
+                // 2. Pre-fetch Categories and Subcategories for faster lookup
+                var categories = await _db.Categories.AsNoTracking().ToDictionaryAsync(c => c.CategoryName.ToLower().Trim(), c => c.Id);
+                var subcats = await _db.Subcategories.AsNoTracking().Select(s => new { s.Id, s.SubcategoryName, s.CategoryId }).ToListAsync();
+                
+                // 3. Pre-fetch existing products for duplicate check
+                var products = await _db.Products.AsNoTracking().Select(p => new { p.Name, p.Sku }).ToListAsync();
+                var dbNameSet = new HashSet<string>(products.Select(p => p.Name.ToLower().Trim()));
+                var dbSkuSet = new HashSet<string>(products.Where(p => !string.IsNullOrEmpty(p.Sku)).Select(p => p.Sku.ToLower().Trim()));
+
+                // In-file duplicate tracking
+                var fileNames = new HashSet<string>();
+                var fileSkus = new HashSet<string>();
+
+                var newProducts = new List<Product>();
+
+                foreach (var row in dataRows)
+                {
+                    int rowNum = row.RowNumber();
+                    try
+                    {
+                        var catName = row.Cell(1).Value.ToString()?.Trim();
+                        var subName = row.Cell(2).Value.ToString()?.Trim();
+                        var name = row.Cell(3).Value.ToString()?.Trim();
+                        var sku = row.Cell(4).Value.ToString()?.Trim();
+                        var brand = row.Cell(5).Value.ToString()?.Trim();
+                        var unit = row.Cell(6).Value.ToString()?.Trim();
+                        var basePriceVal = row.Cell(7).Value;
+                        var mrpVal = row.Cell(8).Value;
+                        var saleRateVal = row.Cell(9).Value;
+                        var gstVal = row.Cell(10).Value;
+                        var hsn = row.Cell(11).Value.ToString()?.Trim();
+                        var minStockVal = row.Cell(12).Value;
+                        var damagedStockVal = row.Cell(13).Value;
+                        var pType = row.Cell(14).Value.ToString()?.Trim();
+                        var trackInv = row.Cell(15).Value.ToString()?.Trim().ToUpper() == "TRUE";
+                        var active = row.Cell(16).Value.ToString()?.Trim().ToUpper() == "TRUE";
+                        var desc = row.Cell(17).Value.ToString()?.Trim();
+
+                        // Skip Empty Rows
+                        if (string.IsNullOrWhiteSpace(name) && string.IsNullOrWhiteSpace(catName)) continue;
+
+                        // Validation
+                        if (string.IsNullOrWhiteSpace(name)) { errors.Add($"Row {rowNum}: ProductName is required."); continue; }
+                        if (string.IsNullOrWhiteSpace(catName)) { errors.Add($"Row {rowNum}: Category is required."); continue; }
+                        if (string.IsNullOrWhiteSpace(subName)) { errors.Add($"Row {rowNum}: Subcategory is required."); continue; }
+                        if (string.IsNullOrWhiteSpace(unit)) { errors.Add($"Row {rowNum}: Unit is required."); continue; }
+
+                        // Category Lookup
+                        if (!categories.TryGetValue(catName.ToLower(), out var catId))
+                        {
+                            errors.Add($"Row {rowNum}: Category '{catName}' not found.");
+                            continue;
+                        }
+
+                        // Subcategory Lookup (must belong to the category)
+                        var subInfo = subcats.FirstOrDefault(s => s.SubcategoryName.ToLower().Trim() == subName.ToLower() && s.CategoryId == catId);
+                        if (subInfo == null)
+                        {
+                            errors.Add($"Row {rowNum}: Subcategory '{subName}' not found or doesn't belong to Category '{catName}'.");
+                            continue;
+                        }
+
+                        // Duplicate Check
+                        if (fileNames.Contains(name.ToLower())) { errors.Add($"Row {rowNum}: Duplicate Product Name '{name}' in file."); continue; }
+                        if (dbNameSet.Contains(name.ToLower())) { errors.Add($"Row {rowNum}: Product Name '{name}' already exists in DB."); continue; }
+                        
+                        if (!string.IsNullOrEmpty(sku))
+                        {
+                            if (fileSkus.Contains(sku.ToLower())) { errors.Add($"Row {rowNum}: Duplicate SKU '{sku}' in file."); continue; }
+                            if (dbSkuSet.Contains(sku.ToLower())) { errors.Add($"Row {rowNum}: SKU '{sku}' already exists in DB."); continue; }
+                            fileSkus.Add(sku.ToLower());
+                        }
+                        fileNames.Add(name.ToLower());
+
+                        // Parsing
+                        decimal basePrice = 0, mrp = 0, saleRate = 0, gst = 0, damagedStock = 0;
+                        int minStock = 0;
+
+                        if (!basePriceVal.IsBlank) decimal.TryParse(basePriceVal.ToString(), out basePrice);
+                        if (!mrpVal.IsBlank) decimal.TryParse(mrpVal.ToString(), out mrp);
+                        if (!saleRateVal.IsBlank) decimal.TryParse(saleRateVal.ToString(), out saleRate);
+                        if (!gstVal.IsBlank) decimal.TryParse(gstVal.ToString(), out gst);
+                        if (!damagedStockVal.IsBlank) decimal.TryParse(damagedStockVal.ToString(), out damagedStock);
+                        if (!minStockVal.IsBlank) int.TryParse(minStockVal.ToString(), out minStock);
+
+                        // Product Type Mapping
+                        string mappedType = pType?.ToLower() switch
+                        {
+                            "finished" => "1",
+                            "goods" => "2",
+                            "raw material" => "3",
+                            _ => "1"
+                        };
+
+                        var product = new Product(
+                            catId,
+                            subInfo.Id,
+                            name,
+                            sku ?? "",
+                            brand ?? "",
+                            unit,
+                            hsn ?? "",
+                            basePrice,
+                            mrp,
+                            gst,
+                            minStock,
+                            trackInv,
+                            active,
+                            desc,
+                            "BulkUpload",
+                            saleRate,
+                            mappedType,
+                            damagedStock
+                        );
+
+                        newProducts.Add(product);
+                        successCount++;
+                    }
+                    catch (Exception ex)
+                    {
+                        errors.Add($"Row {rowNum}: Fatal Error - {ex.Message}");
+                    }
+                }
+
+                if (newProducts.Any())
+                {
+                    await _db.Products.AddRangeAsync(newProducts);
+                    await _db.SaveChangesAsync();
+                }
+                else if (!errors.Any())
+                {
+                    errors.Add("No valid rows found in the file.");
+                }
+            }
+        }
+        return (successCount, errors);
     }
 }

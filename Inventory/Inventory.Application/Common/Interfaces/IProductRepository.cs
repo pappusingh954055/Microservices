@@ -30,4 +30,6 @@ public interface IProductRepository
     Task<List<ExcelExportDto>> GetLowStockExportDataAsync();
 
     Task<List<StockMovementDto>> GetRecentMovementsPagedAsync(int pageNumber, int pageSize);
+
+    Task<(int successCount, List<string> errors)> UploadProductsAsync(Microsoft.AspNetCore.Http.IFormFile file);
 }
