@@ -39,6 +39,8 @@ public sealed class GetProductByIdQueryHandler
             isActive = p.IsActive,
             description = p.Description,
             createdBy = p.CreatedBy,
+            damagedStock = p.DamagedStock,
+            productType = int.TryParse(p.ProductType, out var type) ? type : 1
         };
     }
 }

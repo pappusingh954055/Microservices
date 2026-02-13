@@ -63,34 +63,61 @@ internal sealed class GetProductsPagedQueryHandler
 
         var totalCount = await query.CountAsync(cancellationToken);
 
-        var items = await query
+        var itemsData = await query
             .Skip((request.Request.PageNumber - 1) * request.Request.PageSize)
             .Take(request.Request.PageSize)
-            .Select(p => new ProductDto
+            .Select(p => new
             {
-                id = p.Id,
-                categoryId = p.CategoryId,               
-                categoryName= p.Category.CategoryName,
-                subcategoryId = p.SubcategoryId,
-                subcategoryName=p.Subcategory.SubcategoryName,
-                sku = p.Sku,
-                saleRate = p.SaleRate,
-                productName = p.Name,
-                unit = p.Unit,
-                hsnCode = p.HSNCode,
-                minStock = p.MinStock,
-                basePurchasePrice = p.BasePurchasePrice,
-                currentStock=p.CurrentStock,
-                damagedStock=p.DamagedStock,
-                defaultGst = p.DefaultGst,
-                description = p.Description,
-                createdBy = p.CreatedBy,
-                createdOn = p.CreatedOn,
-                modifiedBy = p.ModifiedBy,
-                modifiedOn= p.ModifiedOn,   
-                trackInventory = p.TrackInventory
+                p.Id,
+                p.CategoryId,
+                CategoryName = p.Category.CategoryName,
+                p.SubcategoryId,
+                SubcategoryName = p.Subcategory.SubcategoryName,
+                p.Sku,
+                p.SaleRate,
+                p.Name,
+                p.Unit,
+                p.HSNCode,
+                p.MinStock,
+                p.BasePurchasePrice,
+                p.CurrentStock,
+                p.DamagedStock,
+                p.DefaultGst,
+                p.Description,
+                p.CreatedBy,
+                p.CreatedOn,
+                p.ModifiedBy,
+                p.ModifiedOn,
+                p.TrackInventory,
+                p.ProductType
             })
             .ToListAsync(cancellationToken);
+
+        var items = itemsData.Select(p => new ProductDto
+        {
+            id = p.Id,
+            categoryId = p.CategoryId,
+            categoryName = p.CategoryName,
+            subcategoryId = p.SubcategoryId,
+            subcategoryName = p.SubcategoryName,
+            sku = p.Sku,
+            saleRate = p.SaleRate,
+            productName = p.Name,
+            unit = p.Unit,
+            hsnCode = p.HSNCode,
+            minStock = p.MinStock,
+            basePurchasePrice = p.BasePurchasePrice,
+            currentStock = p.CurrentStock,
+            damagedStock = p.DamagedStock,
+            defaultGst = p.DefaultGst,
+            productType = int.TryParse(p.ProductType, out var type) ? type : 1,
+            description = p.Description,
+            createdBy = p.CreatedBy,
+            createdOn = p.CreatedOn,
+            modifiedBy = p.ModifiedBy,
+            modifiedOn = p.ModifiedOn,
+            trackInventory = p.TrackInventory
+        }).ToList();
 
         return new GridResponse<ProductDto>(items, totalCount);
     }
