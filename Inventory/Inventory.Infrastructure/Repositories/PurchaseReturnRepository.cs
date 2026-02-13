@@ -91,89 +91,93 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
     public async Task<bool> CreatePurchaseReturnAsync(PurchaseReturn returnData)
     {
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            // 1. Unique ID aur Return Number generate karein [cite: 2026-02-04]
-            if (returnData.Id == Guid.Empty) returnData.Id = Guid.NewGuid();
-            returnData.ReturnNumber = $"PR-{DateTime.Now:yyyyMMddHHmmss}";
-
-            decimal totalHeaderTax = 0;
-            decimal totalHeaderSubTotal = 0;
-
-            foreach (var item in returnData.Items)
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
             {
-                // 2. Precise GRN Detail fetch using Product and Ref [cite: 2026-02-04]
-                var grnDetail = await _context.GRNDetails
-                    .Include(gd => gd.GRNHeader)
-                    .FirstOrDefaultAsync(gd => gd.ProductId == item.ProductId
-                                         && gd.GRNHeader.GRNNumber == item.GrnRef);
+                // 1. Unique ID aur Return Number generate karein [cite: 2026-02-04]
+                if (returnData.Id == Guid.Empty) returnData.Id = Guid.NewGuid();
+                returnData.ReturnNumber = $"PR-{DateTime.Now:yyyyMMddHHmmss}";
 
-                if (grnDetail == null) throw new Exception($"GRN not found for {item.GrnRef}");
+                decimal totalHeaderTax = 0;
+                decimal totalHeaderSubTotal = 0;
 
-                // 3. Validation: Return hamesha rejected stock se hona chahiye [cite: 2026-02-04]
-                if (item.ReturnQty <= 0) throw new Exception("Qty must be > 0");
-                if (item.ReturnQty > grnDetail.RejectedQty)
-                    throw new Exception($"Cannot return more than rejected: {grnDetail.RejectedQty}");
-
-                // 4. Financials mapping from PO
-                var poItem = await _context.PurchaseOrderItems
-                    .FirstOrDefaultAsync(poi => poi.ProductId == item.ProductId);
-
-                if (poItem != null)
+                foreach (var item in returnData.Items)
                 {
-                    item.GstPercent = poItem.GstPercent;
-                    item.DiscountPercent = poItem.DiscountPercent;
+                    // 2. Precise GRN Detail fetch using Product and Ref [cite: 2026-02-04]
+                    var grnDetail = await _context.GRNDetails
+                        .Include(gd => gd.GRNHeader)
+                        .FirstOrDefaultAsync(gd => gd.ProductId == item.ProductId
+                                             && gd.GRNHeader.GRNNumber == item.GrnRef);
 
-                    decimal baseAmount = item.ReturnQty * item.Rate;
-                    decimal discountAmt = baseAmount * (item.DiscountPercent / 100);
-                    decimal taxableAmount = baseAmount - discountAmt;
-                    decimal itemTax = taxableAmount * (item.GstPercent / 100);
+                    if (grnDetail == null) throw new Exception($"GRN not found for {item.GrnRef}");
 
-                    item.TaxAmount = itemTax;
-                    item.TotalAmount = taxableAmount + itemTax;
+                    // 3. Validation: Return hamesha rejected stock se hona chahiye [cite: 2026-02-04]
+                    if (item.ReturnQty <= 0) throw new Exception("Qty must be > 0");
+                    if (item.ReturnQty > grnDetail.RejectedQty)
+                        throw new Exception($"Cannot return more than rejected: {grnDetail.RejectedQty}");
 
-                    totalHeaderSubTotal += taxableAmount;
-                    totalHeaderTax += itemTax;
+                    // 4. Financials mapping from PO
+                    var poItem = await _context.PurchaseOrderItems
+                        .FirstOrDefaultAsync(poi => poi.ProductId == item.ProductId);
+
+                    if (poItem != null)
+                    {
+                        item.GstPercent = poItem.GstPercent;
+                        item.DiscountPercent = poItem.DiscountPercent;
+
+                        decimal baseAmount = item.ReturnQty * item.Rate;
+                        decimal discountAmt = baseAmount * (item.DiscountPercent / 100);
+                        decimal taxableAmount = baseAmount - discountAmt;
+                        decimal itemTax = taxableAmount * (item.GstPercent / 100);
+
+                        item.TaxAmount = itemTax;
+                        item.TotalAmount = taxableAmount + itemTax;
+
+                        totalHeaderSubTotal += taxableAmount;
+                        totalHeaderTax += itemTax;
+                    }
+
+                    // 5. STOCK LOGIC FIX (Important) [cite: 2026-02-04]
+                    grnDetail.ReceivedQty -= item.ReturnQty;
+                    grnDetail.RejectedQty -= item.ReturnQty;
+
+                    if (grnDetail.ReceivedQty < 0) grnDetail.ReceivedQty = 0;
+                    if (grnDetail.RejectedQty < 0) grnDetail.RejectedQty = 0;
+
+                    // ========================================================
+                    // ADDITIONAL LOGIC: UPDATE PRODUCT CURRENT STOCK
+                    // ========================================================
+                    // Dashboard par "Current Stock" isi Products table se aata hai
+                    var product = await _context.Products
+                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+                    if (product != null)
+                    {
+                        // Purchase Return = Stock warehouse se kam hoga (-)
+                        product.CurrentStock -= item.ReturnQty;
+                    }
+                    // ========================================================
                 }
 
-                // 5. STOCK LOGIC FIX (Important) [cite: 2026-02-04]
-                grnDetail.ReceivedQty -= item.ReturnQty;
-                grnDetail.RejectedQty -= item.ReturnQty;
+                // 6. Header Totals Update
+                returnData.SubTotal = totalHeaderSubTotal;
+                returnData.TotalTax = totalHeaderTax;
+                returnData.GrandTotal = totalHeaderSubTotal + totalHeaderTax;
 
-                if (grnDetail.ReceivedQty < 0) grnDetail.ReceivedQty = 0;
-                if (grnDetail.RejectedQty < 0) grnDetail.RejectedQty = 0;
-
-                // ========================================================
-                // ADDITIONAL LOGIC: UPDATE PRODUCT CURRENT STOCK
-                // ========================================================
-                // Dashboard par "Current Stock" isi Products table se aata hai
-                var product = await _context.Products
-                    .FirstOrDefaultAsync(p => p.Id == item.ProductId);
-
-                if (product != null)
-                {
-                    // Purchase Return = Stock warehouse se kam hoga (-)
-                    product.CurrentStock -= item.ReturnQty;
-                }
-                // ========================================================
+                _context.PurchaseReturns.Add(returnData);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
             }
-
-            // 6. Header Totals Update
-            returnData.SubTotal = totalHeaderSubTotal;
-            returnData.TotalTax = totalHeaderTax;
-            returnData.GrandTotal = totalHeaderSubTotal + totalHeaderTax;
-
-            _context.PurchaseReturns.Add(returnData);
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return true;
-        }
-        catch (Exception ex)
-        {
-            await transaction.RollbackAsync();
-            return false;
-        }
+            catch (Exception ex)
+            {
+                await transaction.RollbackAsync();
+                return false;
+            }
+        });
     }
 
 

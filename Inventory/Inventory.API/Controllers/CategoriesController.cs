@@ -26,7 +26,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Manager,Admin, User")]
+        [Authorize(Roles = "Manager,Admin, User,Employee")]
         public async Task<IActionResult> Create(CreateCategoryCommand command)
         {
             var id = await _mediator.Send(command);

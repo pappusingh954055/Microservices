@@ -134,60 +134,64 @@ namespace Inventory.Infrastructure.Repositories
 
         public async Task<bool> CreateSaleReturnAsync(SaleReturnHeader header)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-
-                decimal calculatedSubTotal = 0;
-                decimal calculatedTaxAmount = 0;
-
-
-                foreach (var item in header.ReturnItems)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
 
-                    decimal itemSubTotal = item.ReturnQty * item.UnitPrice;
-                    decimal itemTax = itemSubTotal * (item.TaxPercentage / 100m);
+                    decimal calculatedSubTotal = 0;
+                    decimal calculatedTaxAmount = 0;
 
 
-                    item.TaxAmount = itemTax;
-                    item.TotalAmount = itemSubTotal + itemTax;
-                    item.CreatedOn = DateTime.Now;
-
-
-                    calculatedSubTotal += itemSubTotal;
-                    calculatedTaxAmount += itemTax;
-
-
-                    var product = await _context.Products.FindAsync(item.ProductId);
-                    if (product != null)
+                    foreach (var item in header.ReturnItems)
                     {
-                        // Sales Return = Increase Current Stock
-                        product.CurrentStock += item.ReturnQty;
-                        product.ModifiedOn = DateTime.Now;
-                        product.ModifiedBy = header.CreatedBy ?? "system";
+
+                        decimal itemSubTotal = item.ReturnQty * item.UnitPrice;
+                        decimal itemTax = itemSubTotal * (item.TaxPercentage / 100m);
+
+
+                        item.TaxAmount = itemTax;
+                        item.TotalAmount = itemSubTotal + itemTax;
+                        item.CreatedOn = DateTime.Now;
+
+
+                        calculatedSubTotal += itemSubTotal;
+                        calculatedTaxAmount += itemTax;
+
+
+                        var product = await _context.Products.FindAsync(item.ProductId);
+                        if (product != null)
+                        {
+                            // Sales Return = Increase Current Stock
+                            product.CurrentStock += item.ReturnQty;
+                            product.ModifiedOn = DateTime.Now;
+                            product.ModifiedBy = header.CreatedBy ?? "system";
+                        }
                     }
+
+                    // 3. Header table columns update (0.00 fix karne ke liye)
+                    header.SubTotal = calculatedSubTotal;
+                    header.TaxAmount = calculatedTaxAmount;
+                    header.DiscountAmount = header.DiscountAmount;
+                    // TotalAmount final sync
+                    header.TotalAmount = calculatedSubTotal + calculatedTaxAmount - (header.DiscountAmount);
+                    header.CreatedOn = DateTime.Now;
+
+                    // 4. Save Sale Return
+                    _context.SaleReturnHeaders.Add(header);
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return true;
                 }
-
-                // 3. Header table columns update (0.00 fix karne ke liye)
-                header.SubTotal = calculatedSubTotal;
-                header.TaxAmount = calculatedTaxAmount;
-                header.DiscountAmount = header.DiscountAmount;
-                // TotalAmount final sync
-                header.TotalAmount = calculatedSubTotal + calculatedTaxAmount - (header.DiscountAmount);
-                header.CreatedOn = DateTime.Now;
-
-                // 4. Save Sale Return
-                _context.SaleReturnHeaders.Add(header);
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return true;
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync();
-                return false;
-            }
+                catch (Exception)
+                {
+                    await transaction.RollbackAsync();
+                    return false;
+                }
+            });
         }
 
         public async Task<decimal> GetRemainingReturnableQtyAsync(int saleOrderId, Guid productId)

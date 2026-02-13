@@ -117,115 +117,119 @@ namespace Inventory.Infrastructure.Repositories
                 throw new Exception("Purchase Order Reference is missing. Cannot save GRN.");
             }
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                // --- FIX: Fetch SupplierId from Purchase Order to avoid '0' in DB ---
-                // Include Items taaki niche ReceivedQty update ho sake
-                var po = await _context.PurchaseOrders
-                                       .Include(p => p.Items)
-                                       .FirstOrDefaultAsync(p => p.Id == header.PurchaseOrderId);
-
-                if (po != null)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    header.SupplierId = po.SupplierId; // PO se asali SupplierId utha liya
-                }
+                    // --- FIX: Fetch SupplierId from Purchase Order to avoid '0' in DB ---
+                    // Include Items taaki niche ReceivedQty update ho sake
+                    var po = await _context.PurchaseOrders
+                                           .Include(p => p.Items)
+                                           .FirstOrDefaultAsync(p => p.Id == header.PurchaseOrderId);
 
-                // 2. Header Setup - Existing Logic
-                header.Status = "Received";
-                header.CreatedOn = DateTime.Now;
-                header.CreatedBy = header.CreatedBy;
-                header.ModifiedBy = header.ModifiedBy;
-
-                if (string.IsNullOrEmpty(header.GRNNumber) || header.GRNNumber == "AUTO-GEN")
-                {
-                    header.GRNNumber = await GenerateGRNNumber();
-                }
-
-                await _context.GRNHeaders.AddAsync(header);
-                await _context.SaveChangesAsync();
-
-                // 3. Batch Fetch Products (Optimization)
-                var productIds = details.Select(d => d.ProductId).ToList();
-                var products = await _context.Products
-                                             .Where(p => productIds.Contains(p.Id))
-                                             .ToListAsync();
-
-                // 4. Detail Mapping & Stock Update
-                foreach (var item in details)
-                {
-                    item.GRNHeaderId = header.Id;
-                    item.CreatedOn = DateTime.Now;
-                    item.UpdatedOn = DateTime.Now;
-
-                    await _context.GRNDetails.AddAsync(item);
-
-                    var product = products.FirstOrDefault(p => p.Id == item.ProductId);
-                    if (product != null)
-                    {
-                        // Existing Stock Update Logic
-                        product.CurrentStock += item.ReceivedQty;
-                        product.CreatedOn = DateTime.Now;
-                        product.CreatedBy = header.CreatedBy;
-                        _context.Products.Update(product);
-
-                        // --- NEW: LOW STOCK ALERT TRIGGER START ---
-                        if (product.CurrentStock <= product.MinStock)
-                        {
-                            bool alreadyNotified = await _context.AppNotifications
-                                .AnyAsync(n => n.Title.Contains(product.Name) && !n.IsRead && n.Type == "Inventory");
-
-                            if (!alreadyNotified)
-                            {
-                                await _notificationRepository.AddNotificationAsync(
-                                    "Low Stock Alert",
-                                    $"Item '{product.Name}' is low. Current: {product.CurrentStock}, Min: {product.MinStock}",
-                                    "Inventory",
-                                    "/app/inventory/current-stock"
-                                );
-                            }
-                        }
-                        // --- NEW: LOW STOCK ALERT TRIGGER END ---
-                    }
-
-                    // --- EXTRA LOGIC: Update PurchaseOrderItem Received Qty ---
                     if (po != null)
                     {
-                        var poItem = po.Items.FirstOrDefault(pi => pi.ProductId == item.ProductId);
-                        if (poItem != null)
+                        header.SupplierId = po.SupplierId; // PO se asali SupplierId utha liya
+                    }
+
+                    // 2. Header Setup - Existing Logic
+                    header.Status = "Received";
+                    header.CreatedOn = DateTime.Now;
+                    header.CreatedBy = header.CreatedBy;
+                    header.ModifiedBy = header.ModifiedBy;
+
+                    if (string.IsNullOrEmpty(header.GRNNumber) || header.GRNNumber == "AUTO-GEN")
+                    {
+                        header.GRNNumber = await GenerateGRNNumber();
+                    }
+
+                    await _context.GRNHeaders.AddAsync(header);
+                    await _context.SaveChangesAsync();
+
+                    // 3. Batch Fetch Products (Optimization)
+                    var productIds = details.Select(d => d.ProductId).ToList();
+                    var products = await _context.Products
+                                                 .Where(p => productIds.Contains(p.Id))
+                                                 .ToListAsync();
+
+                    // 4. Detail Mapping & Stock Update
+                    foreach (var item in details)
+                    {
+                        item.GRNHeaderId = header.Id;
+                        item.CreatedOn = DateTime.Now;
+                        item.UpdatedOn = DateTime.Now;
+
+                        await _context.GRNDetails.AddAsync(item);
+
+                        var product = products.FirstOrDefault(p => p.Id == item.ProductId);
+                        if (product != null)
                         {
-                            // Existing ReceivedQty mein current GRN ki qty add kar rahe hain
-                            poItem.ReceivedQty = (poItem.ReceivedQty) + item.ReceivedQty;
-                            _context.PurchaseOrderItems.Update(poItem);
+                            // Existing Stock Update Logic
+                            product.CurrentStock += item.ReceivedQty;
+                            product.CreatedOn = DateTime.Now;
+                            product.CreatedBy = header.CreatedBy;
+                            _context.Products.Update(product);
+
+                            // --- NEW: LOW STOCK ALERT TRIGGER START ---
+                            if (product.CurrentStock <= product.MinStock)
+                            {
+                                bool alreadyNotified = await _context.AppNotifications
+                                    .AnyAsync(n => n.Title.Contains(product.Name) && !n.IsRead && n.Type == "Inventory");
+
+                                if (!alreadyNotified)
+                                {
+                                    await _notificationRepository.AddNotificationAsync(
+                                        "Low Stock Alert",
+                                        $"Item '{product.Name}' is low. Current: {product.CurrentStock}, Min: {product.MinStock}",
+                                        "Inventory",
+                                        "/app/inventory/current-stock"
+                                    );
+                                }
+                            }
+                            // --- NEW: LOW STOCK ALERT TRIGGER END ---
+                        }
+
+                        // --- EXTRA LOGIC: Update PurchaseOrderItem Received Qty ---
+                        if (po != null)
+                        {
+                            var poItem = po.Items.FirstOrDefault(pi => pi.ProductId == item.ProductId);
+                            if (poItem != null)
+                            {
+                                // Existing ReceivedQty mein current GRN ki qty add kar rahe hain
+                                poItem.ReceivedQty = (poItem.ReceivedQty) + item.ReceivedQty;
+                                _context.PurchaseOrderItems.Update(poItem);
+                            }
                         }
                     }
-                }
 
-                // --- EXTRA LOGIC: Auto Update PO Status if fully received ---
-                if (po != null && po.Items.All(i => (i.ReceivedQty) >= i.Qty))
+                    // --- EXTRA LOGIC: Auto Update PO Status if fully received ---
+                    if (po != null && po.Items.All(i => (i.ReceivedQty) >= i.Qty))
+                    {
+                        po.Status = "Received";
+                        _context.PurchaseOrders.Update(po);
+                    }
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // --- NOTIFICATION TRIGGER: GOODS RECEIVED ---
+                    await _notificationRepository.AddNotificationAsync(
+                        "Goods Received",
+                        $"Inventory updated for PO #{po?.PoNumber ?? header.PurchaseOrderId.ToString()}. GRN {header.GRNNumber} generated successfully.",
+                        "Inventory",
+                        "/app/inventory/grn-list"
+                    );
+
+                    return header.GRNNumber;
+                }
+                catch (Exception ex)
                 {
-                    po.Status = "Received";
-                    _context.PurchaseOrders.Update(po);
+                    await transaction.RollbackAsync();
+                    throw new Exception($"Error: {ex.Message}");
                 }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                // --- NOTIFICATION TRIGGER: GOODS RECEIVED ---
-                await _notificationRepository.AddNotificationAsync(
-                    "Goods Received",
-                    $"Inventory updated for PO #{po?.PoNumber ?? header.PurchaseOrderId.ToString()}. GRN {header.GRNNumber} generated successfully.",
-                    "Inventory",
-                    "/app/inventory/grn-list"
-                );
-
-                return header.GRNNumber;
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                throw new Exception($"Error: {ex.Message}");
-            }
+            });
         }
 
         public async Task<string> GenerateGRNNumber()
@@ -440,106 +444,110 @@ namespace Inventory.Infrastructure.Repositories
 
         public async Task<bool> CreateBulkGrnFromPoAsync(BulkGrnRequestDto request)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                foreach (var poId in request.PurchaseOrderIds)
+                using var transaction = await _context.Database.BeginTransactionAsync();
+                try
                 {
-                    // 1. PO aur Items fetch karein
-                    var poHeader = await _context.PurchaseOrders
-                        .Include(p => p.Items)
-                        .FirstOrDefaultAsync(p => p.Id == poId && (p.Status == "Approved" || p.Status == "Partially Received"));
-
-                    if (poHeader == null) continue;
-
-                    // 2. Custom function se GRN Number generate karein
-                    string newGrnNumber = await GenerateGRNNumber();
-
-                    // 3. Naya GRN Header create karein
-                    var grnHeader = new GRNHeader
+                    foreach (var poId in request.PurchaseOrderIds)
                     {
-                        GRNNumber = newGrnNumber,
-                        PurchaseOrderId = poId,
-                        SupplierId = poHeader.SupplierId,
-                        ReceivedDate = DateTime.Now,
-                        TotalAmount = poHeader.GrandTotal,
-                        Status = "Received",
-                        Remarks = "Bulk Processed from PO",
-                        CreatedBy = request.CreatedBy,
-                        CreatedOn = DateTime.Now
-                    };
+                        // 1. PO aur Items fetch karein
+                        var poHeader = await _context.PurchaseOrders
+                            .Include(p => p.Items)
+                            .FirstOrDefaultAsync(p => p.Id == poId && (p.Status == "Approved" || p.Status == "Partially Received"));
 
-                    _context.GRNHeaders.Add(grnHeader);
-                    await _context.SaveChangesAsync();
+                        if (poHeader == null) continue;
 
-                    bool isFullPoReceived = true; // Check karne ke liye ki PO complete hua ya nahi
+                        // 2. Custom function se GRN Number generate karein
+                        string newGrnNumber = await GenerateGRNNumber();
 
-                    // 4. PO Items ko map karein, Stock update karein aur ReceivedQty track karein
-                    foreach (var item in poHeader.Items)
-                    {
-                        // Pending check: Kitna aana baaki hai?
-                        decimal pendingForThisItem = item.Qty - (item.ReceivedQty);
-
-                        if (pendingForThisItem <= 0) continue; // Agar ye item poora aa chuka hai toh skip karein
-
-                        // Bulk upload mein hum bacha hua poora maal receive kar rahe hain
-                        decimal qtyToReceiveNow = pendingForThisItem;
-
-                        var grnDetail = new GRNDetail
+                        // 3. Naya GRN Header create karein
+                        var grnHeader = new GRNHeader
                         {
-                            GRNHeaderId = grnHeader.Id,
-                            ProductId = item.ProductId,
-                            OrderedQty = item.Qty,
-                            ReceivedQty = qtyToReceiveNow,
-                            AcceptedQty = qtyToReceiveNow,
-                            RejectedQty = 0,
-                            UnitRate = item.Rate,
+                            GRNNumber = newGrnNumber,
+                            PurchaseOrderId = poId,
+                            SupplierId = poHeader.SupplierId,
+                            ReceivedDate = DateTime.Now,
+                            TotalAmount = poHeader.GrandTotal,
+                            Status = "Received",
+                            Remarks = "Bulk Processed from PO",
                             CreatedBy = request.CreatedBy,
                             CreatedOn = DateTime.Now
                         };
-                        _context.GRNDetails.Add(grnDetail);
 
-                        // FIX A: PO Item table mein ReceivedQty update karein taaki Pending calculation sahi ho
-                        item.ReceivedQty = (item.ReceivedQty) + qtyToReceiveNow;
+                        _context.GRNHeaders.Add(grnHeader);
+                        await _context.SaveChangesAsync();
 
-                        // FIX B: STOCK UPDATE LOGIC
-                        var product = await _context.Products
-                            .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                        bool isFullPoReceived = true; // Check karne ke liye ki PO complete hua ya nahi
 
-                        if (product != null)
+                        // 4. PO Items ko map karein, Stock update karein aur ReceivedQty track karein
+                        foreach (var item in poHeader.Items)
                         {
-                            product.CurrentStock += qtyToReceiveNow;
+                            // Pending check: Kitna aana baaki hai?
+                            decimal pendingForThisItem = item.Qty - (item.ReceivedQty);
+
+                            if (pendingForThisItem <= 0) continue; // Agar ye item poora aa chuka hai toh skip karein
+
+                            // Bulk upload mein hum bacha hua poora maal receive kar rahe hain
+                            decimal qtyToReceiveNow = pendingForThisItem;
+
+                            var grnDetail = new GRNDetail
+                            {
+                                GRNHeaderId = grnHeader.Id,
+                                ProductId = item.ProductId,
+                                OrderedQty = item.Qty,
+                                ReceivedQty = qtyToReceiveNow,
+                                AcceptedQty = qtyToReceiveNow,
+                                RejectedQty = 0,
+                                UnitRate = item.Rate,
+                                CreatedBy = request.CreatedBy,
+                                CreatedOn = DateTime.Now
+                            };
+                            _context.GRNDetails.Add(grnDetail);
+
+                            // FIX A: PO Item table mein ReceivedQty update karein taaki Pending calculation sahi ho
+                            item.ReceivedQty = (item.ReceivedQty) + qtyToReceiveNow;
+
+                            // FIX B: STOCK UPDATE LOGIC
+                            var product = await _context.Products
+                                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+
+                            if (product != null)
+                            {
+                                product.CurrentStock += qtyToReceiveNow;
+                            }
+
+                            // Check: Agar abhi bhi koi item pending reh gaya (Partial delivery case)
+                            if (item.ReceivedQty < item.Qty)
+                            {
+                                isFullPoReceived = false;
+                            }
                         }
 
-                        // Check: Agar abhi bhi koi item pending reh gaya (Partial delivery case)
-                        if (item.ReceivedQty < item.Qty)
-                        {
-                            isFullPoReceived = false;
-                        }
+                        // 5. PO status update (Partial vs Full)
+                        poHeader.Status = isFullPoReceived ? "GRN Processed" : "Partially Received";
+
+                        // 6. NOTIFICATION TRIGGER
+                        await _notificationRepository.AddNotificationAsync(
+                            "Goods Received",
+                            $"Inventory updated for PO #{poId}. GRN {newGrnNumber} generated successfully.",
+                            "Inventory",
+                            "/app/inventory/grn-list"
+                        );
                     }
 
-                    // 5. PO status update (Partial vs Full)
-                    poHeader.Status = isFullPoReceived ? "GRN Processed" : "Partially Received";
-
-                    // 6. NOTIFICATION TRIGGER
-                    await _notificationRepository.AddNotificationAsync(
-                        "Goods Received",
-                        $"Inventory updated for PO #{poId}. GRN {newGrnNumber} generated successfully.",
-                        "Inventory",
-                        "/app/inventory/grn-list"
-                    );
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return true;
                 }
-
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                Console.WriteLine($"Bulk GRN Error: {ex.Message}");
-                return false;
-            }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    Console.WriteLine($"Bulk GRN Error: {ex.Message}");
+                    return false;
+                }
+            });
         }
     }
 }
