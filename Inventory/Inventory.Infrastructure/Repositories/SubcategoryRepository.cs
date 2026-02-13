@@ -146,66 +146,65 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
 
                 foreach (var row in dataRows)
                 {
+                    int rowNum = row.RowNumber();
                     try
                     {
-                        var code = row.Cell(1).GetValue<string>()?.Trim();
-                        var catNameValue = row.Cell(2).GetValue<string>()?.Trim();
-                        var name = row.Cell(3).GetValue<string>()?.Trim();
-                        var gstText = row.Cell(4).GetValue<string>()?.Trim();
-                        var description = row.Cell(5).GetValue<string>()?.Trim();
-                        var rowNum = row.RowNumber();
+                        var code = row.Cell(1).Value.ToString()?.Trim();
+                        var catNameValue = row.Cell(2).Value.ToString()?.Trim();
+                        var name = row.Cell(3).Value.ToString()?.Trim();
+                        var gstValue = row.Cell(4).Value;
+                        var description = row.Cell(5).Value.ToString()?.Trim();
 
-                        // Skip empty rows
-                        if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(catNameValue) && string.IsNullOrEmpty(name)) 
+                        // Skip empty rows (strictly)
+                        if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(catNameValue) && string.IsNullOrWhiteSpace(name)) 
+                        {
                             continue;
+                        }
 
                         // Validation
-                        if (string.IsNullOrEmpty(name))
+                        if (string.IsNullOrWhiteSpace(name))
                         {
-                            errors.Add($"Row {rowNum}: Subcategory Name is required.");
+                            errors.Add($"Row {rowNum}: Subcategory Name is empty.");
                             continue;
                         }
 
-                        if (string.IsNullOrEmpty(code))
+                        if (string.IsNullOrWhiteSpace(code))
                         {
-                            errors.Add($"Row {rowNum}: Subcategory Code is required.");
+                            errors.Add($"Row {rowNum}: Subcategory Code is empty.");
                             continue;
                         }
 
-                        if (string.IsNullOrEmpty(catNameValue))
+                        if (string.IsNullOrWhiteSpace(catNameValue))
                         {
-                            errors.Add($"Row {rowNum}: Category Name is required.");
+                            errors.Add($"Row {rowNum}: Category Name is empty.");
                             continue;
                         }
 
                         // Category Lookup
                         if (!categories.TryGetValue(catNameValue.ToLower(), out var categoryId))
                         {
-                            errors.Add($"Row {rowNum}: Category '{catNameValue}' not found in database.");
+                            errors.Add($"Row {rowNum}: Category '{catNameValue}' not found in DB. Available categories: {string.Join(", ", categories.Keys.Take(5))}");
                             continue;
                         }
 
                         // Duplicate Check (In-File)
                         if (fileCodes.Contains(code.ToLower()))
                         {
-                            errors.Add($"Row {rowNum}: Duplicate Code '{code}' found in the file.");
+                            errors.Add($"Row {rowNum}: Duplicate Code '{code}' in file.");
                             continue;
                         }
                         
                         // Duplicate Check (DB Level)
                         if (codeSet.Contains(code.ToLower()))
                         {
-                            errors.Add($"Row {rowNum}: Subcategory Code '{code}' already exists in database.");
+                            errors.Add($"Row {rowNum}: Code '{code}' already exists in DB.");
                             continue;
                         }
 
-                        // Name Check (Optional but good: check if same active Name exists)
+                        // Name Check
                         if (activeNameSet.Contains(name.ToLower()) || fileNames.Contains(name.ToLower()))
                         {
-                            if (fileNames.Contains(name.ToLower()))
-                                 errors.Add($"Row {rowNum}: Duplicate Name '{name}' found in the file.");
-                            else
-                                errors.Add($"Row {rowNum}: Active Subcategory with Name '{name}' already exists.");
+                            errors.Add($"Row {rowNum}: Active Subcategory with Name '{name}' already exists.");
                             continue;
                         }
 
@@ -214,11 +213,11 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
 
                         // GST Parsing
                         decimal defaultGst = 0;
-                        if (!string.IsNullOrEmpty(gstText))
+                        if (!gstValue.IsBlank)
                         {
-                             if (!decimal.TryParse(gstText, out defaultGst))
+                             if (!decimal.TryParse(gstValue.ToString(), out defaultGst))
                              {
-                                 errors.Add($"Row {rowNum}: Invalid GST value '{gstText}'.");
+                                 errors.Add($"Row {rowNum}: Invalid GST '{gstValue}'.");
                                  continue;
                              }
                         }
@@ -237,8 +236,13 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                     }
                     catch (Exception ex)
                     {
-                        errors.Add($"Row {row.RowNumber()}: Unexpected error - {ex.Message}");
+                        errors.Add($"Row {rowNum}: Fatal Error - {ex.Message}");
                     }
+                }
+
+                if (!newSubcategories.Any() && !errors.Any())
+                {
+                    errors.Add("No valid data rows found in the file after the header.");
                 }
 
                 if (newSubcategories.Any())

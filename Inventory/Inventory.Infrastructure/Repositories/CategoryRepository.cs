@@ -118,15 +118,14 @@ public sealed class CategoryRepository : ICategoryRepository
 
                 var dataRows = rows.Skip(1);
 
-                // 2. Pre-fetch Active Categories for duplicate check
-                var existingActiveCats = await _db.Categories
+                // 2. Pre-fetch Categories for duplicate check (All records for Code, Active only for Name)
+                var existingCategories = await _db.Categories
                     .AsNoTracking()
-                    .Where(c => c.IsActive)
-                    .Select(c => new { c.CategoryCode, c.CategoryName })
+                    .Select(c => new { c.CategoryCode, c.CategoryName, c.IsActive })
                     .ToListAsync();
                 
-                var activeCodeSet = new HashSet<string>(existingActiveCats.Select(x => x.CategoryCode.ToLower()));
-                var activeNameSet = new HashSet<string>(existingActiveCats.Select(x => x.CategoryName.ToLower()));
+                var allCodeSet = new HashSet<string>(existingCategories.Select(x => x.CategoryCode.ToLower().Trim()));
+                var activeNameSet = new HashSet<string>(existingCategories.Where(x => x.IsActive).Select(x => x.CategoryName.ToLower().Trim()));
 
                 var newCategories = new List<Category>();
 
@@ -136,42 +135,54 @@ public sealed class CategoryRepository : ICategoryRepository
 
                 foreach (var row in dataRows)
                 {
+                     int rowNum = row.RowNumber();
                      try 
                      {
-                        var code = row.Cell(1).GetValue<string>()?.Trim();
-                        var name = row.Cell(2).GetValue<string>()?.Trim();
-                        var gstText = row.Cell(3).GetValue<string>()?.Trim();
-                        var description = row.Cell(4).GetValue<string>()?.Trim();
-                        var rowNum = row.RowNumber();
+                        var code = row.Cell(1).Value.ToString()?.Trim();
+                        var name = row.Cell(2).Value.ToString()?.Trim();
+                        var gstValue = row.Cell(3).Value;
+                        var description = row.Cell(4).Value.ToString()?.Trim();
 
-                        // Empty Check
-                        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(name))
+                        // Skip Empty Rows (Strict)
+                        if (string.IsNullOrWhiteSpace(code) && string.IsNullOrWhiteSpace(name))
                         {
-                            errors.Add($"Row {rowNum}: Category Code and Name are required.");
+                            continue;
+                        }
+
+                        // Validation
+                        if (string.IsNullOrWhiteSpace(name))
+                        {
+                            errors.Add($"Row {rowNum}: Category Name is required.");
+                            continue;
+                        }
+
+                        if (string.IsNullOrWhiteSpace(code))
+                        {
+                            errors.Add($"Row {rowNum}: Category Code is required.");
                             continue;
                         }
 
                         // Duplicate Check (In-File)
                         if (fileCodes.Contains(code.ToLower()))
                         {
-                            errors.Add($"Row {rowNum}: Duplicate Code '{code}' found in the file.");
+                            errors.Add($"Row {rowNum}: Duplicate Code '{code}' in file.");
                             continue;
                         }
                         if (fileNames.Contains(name.ToLower()))
                         {
-                             errors.Add($"Row {rowNum}: Duplicate Name '{name}' found in the file.");
+                             errors.Add($"Row {rowNum}: Duplicate Name '{name}' in file.");
                              continue;
                         }
 
-                        // Duplicate Check (DB - IsActive)
-                        if (activeCodeSet.Contains(code.ToLower()))
+                        // Duplicate Check (DB Level) - All for Code, Active for Name
+                        if (allCodeSet.Contains(code.ToLower()))
                         {
-                            errors.Add($"Row {rowNum}: Category Code '{code}' already exists and is Active.");
+                            errors.Add($"Row {rowNum}: Code '{code}' already exists in database.");
                             continue;
                         }
                         if (activeNameSet.Contains(name.ToLower()))
                         {
-                            errors.Add($"Row {rowNum}: Category Name '{name}' already exists and is Active.");
+                            errors.Add($"Row {rowNum}: Active Category with Name '{name}' already exists.");
                             continue;
                         }
 
@@ -180,11 +191,11 @@ public sealed class CategoryRepository : ICategoryRepository
 
                         // GST Parsing
                         decimal defaultGst = 0;
-                        if (!string.IsNullOrEmpty(gstText))
+                        if (!gstValue.IsBlank)
                         {
-                             if (!decimal.TryParse(gstText, out defaultGst))
+                             if (!decimal.TryParse(gstValue.ToString(), out defaultGst))
                              {
-                                 errors.Add($"Row {rowNum}: Invalid GST value '{gstText}'.");
+                                 errors.Add($"Row {rowNum}: Invalid GST '{gstValue}'.");
                                  continue;
                              }
                         }
@@ -204,8 +215,13 @@ public sealed class CategoryRepository : ICategoryRepository
                      }
                      catch(Exception ex)
                      {
-                         errors.Add($"Row {row.RowNumber()}: Unexpected error - {ex.Message}");
+                         errors.Add($"Row {rowNum}: Fatal error - {ex.Message}");
                      }
+                }
+
+                if (!newCategories.Any() && !errors.Any())
+                {
+                    errors.Add("No valid data rows found in the file.");
                 }
 
                 if (newCategories.Any())
