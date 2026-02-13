@@ -20,7 +20,9 @@ public class UpdateSupplierHandler : IRequestHandler<UpdateSupplierCommand, bool
             request.SupplierData.name,
             request.SupplierData.phone,
             request.SupplierData.gstIn,
-            request.SupplierData.address);
+            request.SupplierData.address,
+            request.SupplierData.isActive,
+            request.SupplierData.defaultpricelistId);
 
         await _repository.UpdateAsync(supplier);
         return true;

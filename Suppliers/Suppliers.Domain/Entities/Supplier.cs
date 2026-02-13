@@ -48,12 +48,18 @@
         UpdatedDate = DateTime.UtcNow;
     }
 
-    public void UpdateDetails(string name, string phone, string? gstIn, string? address)
+    public void UpdateDetails(string name, string phone, string? gstIn, string? address, bool isActive, Guid? defaultPriceListId)
     {
         Name = name;
         Phone = phone;
         GstIn = gstIn;
         Address = address;
+        IsActive = isActive;
+        
+        if (defaultPriceListId.HasValue && defaultPriceListId == Guid.Empty)
+             throw new ArgumentException("Invalid Price List ID");
+
+        DefaultPriceListId = defaultPriceListId;
         UpdatedDate = DateTime.UtcNow;
     }
 
