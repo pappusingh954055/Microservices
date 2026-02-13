@@ -9,14 +9,14 @@ namespace Company.Domain.Entities
     {
         public int Id { get; set; }
         public string Name { get; set; } = string.Empty; // Aapki Company ka Naam
-        public string Tagline { get; set; } = string.Empty; // Optional slogan
+        public string? Tagline { get; set; } // Optional slogan
         public string RegistrationNumber { get; set; } = string.Empty; // PAN/VAT No.
         public string Gstin { get; set; } = string.Empty; // Tax ke liye sabse zaroori
         public string? LogoUrl { get; set; } // Report ke header ke liye optional
-        public string PrimaryEmail { get; set; } = string.Empty;
+        public string? PrimaryEmail { get; set; }
 
         public string PrimaryPhone { get; set; } = string.Empty;
-        public string Website { get; set; } = string.Empty;
+        public string? Website { get; set; }
         public bool IsActive { get; set; } = true;
 
         // Foreign Keys

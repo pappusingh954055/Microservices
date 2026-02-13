@@ -4,13 +4,13 @@
     public record CompanyProfileDto(
         int Id,
         string Name,
-        string Tagline,
+        string? Tagline,
         string RegistrationNumber,
         string Gstin,
         string? LogoUrl,
-        string PrimaryEmail,
+        string? PrimaryEmail,
         string PrimaryPhone,
-        string Website,
+        string? Website,
         bool IsActive,
         AddressDto Address, // Aapke request ke hisaab se name match
         BankDetailDto BankInfo,
@@ -49,13 +49,13 @@
     // Request ke liye use hoga (Create/Update)
     public record UpsertCompanyRequest(
         string Name,
-        string Tagline,
+        string? Tagline,
         string RegistrationNumber,
         string Gstin,
         string? LogoUrl,
-        string PrimaryEmail,
+        string? PrimaryEmail,
         string PrimaryPhone,
-        string Website,
+        string? Website,
         AddressDto Address,
         BankDetailDto BankInfo,
         List<AuthorizedSignatoryDto> AuthorizedSignatories
