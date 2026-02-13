@@ -41,4 +41,27 @@ public class UsersController : ControllerBase
         await _userRepository.UpdateAsync(user);
         return Ok();
     }
+
+    [HttpGet("check-duplicate")]
+    public async Task<IActionResult> CheckDuplicate([FromQuery] string? userName, [FromQuery] string? email)
+    {
+        if (string.IsNullOrEmpty(userName) && string.IsNullOrEmpty(email))
+            return BadRequest("Username or Email must be provided");
+
+        bool exists = false;
+        string message = "";
+
+        if (!string.IsNullOrEmpty(userName) && await _userRepository.ExistsByUserNameAsync(userName))
+        {
+            exists = true;
+            message = "Username already exists.";
+        }
+        else if (!string.IsNullOrEmpty(email) && await _userRepository.ExistsByEmailAsync(email))
+        {
+            exists = true;
+            message = "Email already exists.";
+        }
+
+        return Ok(new { Exists = exists, Message = message });
+    }
 }

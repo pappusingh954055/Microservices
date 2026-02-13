@@ -97,34 +97,46 @@ public sealed class ProductRepository : IProductRepository
     }
     public async Task<ProductRateDto> GetProductRateAsync(Guid productId, Guid? priceListId)
     {
-        // 1. Pehle hum dhoondhenge ki kaunsa rate apply karna hai
+        // 1. Pehle hum dhoondhenge ki kaunsa rate aur discount apply karna hai
         decimal finalRate = 0;
+        decimal finalDiscount = 0;
 
         var priceQuery = _db.PriceListItems.AsNoTracking()
             .Where(pli => pli.ProductId == productId);
 
         if (priceListId.HasValue && priceListId != Guid.Empty)
         {
-            finalRate = await priceQuery
+            var pli = await priceQuery
                 .Where(pli => pli.PriceListId == priceListId)
-                .Select(pli => pli.Rate)
+                .Select(pli => new { pli.Rate, pli.DiscountPercent })
                 .FirstOrDefaultAsync();
+            
+            if (pli != null)
+            {
+                finalRate = pli.Rate;
+                finalDiscount = pli.DiscountPercent;
+            }
         }
         else
         {
             // AUTOMATIC LOGIC: Latest Active Purchase PriceList dhoondho
-            finalRate = await priceQuery
+            var pli = await priceQuery
                 .Where(pli => pli.PriceList.IsActive == true &&
                               pli.PriceList.PriceType == "PURCHASE" &&
                               pli.PriceList.ValidFrom <= DateTime.Now &&
                               pli.PriceList.ValidTo >= DateTime.Now)
                 .OrderByDescending(pli => pli.PriceList.CreatedOn)
-                .Select(pli => pli.Rate)
+                .Select(pli => new { pli.Rate, pli.DiscountPercent })
                 .FirstOrDefaultAsync();
+
+            if (pli != null)
+            {
+                finalRate = pli.Rate;
+                finalDiscount = pli.DiscountPercent;
+            }
         }
 
         // 2. Product Master details ke saath data bind karein
-        // FIX: Record constructor syntax use karein (Order ka dhyan rakhein)
         var productDetails = await _db.Products.AsNoTracking()
             .Where(p => p.Id == productId)
             .Select(p => new ProductRateDto(
@@ -135,7 +147,7 @@ public sealed class ProductRepository : IProductRepository
                 p.Unit ?? "PCS",                          // 5. Unit
                 p.DefaultGst ?? 0m,                       // 6. GstPercent
                 p.HSNCode ?? "",                          // 7. HsnCode
-                0m                                        // 8. DiscountPercent (Aapne 0m miss kiya tha)
+                finalDiscount                             // 8. DiscountPercent
             ))
             .FirstOrDefaultAsync();
 
