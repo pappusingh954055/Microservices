@@ -2,11 +2,28 @@
 
 # This stage is used when running from VS in fast mode (Default for Debug configuration)
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS base
-USER $APP_UID
 WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
+# Install native dependencies for wkhtmltopdf in BASE stage
+USER root
+RUN apt-get update && apt-get install -y \
+    wget \
+    libgdiplus \
+    libx11-6 \
+    libxcb1 \
+    libxext6 \
+    libxrender1 \
+    libfontconfig1 \
+    libfreetype6 \
+    fontconfig \
+    && rm -rf /var/lib/apt/lists/*
+
+# Download the native library .so file to a SYSTEM path so it survives mounts
+RUN wget "https://github.com/rdvojmoc/DinkToPdf/raw/master/v0.12.4/64%20bit/libwkhtmltox.so" -O /usr/lib/libwkhtmltox.so
+
+USER $APP_UID
 
 # This stage is used to build the service project
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build

@@ -14,7 +14,14 @@ namespace Company.Infrastructure
         {
             services.AddDbContext<CompanyDbContext>(options =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("CompanyDb")));
+                    configuration.GetConnectionString("CompanyDb"),
+                    sqlServerOptionsAction: sqlOptions =>
+                    {
+                        sqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 10,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorNumbersToAdd: null);
+                    }));
 
             services.AddScoped<ICompanyRepository, CompanyRepository>();
 

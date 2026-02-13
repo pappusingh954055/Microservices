@@ -33,4 +33,11 @@ RUN dotnet publish "./Company.API.csproj" -c $BUILD_CONFIGURATION -o /app/publis
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
+
+# Fix permissions for uploads
+USER root
+RUN mkdir -p wwwroot/uploads/logos wwwroot/uploads/signatures && \
+    chown -R $APP_UID:$APP_UID /app/wwwroot
+USER $APP_UID
+
 ENTRYPOINT ["dotnet", "Company.API.dll"]

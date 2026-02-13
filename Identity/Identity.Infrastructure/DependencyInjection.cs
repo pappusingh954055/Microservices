@@ -17,7 +17,14 @@ public static class DependencyInjection
     {
         services.AddDbContext<IdentityDbContext>(options =>
             options.UseSqlServer(
-                configuration.GetConnectionString("IdentityDb")));
+                configuration.GetConnectionString("IdentityDb"),
+                sqlServerOptionsAction: sqlOptions =>
+                {
+                    sqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 10,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorNumbersToAdd: null);
+                }));
 
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IRoleRepository, RoleRepository>();

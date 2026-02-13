@@ -80,7 +80,7 @@ app.UseHttpsRedirection();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
-    db.Database.Migrate(); // applies migrations, creates DB if not exists
+    db.Database.Migrate(); 
 }
 
 

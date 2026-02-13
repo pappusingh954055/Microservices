@@ -107,7 +107,7 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                     return (0, errors);
                 }
 
-                var expectedHeaders = new List<string> { "SubcategoryCode", "CategoryCode", "SubcategoryName", "DefaultGst", "Description" };
+                var expectedHeaders = new List<string> { "SubcategoryCode", "CategoryName", "SubcategoryName", "DefaultGst", "Description" };
                 var actualHeaders = new List<string>();
                 
                 // Check first 5 columns
@@ -124,22 +124,19 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
 
                 var dataRows = rows.Skip(1); 
 
-                // 2. Pre-fetch Categories for lookup (Case-insensitive) by Code
+                // 2. Pre-fetch ALL Categories for lookup (Case-insensitive) by Name
                 var categories = await _context.Categories
                     .AsNoTracking()
-                    .ToDictionaryAsync(c => c.CategoryCode.ToLower().Trim(), c => c.Id);
+                    .ToDictionaryAsync(c => c.CategoryName.ToLower().Trim(), c => c.Id);
 
-                // 3. Pre-fetch existing Active Subcategories for duplicate check
-                // We check against ALL active subcategories to prevent global ambiguity or per-requirement
-                // User said: "DB mein check karein ki ye Subcategory pehle se kisi Category ke andar Active toh nahi hai"
-                var existingActiveSubcats = await _context.Subcategories
+                // 3. Pre-fetch existing Subcategories for duplicate check (All records, not just active)
+                var existingSubcats = await _context.Subcategories
                     .AsNoTracking()
-                    .Where(s => s.IsActive) 
-                    .Select(s => new { s.SubcategoryCode, s.SubcategoryName })
+                    .Select(s => new { s.SubcategoryCode, s.SubcategoryName, s.IsActive })
                     .ToListAsync();
 
-                var activeCodeSet = new HashSet<string>(existingActiveSubcats.Select(x => x.SubcategoryCode.ToLower()));
-                var activeNameSet = new HashSet<string>(existingActiveSubcats.Select(x => x.SubcategoryName.ToLower()));
+                var codeSet = new HashSet<string>(existingSubcats.Select(x => x.SubcategoryCode.ToLower().Trim()));
+                var activeNameSet = new HashSet<string>(existingSubcats.Where(x => x.IsActive).Select(x => x.SubcategoryName.ToLower().Trim()));
 
                 var newSubcategories = new List<Subcategory>();
                 
@@ -152,30 +149,39 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                     try
                     {
                         var code = row.Cell(1).GetValue<string>()?.Trim();
-                        var catCode = row.Cell(2).GetValue<string>()?.Trim();
+                        var catNameValue = row.Cell(2).GetValue<string>()?.Trim();
                         var name = row.Cell(3).GetValue<string>()?.Trim();
                         var gstText = row.Cell(4).GetValue<string>()?.Trim();
                         var description = row.Cell(5).GetValue<string>()?.Trim();
                         var rowNum = row.RowNumber();
 
-                        // Empty Check
+                        // Skip empty rows
+                        if (string.IsNullOrEmpty(code) && string.IsNullOrEmpty(catNameValue) && string.IsNullOrEmpty(name)) 
+                            continue;
+
+                        // Validation
                         if (string.IsNullOrEmpty(name))
                         {
                             errors.Add($"Row {rowNum}: Subcategory Name is required.");
                             continue;
                         }
 
-                        // Basic Validation
-                        if (string.IsNullOrEmpty(code) || string.IsNullOrEmpty(catCode))
+                        if (string.IsNullOrEmpty(code))
                         {
-                            errors.Add($"Row {rowNum}: Subcategory Code and Category Code are required.");
+                            errors.Add($"Row {rowNum}: Subcategory Code is required.");
+                            continue;
+                        }
+
+                        if (string.IsNullOrEmpty(catNameValue))
+                        {
+                            errors.Add($"Row {rowNum}: Category Name is required.");
                             continue;
                         }
 
                         // Category Lookup
-                        if (!categories.TryGetValue(catCode.ToLower(), out var categoryId))
+                        if (!categories.TryGetValue(catNameValue.ToLower(), out var categoryId))
                         {
-                            errors.Add($"Row {rowNum}: Category Code '{catCode}' not found in database.");
+                            errors.Add($"Row {rowNum}: Category '{catNameValue}' not found in database.");
                             continue;
                         }
 
@@ -185,21 +191,21 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                             errors.Add($"Row {rowNum}: Duplicate Code '{code}' found in the file.");
                             continue;
                         }
-                        if (fileNames.Contains(name.ToLower()))
+                        
+                        // Duplicate Check (DB Level)
+                        if (codeSet.Contains(code.ToLower()))
                         {
-                             errors.Add($"Row {rowNum}: Duplicate Name '{name}' found in the file.");
-                             continue;
-                        }
-
-                        // Duplicate Check (DB Level - Active Check)
-                        if (activeCodeSet.Contains(code.ToLower()))
-                        {
-                            errors.Add($"Row {rowNum}: Subcategory Code '{code}' already exists and is Active.");
+                            errors.Add($"Row {rowNum}: Subcategory Code '{code}' already exists in database.");
                             continue;
                         }
-                        if (activeNameSet.Contains(name.ToLower()))
+
+                        // Name Check (Optional but good: check if same active Name exists)
+                        if (activeNameSet.Contains(name.ToLower()) || fileNames.Contains(name.ToLower()))
                         {
-                            errors.Add($"Row {rowNum}: Subcategory Name '{name}' already exists and is Active.");
+                            if (fileNames.Contains(name.ToLower()))
+                                 errors.Add($"Row {rowNum}: Duplicate Name '{name}' found in the file.");
+                            else
+                                errors.Add($"Row {rowNum}: Active Subcategory with Name '{name}' already exists.");
                             continue;
                         }
 
@@ -223,7 +229,7 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
                             name,
                             defaultGst,
                             description,
-                            true // Auto-active on import
+                            true // Active by default
                         );
 
                         newSubcategories.Add(subcategory);

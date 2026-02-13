@@ -78,6 +78,8 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__CompanyDb=Server=sqlserver;Database=CompanyDb;user id=sa;password=Anand@raj12345;TrustServerCertificate=True
+    volumes:
+      - company-uploads:/app/wwwroot/uploads
     depends_on:
       - sqlserver
 
@@ -91,3 +93,6 @@ services:
     restart: always
     depends_on:
       - gateway.api
+
+volumes:
+  company-uploads:

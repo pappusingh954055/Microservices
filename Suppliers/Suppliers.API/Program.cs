@@ -13,7 +13,15 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddDbContext<SupplierDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("SupplierDb")));
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("SupplierDb"),
+        sqlServerOptionsAction: sqlOptions =>
+        {
+            sqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(30),
+                errorNumbersToAdd: null);
+        }));
 
 // MediatR register karna (Application Layer ke handlers ko dhundne ke liye)
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateSupplierHandler).Assembly));

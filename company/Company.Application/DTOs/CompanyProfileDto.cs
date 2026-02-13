@@ -18,11 +18,33 @@
     );
 
     // Shared Records
-    public record AddressDto(int Id, string AddressLine1, string AddressLine2, string City, string State, string StateCode, string PinCode, string Country);
+    public record AddressDto(
+        int Id = 0, 
+        string AddressLine1 = "", 
+        string AddressLine2 = "", 
+        string City = "", 
+        string State = "", 
+        string StateCode = "", 
+        string PinCode = "", 
+        string Country = "India"
+    );
 
-    public record BankDetailDto(int Id, string BankName, string BranchName, string AccountNumber, string IfscCode, string AccountType);
+    public record BankDetailDto(
+        int Id = 0, 
+        string BankName = "", 
+        string BranchName = "", 
+        string AccountNumber = "", 
+        string IfscCode = "", 
+        string AccountType = "Current"
+    );
 
-    public record AuthorizedSignatoryDto(int Id, string PersonName, string Designation, string? SignatureImageUrl, bool IsDefault);
+    public record AuthorizedSignatoryDto(
+        int Id = 0, 
+        string PersonName = "", 
+        string Designation = "", 
+        string? SignatureImageUrl = null, 
+        bool IsDefault = false
+    );
 
     // Request ke liye use hoga (Create/Update)
     public record UpsertCompanyRequest(

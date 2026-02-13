@@ -20,7 +20,14 @@ namespace Inventory.Infrastructure
         {
             services.AddDbContext<InventoryDbContext>(options =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("InventoryDb")));
+                    configuration.GetConnectionString("InventoryDb"),
+                    sqlServerOptionsAction: sqlOptions =>
+                    {
+                        sqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 10,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorNumbersToAdd: null);
+                    }));
 
             services.AddScoped<ICategoryRepository, CategoryRepository>();
 

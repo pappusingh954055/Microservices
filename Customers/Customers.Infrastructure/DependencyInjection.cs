@@ -15,7 +15,14 @@ namespace Customers.Infrastructure
         {
             services.AddDbContext<CustomerDbContext>(options =>
                 options.UseSqlServer(
-                    configuration.GetConnectionString("CustomersDb")));
+                    configuration.GetConnectionString("CustomersDb"),
+                    sqlServerOptionsAction: sqlOptions =>
+                    {
+                        sqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 10,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorNumbersToAdd: null);
+                    }));
 
             services.AddScoped<ICustomerRepository, CustomerRepository>();
 
