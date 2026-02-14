@@ -37,6 +37,8 @@ namespace Inventory.API.Controllers
                 return BadRequest(new { message = "Error fetching items", error = ex.Message });
             }
         }
+
+
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         [HttpGet("suppliers-with-rejections")]
         public async Task<IActionResult> GetSuppliersWithRejections()
