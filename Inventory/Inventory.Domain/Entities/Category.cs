@@ -24,7 +24,7 @@ public class Category
 
     public Category(
         string name,
-        string code,
+        string? code,
         decimal defaultGst,
         string? description,
         bool isActive,
@@ -41,7 +41,7 @@ public class Category
 
     public void Update(
         string name,
-        string code,
+        string? code,
         decimal defaultGst,
         string? description,
         bool isActive,

@@ -255,4 +255,17 @@ internal sealed class SubcategoryRepository : ISubcategoryRepository
 
         return (successCount, errors);
     }
+
+    public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null)
+    {
+        var query = _context.Subcategories.AsNoTracking()
+            .Where(x => x.SubcategoryName.ToLower().Trim() == name.ToLower().Trim() && x.IsActive);
+
+        if (excludeId.HasValue && excludeId != Guid.Empty)
+        {
+            query = query.Where(x => x.Id != excludeId.Value);
+        }
+
+        return await query.AnyAsync();
+    }
 }

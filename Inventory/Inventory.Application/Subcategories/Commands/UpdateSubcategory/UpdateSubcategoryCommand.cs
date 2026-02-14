@@ -6,7 +6,7 @@ public sealed record UpdateSubcategoryCommand(
     Guid Id,
     Guid CategoryId,
     string Name,
-    string Code,
+    string? Code,
     decimal DefaultGst,
     string? Description,
     bool IsActive

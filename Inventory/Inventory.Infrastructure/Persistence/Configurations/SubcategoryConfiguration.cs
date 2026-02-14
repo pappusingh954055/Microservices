@@ -1,4 +1,4 @@
-﻿using Inventory.Domain.Entities;
+using Inventory.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -14,11 +14,8 @@ public sealed class SubcategoryConfiguration
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.SubcategoryCode)
-               .IsRequired()
+               .IsRequired(false)
                .HasMaxLength(50);
-
-        builder.HasIndex(x => x.SubcategoryCode)
-               .IsUnique();
 
         builder.Property(x => x.SubcategoryName)
                .IsRequired()

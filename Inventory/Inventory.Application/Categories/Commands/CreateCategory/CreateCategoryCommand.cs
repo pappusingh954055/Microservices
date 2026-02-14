@@ -4,7 +4,7 @@ namespace Inventory.Application.Categories.Commands.CreateCategory;
 
 public sealed record CreateCategoryCommand(
     string CategoryName,
-    string CategoryCode,
+    string? CategoryCode,
     decimal DefaultGst,
     string? Description,
     bool IsActive

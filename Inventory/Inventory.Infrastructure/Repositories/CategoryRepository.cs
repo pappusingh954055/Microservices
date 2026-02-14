@@ -233,4 +233,17 @@ public sealed class CategoryRepository : ICategoryRepository
         }
         return (successCount, errors);
     }
+
+    public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null)
+    {
+        var query = _db.Categories.AsNoTracking()
+            .Where(x => x.CategoryName.ToLower().Trim() == name.ToLower().Trim() && x.IsActive);
+
+        if (excludeId.HasValue && excludeId != Guid.Empty)
+        {
+            query = query.Where(x => x.Id != excludeId.Value);
+        }
+
+        return await query.AnyAsync();
+    }
 }

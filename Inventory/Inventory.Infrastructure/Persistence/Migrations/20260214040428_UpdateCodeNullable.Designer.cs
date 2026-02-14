@@ -4,6 +4,7 @@ using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Inventory.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(InventoryDbContext))]
-    partial class InventoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260214040428_UpdateCodeNullable")]
+    partial class UpdateCodeNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -64,6 +67,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("CategoryCode")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -99,6 +103,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique();
 
                     b.HasIndex("ParentCategoryId");
 
@@ -359,6 +366,7 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("SubcategoryCode")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -370,6 +378,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("SubcategoryCode")
+                        .IsUnique();
 
                     b.ToTable("Subcategories", (string)null);
                 });

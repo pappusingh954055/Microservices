@@ -129,5 +129,23 @@ namespace Inventory.API.Controllers
             });
         }
 
+        [HttpGet("check-duplicate")]
+        [Authorize(Roles = "Manager, Admin,User")]
+        public async Task<IActionResult> CheckDuplicate([FromQuery] string name, [FromQuery] Guid? excludeId = null)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return Ok(new { exists = false });
+            }
+
+            var exists = await _categoryRepository.ExistsByNameAsync(name, excludeId);
+
+            return Ok(new
+            {
+                exists = exists,
+                message = exists ? $"The category name '{name}' is already used by another active category." : string.Empty
+            });
+        }
+
     }
 }

@@ -21,7 +21,7 @@ public sealed class Subcategory
 
     public Subcategory(
         Guid categoryid,
-        string code,
+        string? code,
         string name,
         decimal defaultGst,
         string? description,
@@ -37,7 +37,7 @@ public sealed class Subcategory
     }
 
     public void Update(
-        string code,
+        string? code,
         string name,
         Guid categoryid,
         decimal defaultgst,

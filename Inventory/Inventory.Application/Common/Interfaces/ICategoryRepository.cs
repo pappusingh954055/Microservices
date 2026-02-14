@@ -21,4 +21,5 @@ public interface ICategoryRepository
     IQueryable<Category> Query();
 
     Task<(int successCount, List<string> errors)> UploadCategoriesAsync(IFormFile file);
+    Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null);
 }
