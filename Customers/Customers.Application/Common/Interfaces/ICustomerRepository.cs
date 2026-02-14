@@ -7,6 +7,7 @@ namespace Customers.Application.Common.Interfaces
 {
     public interface ICustomerRepository
     {
+        IQueryable<Customer> Query();
         Task AddAsync(Customer customer);
         Task<List<Customer>> GetAllAsync();
         Task<Customer?> GetByIdAsync(int id);

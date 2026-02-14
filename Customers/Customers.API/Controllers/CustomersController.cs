@@ -1,4 +1,5 @@
 ﻿using Customers.Application.Common.Interfaces;
+using Customers.Application.Common.Models;
 using Customers.Application.DTOs;
 using Customers.Application.Features.Commands;
 using Customers.Application.Features.Queries;
@@ -30,6 +31,14 @@ public class CustomersController : ControllerBase
             new CreateCustomerCommand(dto));
 
         return Ok(id);
+    }
+
+    [HttpPost("paged")]
+    [Authorize(Roles = "Manager, Admin,User")]
+    public async Task<IActionResult> GetCustomers([FromBody] GridRequest request)
+    {
+        var result = await _mediator.Send(new GetCustomersPagedQuery(request));
+        return Ok(result);
     }
 
     [HttpGet]

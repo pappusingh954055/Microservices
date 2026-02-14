@@ -14,6 +14,8 @@ namespace Customers.Infrastructure.Repositories
             _context = context;
         }
 
+        public IQueryable<Customer> Query() => _context.Customers.AsNoTracking();
+
         public async Task AddAsync(Customer customer)
         {
             await _context.Customers.AddAsync(customer);

@@ -10,6 +10,8 @@ public class SupplierRepository : ISupplierRepository
         _context = context;
     }
 
+    public IQueryable<Supplier> Query() => _context.Suppliers.AsNoTracking();
+
     public async Task<IEnumerable<Supplier>> GetAllAsync() =>
         await _context.Suppliers.AsNoTracking().ToListAsync();
 

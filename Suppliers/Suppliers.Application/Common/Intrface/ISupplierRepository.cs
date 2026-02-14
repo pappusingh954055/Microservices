@@ -3,6 +3,7 @@ using Suppliers.Application.DTOs;
 
 public interface ISupplierRepository
 {
+    IQueryable<Supplier> Query();
     Task<Supplier?> GetByIdAsync(int id);
     Task<bool> ExistsAsync(int id);
     Task<IEnumerable<Supplier>> GetAllAsync();

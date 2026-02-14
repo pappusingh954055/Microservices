@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Suppliers.Application.Common.Models;
 using Suppliers.Application.DTOs;
 using Suppliers.Application.Features.Suppliers.Queries;
 
@@ -78,6 +79,14 @@ namespace Suppliers.API.Controllers
                 return NotFound(new { message = "Supplier not found" });
             }
 
+            return Ok(result);
+        }
+
+        [HttpPost("paged")]
+        [Authorize(Roles = "Admin,Manager,User")]
+        public async Task<IActionResult> GetSuppliers([FromBody] GridRequest query)
+        {
+            var result = await _mediator.Send(new GetSuppliersPagedQuery(query));
             return Ok(result);
         }
 
