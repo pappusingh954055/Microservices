@@ -24,6 +24,24 @@ public class UpdatePriceListCommandHandler : IRequestHandler<UpdatePriceListComm
 
         if (entity == null) return false;
 
+        // 1.1 Duplicate Name Check
+        var isDuplicateName = await _context.PriceLists
+            .AnyAsync(x => x.Name.ToLower() == request.name.ToLower() && x.Id != request.id, cancellationToken);
+        
+        if (isDuplicateName)
+        {
+            throw new Exception($"Duplicate Name: Price List '{request.name}' already exists.");
+        }
+
+        // 1.2 Duplicate Code Check
+        var isDuplicateCode = await _context.PriceLists
+            .AnyAsync(x => x.Code.ToLower() == request.code.ToLower() && x.Id != request.id, cancellationToken);
+        
+        if (isDuplicateCode)
+        {
+            throw new Exception($"Duplicate Code: Price List with code '{request.code}' already exists.");
+        }
+
         // 2. Global Validation: Kya koi aur list ACTIVE hai?
         if (request.isActive)
         {

@@ -19,6 +19,24 @@ public sealed class CreatePriceListCommandHandler
 
     public async Task<Guid> Handle(CreatePriceListCommand request, CancellationToken ct)
     {
+        // 0. Duplicate Name Check
+        var isDuplicateName = await _context.PriceLists
+            .AnyAsync(x => x.Name.ToLower() == request.name.ToLower(), ct);
+
+        if (isDuplicateName)
+        {
+            throw new Exception($"Price List with name '{request.name}' already exists.");
+        }
+
+        // 0.1 Duplicate Code Check
+        var isDuplicateCode = await _context.PriceLists
+            .AnyAsync(x => x.Code.ToLower() == request.code.ToLower(), ct);
+
+        if (isDuplicateCode)
+        {
+            throw new Exception($"Price List with code '{request.code}' already exists.");
+        }
+
         // 1. Request Level Check (Taaki ek hi form mein duplicate items na hon)
         var internalDuplicates = request.priceListItems
             .GroupBy(x => x.productId)
