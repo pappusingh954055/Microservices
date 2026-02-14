@@ -18,5 +18,8 @@ namespace Inventory.Application.Products.DTOs
         public decimal defaultGst { get; set; }
         public decimal SaleRate { get; set; } // Sale Order ke liye Price ki jagah Rate
         public decimal CurrentStock { get; set; } // UI par Stock dikhane ke liye
-    }
+
+        public decimal GstPercent { get; set; } = 0;
+        public decimal DiscountPercent { get; set; }
+        }
 }

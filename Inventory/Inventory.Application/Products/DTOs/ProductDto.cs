@@ -28,4 +28,6 @@ public sealed class ProductDto
     public DateTime? createdOn { get; set; } = DateTime.Now;
     public DateTime? modifiedOn { get; set; } = DateTime.UtcNow;
     public string? modifiedBy { get; set; }
+
+    public decimal discountPercent {  get; set; }
 }

@@ -26,6 +26,8 @@ namespace Inventory.Application.Common.Interfaces
 
         public DbSet<AppNotification> AppNotifications { get; }
 
+        DbSet<Product> Products { get; }
+
         // Is property se Handler ka error fix ho jayega
         DatabaseFacade Database { get; }
 

@@ -10,10 +10,13 @@ internal sealed class GetProductsPagedQueryHandler
     : IRequestHandler<GetProductsPagedQuery, GridResponse<ProductDto>>
 {
     private readonly IProductRepository _repository;
+    private readonly IInventoryDbContext _context; // 🆕 Context added to fetch Discounts
 
-    public GetProductsPagedQueryHandler(IProductRepository repository)
+    public GetProductsPagedQueryHandler(IProductRepository repository, 
+        IInventoryDbContext context)
     {
         _repository = repository;
+        _context = context;
     }
 
     public async Task<GridResponse<ProductDto>> Handle(
@@ -22,7 +25,7 @@ internal sealed class GetProductsPagedQueryHandler
     {
         var query = _repository.Query();
 
-        // 🔍 SEARCH (Global)
+        // 🔍 SEARCH (Global) - Existing logic preserved
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
         {
             var search = request.Request.Search.ToLower();
@@ -35,7 +38,7 @@ internal sealed class GetProductsPagedQueryHandler
             );
         }
 
-        // 🔍 FILTERS (Column Specific)
+        // 🔍 FILTERS (Column Specific) - Existing logic preserved
         if (request.Request.Filters != null && request.Request.Filters.Any())
         {
             foreach (var filter in request.Request.Filters)
@@ -56,7 +59,7 @@ internal sealed class GetProductsPagedQueryHandler
             }
         }
 
-        // 🔃 SORT
+        // 🔃 SORT - Existing logic preserved
         query = request.Request.SortBy?.ToLower() switch
         {
             "productname" or "name" => request.Request.SortDirection == "asc"
@@ -108,13 +111,20 @@ internal sealed class GetProductsPagedQueryHandler
                 p.CurrentStock,
                 p.DamagedStock,
                 p.DefaultGst,
+
                 p.Description,
                 p.CreatedBy,
                 p.CreatedOn,
                 p.ModifiedBy,
                 p.ModifiedOn,
                 p.TrackInventory,
-                p.ProductType
+                p.ProductType,
+
+                // 🆕 Fetch Discount from PriceListItems (Global logic)
+                DiscountPercent = _context.PriceListItems
+                    .Where(li => li.ProductId == p.Id)
+                    .Select(li => li.DiscountPercent)
+                    .FirstOrDefault()
             })
             .ToListAsync(cancellationToken);
 
@@ -135,6 +145,10 @@ internal sealed class GetProductsPagedQueryHandler
             currentStock = p.CurrentStock,
             damagedStock = p.DamagedStock,
             defaultGst = p.DefaultGst,
+
+            // 🆕 Mapping New Field
+            discountPercent = p.DiscountPercent,
+
             productType = int.TryParse(p.ProductType, out var type) ? type : 1,
             description = p.Description,
             createdBy = p.CreatedBy,
