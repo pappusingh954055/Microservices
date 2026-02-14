@@ -24,7 +24,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin,Manager,User,Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
     public async Task<IActionResult> Create(CreateCustomerDto dto)
     {
         var id = await _mediator.Send(
@@ -34,7 +34,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpPost("paged")]
-    [Authorize(Roles = "Admin,Manager,User,Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
     public async Task<IActionResult> GetCustomers([FromBody] GridRequest request)
     {
         var result = await _mediator.Send(new GetCustomersPagedQuery(request));
@@ -56,7 +56,7 @@ public class CustomersController : ControllerBase
     /// <param name="ids"></param>
     /// <returns></returns>
     [HttpPost("get-names")]
-    [Authorize(Roles = "Admin,Manager,User,Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
     public async Task<IActionResult> GetCustomerNames([FromBody] List<int> ids)
     {
         if (ids == null || !ids.Any()) return BadRequest("No IDs provided");
@@ -71,7 +71,7 @@ public class CustomersController : ControllerBase
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("{id}/name")]
-    [Authorize(Roles = "Admin,Manager,User,Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
     public async Task<IActionResult> GetCustomerNameById(int id)
     {
         var name = await _customerRepo.GetCustomerNameByIdAsync(id);
@@ -86,7 +86,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("lookup")]
-    [Authorize(Roles = "Admin,Manager,User,Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
     public async Task<IActionResult> GetCustomerLookup()
     {
         // Repository se data mangwana [cite: 2026-02-05]
@@ -95,7 +95,7 @@ public class CustomersController : ControllerBase
     }
 
     [HttpGet("search-ids")]
-    [Authorize(Roles = "Admin,Manager,User,Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
     public async Task<ActionResult<List<int>>> SearchIdsByName([FromQuery] string name)
     {
         var ids = await _customerRepo.GetIdsByNameAsync(name);
