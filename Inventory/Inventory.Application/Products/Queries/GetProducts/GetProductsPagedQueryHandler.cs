@@ -22,42 +22,67 @@ internal sealed class GetProductsPagedQueryHandler
     {
         var query = _repository.Query();
 
-        // 🔍 SEARCH
+        // 🔍 SEARCH (Global)
         if (!string.IsNullOrWhiteSpace(request.Request.Search))
         {
             var search = request.Request.Search.ToLower();
             query = query.Where(x =>
                 x.Name.ToLower().Contains(search) ||
-                x.HSNCode.ToLower().Contains(search)||
-                x.Sku.ToLower().Contains(search)||
-                x.Category.CategoryName.ToLower().Contains(search)||
+                x.HSNCode.ToLower().Contains(search) ||
+                x.Sku.ToLower().Contains(search) ||
+                x.Category.CategoryName.ToLower().Contains(search) ||
                 x.Subcategory.SubcategoryName.ToLower().Contains(search)
-                );
+            );
+        }
+
+        // 🔍 FILTERS (Column Specific)
+        if (request.Request.Filters != null && request.Request.Filters.Any())
+        {
+            foreach (var filter in request.Request.Filters)
+            {
+                if (string.IsNullOrWhiteSpace(filter.Value)) continue;
+
+                var val = filter.Value.ToLower().Trim();
+                query = filter.Key.ToLower() switch
+                {
+                    "productname" or "name" => query.Where(x => x.Name.ToLower().Contains(val)),
+                    "categoryname" => query.Where(x => x.Category.CategoryName.ToLower().Contains(val)),
+                    "subcategoryname" => query.Where(x => x.Subcategory.SubcategoryName.ToLower().Contains(val)),
+                    "sku" => query.Where(x => x.Sku.ToLower().Contains(val)),
+                    "hsncode" => query.Where(x => x.HSNCode.ToLower().Contains(val)),
+                    "unit" => query.Where(x => x.Unit.ToLower().Contains(val)),
+                    _ => query
+                };
+            }
         }
 
         // 🔃 SORT
-        query = request.Request.SortBy switch
+        query = request.Request.SortBy?.ToLower() switch
         {
-            "name" => request.Request.SortDirection == "asc"
+            "productname" or "name" => request.Request.SortDirection == "asc"
                 ? query.OrderBy(x => x.Name)
                 : query.OrderByDescending(x => x.Name),
-
-            "HSNCode" => request.Request.SortDirection == "asc"
+            "hsncode" => request.Request.SortDirection == "asc"
                 ? query.OrderBy(x => x.HSNCode)
                 : query.OrderByDescending(x => x.HSNCode),
-
             "sku" => request.Request.SortDirection == "asc"
                 ? query.OrderBy(x => x.Sku)
                 : query.OrderByDescending(x => x.Sku),
-
             "categoryname" => request.Request.SortDirection == "asc"
                 ? query.OrderBy(x => x.Category.CategoryName)
                 : query.OrderByDescending(x => x.Category.CategoryName),
-
             "subcategoryname" => request.Request.SortDirection == "asc"
                 ? query.OrderBy(x => x.Subcategory.SubcategoryName)
                 : query.OrderByDescending(x => x.Subcategory.SubcategoryName),
-
+            "unit" => request.Request.SortDirection == "asc"
+                ? query.OrderBy(x => x.Unit)
+                : query.OrderByDescending(x => x.Unit),
+            "minstock" => request.Request.SortDirection == "asc"
+                ? query.OrderBy(x => x.MinStock)
+                : query.OrderByDescending(x => x.MinStock),
+            "currentstock" => request.Request.SortDirection == "asc"
+                ? query.OrderBy(x => x.CurrentStock)
+                : query.OrderByDescending(x => x.CurrentStock),
             _ => query.OrderByDescending(x => x.CreatedOn)
         };
 

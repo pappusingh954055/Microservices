@@ -406,4 +406,17 @@ public sealed class ProductRepository : IProductRepository
         }
         return (successCount, errors);
     }
+
+    public async Task<bool> ExistsByNameAsync(string name, Guid? excludeId = null)
+    {
+        var query = _db.Products.AsNoTracking()
+            .Where(p => p.Name.ToLower().Trim() == name.ToLower().Trim());
+
+        if (excludeId.HasValue && excludeId != Guid.Empty)
+        {
+            query = query.Where(p => p.Id != excludeId.Value);
+        }
+
+        return await query.AnyAsync();
+    }
 }
