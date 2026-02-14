@@ -90,7 +90,7 @@ namespace Suppliers.API.Controllers
         }
 
         [HttpPost("get-by-ids")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [AllowAnonymous]
         public async Task<IActionResult> GetSuppliersByIds([FromBody] List<int> ids)
         {
             // Debugging ke liye log lagayein

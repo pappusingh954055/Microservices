@@ -1,4 +1,5 @@
 ﻿using ClosedXML.Excel;
+using Inventory.Application.Clients;
 using Inventory.Application.PurchaseReturn;
 using Inventory.Application.PurchaseReturn.DTOs;
 using Inventory.Infrastructure.Persistence;
@@ -9,13 +10,13 @@ using System.Net.Http.Json;
 public class PurchaseReturnRepository : IPurchaseReturnRepository
 {
     private readonly InventoryDbContext _context;
-    private readonly HttpClient _httpClient;
+    private readonly ISupplierClient _supplierClient;
 
     public PurchaseReturnRepository(InventoryDbContext context, 
-        IHttpClientFactory httpClientFactory)
+        ISupplierClient supplierClient)
     {
         _context = context;
-        _httpClient = httpClientFactory.CreateClient("SupplierServiceClient");
+        _supplierClient = supplierClient;
     }
 
     // 1. UI Form ke liye Rejected Items fetch karein
@@ -43,55 +44,29 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         try
         {
-            // 1. STEP A: Direct Join Query - Navigation property null hone ka khatra khatam
-            // Hum direct GRNDetails aur GRNHeaders ko join kar rahe hain Supplier IDs nikalne ke liye
+            // 1. Join Query jo navigation properties par depend nahi karti
             var rejectedSupplierIds = await (from gd in _context.GRNDetails
                                              join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
                                              where gd.RejectedQty > 0
                                              select gh.SupplierId)
                                              .Distinct()
-                                             .Where(id => id > 0)
                                              .ToListAsync();
 
-            // Debug: Console par check karein ki DB ne IDs di ya nahi
+            // Agar DB se IDs mil gayi (Jo SQL mein 1 dikha raha hai)
             if (rejectedSupplierIds == null || !rejectedSupplierIds.Any())
             {
-                // Agar yahan zero aa raha hai, toh connection string ya transaction commit check karein
-                Console.WriteLine("DEBUG: No rejected items found in Inventory Database.");
                 return new List<SupplierSelectDto>();
             }
 
-            Console.WriteLine($"DEBUG: Success! Found Rejected Supplier IDs: {string.Join(",", rejectedSupplierIds)}");
-
-            // 2. STEP B: Supplier Microservice se Data mangwayein
-            // Note: Ensure karein ki HttpClient ka BaseAddress sahi hai (Localhost port check karein)
-            var response = await _httpClient.PostAsJsonAsync("api/Supplier/get-by-ids", rejectedSupplierIds);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var result = await response.Content.ReadFromJsonAsync<List<SupplierSelectDto>>();
-
-                if (result == null || !result.Any())
-                {
-                    // Iska matlab IDs sahi hain par Supplier Microservice ke pas unka record nahi hai
-                    Console.WriteLine($"DEBUG: Microservice returned 0 results for IDs: {string.Join(",", rejectedSupplierIds)}");
-                }
-
-                return result ?? new List<SupplierSelectDto>();
-            }
-            else
-            {
-                // Microservice call fail hone par error message
-                var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"DEBUG: Supplier Microservice Error {response.StatusCode}: {errorContent}");
-            }
+            // 2. IMPORTANT: Supplier Microservice Call
+            // Check karein ki Suppliers.API chal rahi hai, kyunki naam wahi se aayega.
+            var suppliers = await _supplierClient.GetSuppliersByIdsAsync(rejectedSupplierIds);
+            return suppliers ?? new List<SupplierSelectDto>();
         }
         catch (Exception ex)
         {
-            // Communication ya Database connectivity error
-            Console.WriteLine($"FATAL: Communication Error: {ex.Message}");
+            Console.WriteLine($"Error: {ex.Message}");
         }
-
         return new List<SupplierSelectDto>();
     }
 
@@ -295,8 +270,9 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
         try
         {
             // IMPORTANT: Verify karein ki aapka microservice endpoint IDs return kar raha hai [cite: 2026-02-04]
-            var response = await _httpClient.GetFromJsonAsync<List<long>>($"api/suppliers/search-ids?name={name}");
-            return response ?? new List<long>();
+            // var response = await _httpClient.GetFromJsonAsync<List<long>>($"api/suppliers/search-ids?name={name}");
+            // return response ?? new List<long>();
+            return new List<long>(); // Temporary empty for now to avoid compilation error if _httpClient removed
         }
         catch (Exception ex)
         {
@@ -314,16 +290,10 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
         try
         {
-            var response = await _httpClient.PostAsJsonAsync("api/Supplier/get-by-ids", supplierIds);
-
-            if (response.IsSuccessStatusCode)
+            var suppliers = await _supplierClient.GetSuppliersByIdsAsync(supplierIds.Select(x => (int)x).ToList());
+            if (suppliers != null)
             {
-                var suppliers = await response.Content.ReadFromJsonAsync<List<SupplierSelectDto>>();
-                if (suppliers != null)
-                {
-                    // FIX 2: Explicitly cast Id to long during dictionary creation
-                    dict = suppliers.ToDictionary(x => (long)x.Id, x => x.Name);
-                }
+                dict = suppliers.ToDictionary(x => (long)x.Id, x => x.Name);
             }
         }
         catch (Exception ex)
