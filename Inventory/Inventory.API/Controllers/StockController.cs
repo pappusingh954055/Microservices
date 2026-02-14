@@ -19,7 +19,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("current-stock")]
-        [Authorize(Roles = "Manager,Admin,User,Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetStock(
            [FromQuery] string? search,
            [FromQuery] string? sortField,
@@ -36,7 +36,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("ExportExcel")]
-        [Authorize(Roles = "Manager,Admin,User,Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> ExportExcel([FromBody] List<Guid> productIds)
         {
             if (productIds == null || !productIds.Any())

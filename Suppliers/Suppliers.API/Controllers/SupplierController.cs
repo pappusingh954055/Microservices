@@ -25,8 +25,7 @@ namespace Suppliers.API.Controllers
 
         // CREATE: POST api/v1/supplier
         [HttpPost]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
-        //[AllowAnonymous]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Create([FromBody] CreateSupplierDto dto)
         {
             var command = new CreateSupplierCommand(dto);
@@ -36,7 +35,7 @@ namespace Suppliers.API.Controllers
 
         // READ: GET api/v1/supplier
         [HttpGet]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetAll()
         {
             // Yahan humein GetSuppliersQuery banani hogi (Next Step)
@@ -47,7 +46,7 @@ namespace Suppliers.API.Controllers
 
         // UPDATE: PUT api/v1/supplier/5
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateSupplierDto dto)
         {
             var result = await _mediator.Send(new UpdateSupplierCommand(id, dto));
@@ -56,7 +55,7 @@ namespace Suppliers.API.Controllers
 
         // DELETE: DELETE api/v1/supplier/5
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _mediator.Send(new DeleteSupplierCommand(id));
@@ -64,7 +63,7 @@ namespace Suppliers.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetById(int id)
         {
             // 1. Query create karna
@@ -83,7 +82,7 @@ namespace Suppliers.API.Controllers
         }
 
         [HttpPost("paged")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetSuppliers([FromBody] GridRequest query)
         {
             var result = await _mediator.Send(new GetSuppliersPagedQuery(query));
@@ -91,7 +90,7 @@ namespace Suppliers.API.Controllers
         }
 
         [HttpPost("get-by-ids")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, SuperAdmin, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetSuppliersByIds([FromBody] List<int> ids)
         {
             // Debugging ke liye log lagayein

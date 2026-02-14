@@ -1,5 +1,6 @@
 ﻿using Inventory.Application.PurchaseReturn;
 using Inventory.Application.PurchaseReturn.DTOs;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +21,7 @@ namespace Inventory.API.Controllers
         // GET: api/PurchaseReturn/rejected-items/{supplierId}
         // Recommended Route
         [HttpGet("rejected-items/{supplierId}")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetRejectedItems(int supplierId)
         {
             try
@@ -35,7 +37,7 @@ namespace Inventory.API.Controllers
                 return BadRequest(new { message = "Error fetching items", error = ex.Message });
             }
         }
-
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         [HttpGet("suppliers-with-rejections")]
         public async Task<IActionResult> GetSuppliersWithRejections()
         {
@@ -57,6 +59,7 @@ namespace Inventory.API.Controllers
 
         // POST: api/PurchaseReturn/create
         [HttpPost("create")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> CreateReturn([FromBody] PurchaseReturnDto returnDto)
         {
             if (returnDto == null || returnDto.Items == null || !returnDto.Items.Any())
@@ -118,6 +121,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("list")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<ActionResult<PurchaseReturnPagedResponse>> GetList(
              [FromQuery] string? filter,        // Frontend se 'filter' key aa rahi hai [cite: 2026-02-04]
              [FromQuery] int pageIndex = 0,
@@ -141,6 +145,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("details/{id}")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetById(Guid id)        
         {
            
@@ -155,6 +160,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("export-excel")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> ExportExcel([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
         {
             var fileContent = await _repository.ExportPurchaseReturnsToExcelAsync(fromDate, toDate);

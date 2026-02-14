@@ -30,7 +30,7 @@ namespace Inventory.API.Controllers
         
 
         [HttpPost]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Create([FromBody] CreatePriceListCommand command)
         {
             var resultId = await _mediator.Send(command);
@@ -39,7 +39,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id:guid}")]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Update(Guid id, UpdatePriceListCommand command)
         {
             if (id != command.id) return BadRequest("ID Mismatch");
@@ -50,7 +50,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -64,7 +64,7 @@ namespace Inventory.API.Controllers
             );
         }
 
-        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
@@ -73,7 +73,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetPriceListsQuery());
@@ -81,7 +81,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("dropdown")]
-        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> dropdown()
         {
             var result = await _mediator.Send(new GetPriceListsLookUpQuery());
@@ -89,7 +89,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("paged")]
-        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] GridRequest request)
         {
@@ -101,7 +101,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-delete")]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             await _mediator.Send(new BulkDeletePricelistsCommand(ids));
@@ -114,7 +114,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("price-list-items/{priceListId}")]
-        [Authorize(Roles = "Manager, Admin, User, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<ActionResult<List<PriceListItemDto>>> GetPriceListItems(Guid priceListId)
         {
             // 1. Repository method ko call karein [cite: 2026-01-22]

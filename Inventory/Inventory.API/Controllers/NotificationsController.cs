@@ -11,12 +11,15 @@ public class NotificationsController : ControllerBase
     public NotificationsController(INotificationRepository repo) => _repo = repo;
 
     [HttpGet("unread")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> GetUnread() => Ok(await _repo.GetUnreadNotificationsAsync());
 
     [HttpGet("count")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> GetCount() => Ok(await _repo.GetUnreadCountAsync());
 
     [HttpPost("{id}/mark-read")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> MarkRead(long id)
     {
         var result = await _repo.MarkAsReadAsync(id);
@@ -24,5 +27,6 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost("mark-all-read")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> MarkAllRead() => Ok(await _repo.MarkAllAsReadAsync());
 }

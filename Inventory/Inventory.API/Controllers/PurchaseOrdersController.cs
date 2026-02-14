@@ -27,7 +27,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("next-number")]
-        [Authorize(Roles = "Admin, User, Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetNextNumber()
         {
             // MediatR command bhej raha hai handler ko
@@ -36,7 +36,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("save-po")]
-        [Authorize(Roles = "Admin,User,Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderDto dto)
         {
            
@@ -58,7 +58,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("query")]
-        [Authorize(Roles = "Manager, Admin,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetOrders([FromBody] GetPurchaseOrdersRequest request)
         {
             var query = new GetDateRangePurchaseOrdersQuery(request);
@@ -67,7 +67,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("get-paged-orders")]
-        [Authorize(Roles = "Admin,Manager, Warehouse,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPagedOrders([FromBody] GetPurchaseOrdersRequest request)
         {
             // Frontend se aane wale request DTO ko query mein wrap kar rahe hain
@@ -79,7 +79,7 @@ namespace Inventory.API.Controllers
             return Ok(response);
         }
 
-        [Authorize(Roles = "Admin, User,Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         [HttpGet("{id}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -101,7 +101,7 @@ namespace Inventory.API.Controllers
             return Ok(result);
         }
 
-        [Authorize(Roles = "Manager, Admin,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         [HttpPut("{id}")] //
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -141,7 +141,7 @@ namespace Inventory.API.Controllers
         /// Frontend call: this.http.delete(`${this.apiUrl}/PurchaseOrders/${poId}`)
         /// </summary>
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Delete(int id)
         {
             try
@@ -174,7 +174,7 @@ namespace Inventory.API.Controllers
         // URL: POST /api/PurchaseOrders/bulk-delete
         // Frontend call: this.http.post(`${this.apiUrl}/PurchaseOrders/bulk-delete`, { ids })
         [HttpPost("bulk-delete-orders")] // Name easily identifiable
-        [Authorize(Roles = "Admin,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> BulkDeleteOrders([FromBody] BulkDeletePurchaseOrderCommand command)
         {
             try
@@ -190,7 +190,7 @@ namespace Inventory.API.Controllers
 
         // --- 3. BULK CHILD ITEMS DELETE ---
         [HttpPost("bulk-delete-items")] // Easily identifiable name
-        [Authorize(Roles = "Admin,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> BulkDeleteItems([FromBody] BulkDeletePOItemsCommand command)
         {
             try
@@ -214,7 +214,7 @@ namespace Inventory.API.Controllers
         /// <returns></returns>
 
         [HttpPut("UpdateStatus")]
-        [Authorize(Roles = "Admin,User,Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> UpdateStatus([FromBody] UpdateStatusDTO dto)
         {
             if (dto == null || string.IsNullOrEmpty(dto.Status))
@@ -230,7 +230,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("pending-pos")]
-        [Authorize(Roles = "Admin,User,Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPendingPOs()
         {
             var result = await _mediator.Send(new GetPendingPOQuery());
@@ -238,7 +238,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("po-items/{poId}")]
-        [Authorize(Roles = "Admin,User,Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPOItemsForGRN(int poId)
         {
             var result = await _mediator.Send(new GetPOItemsForGRNQuery(poId));
@@ -250,7 +250,7 @@ namespace Inventory.API.Controllers
         /// </summary>
         /// <param name="lastPurchaseOrderId">Integer format ID</param>
         [HttpGet("header-details/{lastPurchaseOrderId:int}")]
-        [Authorize(Roles = "Admin,User,Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<ActionResult<POHeaderDetailsDto>> GetHeaderDetails(int lastPurchaseOrderId)
         {
             // 1. Query create karein [cite: 2026-01-22]
@@ -273,7 +273,7 @@ namespace Inventory.API.Controllers
         /// Product select hone par ya Price List change hone par rate fetch karne ke liye
         /// </summary>
         [HttpGet("get-product-rate")]
-        [Authorize(Roles = "Admin,User,Manager")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<ActionResult<ProductPriceDto>> GetProductRate(
             
             [FromQuery] Guid productId, [FromQuery] Guid priceListId)
@@ -301,7 +301,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-sent-for-approval")]
-        [Authorize(Roles = "Admin,User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> BulkSentForApproval([FromBody] List<long> ids)
         {
             var result = await _purchaseOrderRepository.BulkSentForApprovalAsync(ids);
@@ -311,7 +311,7 @@ namespace Inventory.API.Controllers
         
 
         [HttpPost("bulk-approve")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> BulkApprove([FromBody] List<long> ids)
         {
             if (ids == null || !ids.Any())
@@ -330,7 +330,7 @@ namespace Inventory.API.Controllers
        
 
         [HttpPost("bulk-reject")]
-        [Authorize(Roles = "Manager, Admin")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> BulkReject([FromBody] List<long> ids)
         {
             if (ids == null || !ids.Any())
@@ -354,7 +354,7 @@ namespace Inventory.API.Controllers
         /// <returns></returns>
 
         [HttpGet("{id}/print-details")]
-        [Authorize(Roles = "Manager, Admin, User")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPrintDetails(long id)
         {
             var result = await _purchaseOrderRepository.GetPODetailsForPrintAsync(id);
@@ -372,7 +372,7 @@ namespace Inventory.API.Controllers
         /// <returns></returns>
 
         [HttpGet("{id}/download-pdf")]
-        [Authorize(Roles = "Manager, Admin, User")] 
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> DownloadPdf(long id)
         {
             

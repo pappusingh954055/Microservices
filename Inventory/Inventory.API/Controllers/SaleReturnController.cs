@@ -3,6 +3,7 @@ using Inventory.Application.SaleOrders.DTOs;
 using Inventory.Application.SaleOrders.SaleReturn.Command;
 using Inventory.Application.Services;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -35,6 +36,7 @@ public class SaleReturnController : ControllerBase
     }
 
     [HttpGet("list")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> GetSaleReturns(
     [FromQuery] string? search,
     [FromQuery] string? status, // Naya Parameter
@@ -52,6 +54,7 @@ public class SaleReturnController : ControllerBase
 
 
     [HttpPost("create")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> Create([FromBody] CreateSaleReturnDto dto)
     {
         var result = await _mediator.Send(new CreateSaleReturnCommand(dto));
@@ -59,6 +62,7 @@ public class SaleReturnController : ControllerBase
     }
 
     [HttpGet("print/{id}")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> Print(int id)
     {
         var printData = await _service.GetPrintDataAsync(id);
@@ -73,6 +77,7 @@ public class SaleReturnController : ControllerBase
     }
 
     [HttpGet("print-data/{id}")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> GetPrintData(int id)
     {
         var data = await _service.GetPrintDataAsync(id);
@@ -85,6 +90,7 @@ public class SaleReturnController : ControllerBase
     }
 
     [HttpGet("export-excel")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> ExportExcel([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
         var content = await _service.GenerateExcelExportAsync(fromDate, toDate);
@@ -94,6 +100,7 @@ public class SaleReturnController : ControllerBase
     }
 
     [HttpGet("summary")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<ActionResult<SaleReturnSummaryDto>> GetSummary()
     {
         var summary = await _repo.GetDashboardSummaryAsync();

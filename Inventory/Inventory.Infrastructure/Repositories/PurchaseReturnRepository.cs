@@ -43,23 +43,28 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         try
         {
-            // 1. Inventory DB se un Suppliers ki IDs nikalein jinka maal reject hua hai [cite: 2026-02-04]
-            var rejectedSupplierIds = await _context.GRNDetails
-                .Where(gd => gd.RejectedQty > 0)
-                .Select(gd => gd.GRNHeader.SupplierId)
-                .Distinct()
-                .Where(id => id > 0)
-                .ToListAsync();
+            // 1. STEP A: Direct Join Query - Navigation property null hone ka khatra khatam
+            // Hum direct GRNDetails aur GRNHeaders ko join kar rahe hain Supplier IDs nikalne ke liye
+            var rejectedSupplierIds = await (from gd in _context.GRNDetails
+                                             join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
+                                             where gd.RejectedQty > 0
+                                             select gh.SupplierId)
+                                             .Distinct()
+                                             .Where(id => id > 0)
+                                             .ToListAsync();
 
-            // Agar DB mein koi rejected maal hi nahi hai, toh aage call karne ki zaroorat nahi [cite: 2026-02-04]
+            // Debug: Console par check karein ki DB ne IDs di ya nahi
             if (rejectedSupplierIds == null || !rejectedSupplierIds.Any())
             {
-                Console.WriteLine("DEBUG: No rejected items found in GRNDetails."); // Console check ke liye
+                // Agar yahan zero aa raha hai, toh connection string ya transaction commit check karein
+                Console.WriteLine("DEBUG: No rejected items found in Inventory Database.");
                 return new List<SupplierSelectDto>();
             }
 
-            // 2. Supplier Microservice se Details mangwayein [cite: 2026-02-03]
-            // Note: Check karein ki BaseAddress sahi set hai HttpClient mein
+            Console.WriteLine($"DEBUG: Success! Found Rejected Supplier IDs: {string.Join(",", rejectedSupplierIds)}");
+
+            // 2. STEP B: Supplier Microservice se Data mangwayein
+            // Note: Ensure karein ki HttpClient ka BaseAddress sahi hai (Localhost port check karein)
             var response = await _httpClient.PostAsJsonAsync("api/Supplier/get-by-ids", rejectedSupplierIds);
 
             if (response.IsSuccessStatusCode)
@@ -68,21 +73,23 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
                 if (result == null || !result.Any())
                 {
-                    Console.WriteLine($"DEBUG: Microservice returned success but 0 suppliers for IDs: {string.Join(",", rejectedSupplierIds)}");
+                    // Iska matlab IDs sahi hain par Supplier Microservice ke pas unka record nahi hai
+                    Console.WriteLine($"DEBUG: Microservice returned 0 results for IDs: {string.Join(",", rejectedSupplierIds)}");
                 }
 
                 return result ?? new List<SupplierSelectDto>();
             }
             else
             {
+                // Microservice call fail hone par error message
                 var errorContent = await response.Content.ReadAsStringAsync();
-                Console.WriteLine($"DEBUG: Microservice Error {response.StatusCode}: {errorContent}");
+                Console.WriteLine($"DEBUG: Supplier Microservice Error {response.StatusCode}: {errorContent}");
             }
         }
         catch (Exception ex)
         {
-            // Connection ya serialization error pakadne ke liye [cite: 2026-02-03]
-            Console.WriteLine($"FATAL: Microservice Communication Error: {ex.Message}");
+            // Communication ya Database connectivity error
+            Console.WriteLine($"FATAL: Communication Error: {ex.Message}");
         }
 
         return new List<SupplierSelectDto>();
