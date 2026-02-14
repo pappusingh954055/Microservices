@@ -1,0 +1,13 @@
+using System;
+
+namespace Inventory.Application.PurchaseReturn.DTOs
+{
+    public class ReceivedStockDto
+    {
+        public Guid ProductId { get; set; }
+        public string ProductName { get; set; }
+        public string GrnRef { get; set; } // GRN Number
+        public decimal AvailableQty { get; set; } // AcceptedQty or Current Stock
+        public decimal Rate { get; set; }
+    }
+}

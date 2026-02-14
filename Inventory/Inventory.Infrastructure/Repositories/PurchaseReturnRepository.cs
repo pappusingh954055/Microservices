@@ -71,6 +71,26 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     }
 
 
+    public async Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId)
+    {
+        // Accepted qty fetch karein jo warehouse mein hai
+        var receivedItems = await _context.GRNDetails
+            .Include(gd => gd.GRNHeader)
+            .Where(gd => gd.GRNHeader.SupplierId == supplierId && (gd.ReceivedQty - gd.RejectedQty) > 0)
+            .Select(gd => new ReceivedStockDto
+            {
+                ProductId = gd.ProductId,
+                ProductName = gd.Product != null ? gd.Product.Name : "Unknown Product",
+                GrnRef = gd.GRNHeader.GRNNumber,
+                AvailableQty = gd.ReceivedQty - gd.RejectedQty, // This is AcceptedQty
+                Rate = gd.UnitRate
+            })
+            .ToListAsync();
+
+        return receivedItems;
+    }
+
+
     public async Task<bool> CreatePurchaseReturnAsync(PurchaseReturn returnData)
     {
         var strategy = _context.Database.CreateExecutionStrategy();
@@ -96,10 +116,13 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
                     if (grnDetail == null) throw new Exception($"GRN not found for {item.GrnRef}");
 
-                    // 3. Validation: Return hamesha rejected stock se hona chahiye [cite: 2026-02-04]
+                    // 3. Validation: Return check [cite: 2026-02-04]
                     if (item.ReturnQty <= 0) throw new Exception("Qty must be > 0");
-                    if (item.ReturnQty > grnDetail.RejectedQty)
-                        throw new Exception($"Cannot return more than rejected: {grnDetail.RejectedQty}");
+                    
+                    // Available = Rejected + Accepted
+                    decimal totalAvailable = grnDetail.ReceivedQty; 
+                    if (item.ReturnQty > totalAvailable)
+                        throw new Exception($"Cannot return more than available stock: {totalAvailable}");
 
                     // 4. Financials mapping from PO
                     var poItem = await _context.PurchaseOrderItems
@@ -122,26 +145,44 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                         totalHeaderTax += itemTax;
                     }
 
-                    // 5. STOCK LOGIC FIX (Important) [cite: 2026-02-04]
-                    grnDetail.ReceivedQty -= item.ReturnQty;
-                    grnDetail.RejectedQty -= item.ReturnQty;
+                    // 5. STOCK LOGIC FIX (Important)
+                    // Pehle RejectedQty se deduct karein, fir bacha hua AcceptedQty (Received - Rejected) se
+                    decimal qtyToReturn = item.ReturnQty;
+                    
+                    if (grnDetail.RejectedQty >= qtyToReturn)
+                    {
+                        grnDetail.RejectedQty -= qtyToReturn;
+                    }
+                    else
+                    {
+                        // Some part is from rejected, rest from accepted
+                        // Note: AcceptedQty is virtual (ReceivedQty - RejectedQty)
+                        // So decreasing ReceivedQty automatically decreases AcceptedQty if we don't decrease RejectedQty as much
+                        // Wait, logic:
+                        // Total Received = 10 (Rejected 2, Accepted 8)
+                        // Return 5:
+                        // Rejected becomes 0 (Returned 2)
+                        // Accepted becomes 5 (Returned 3)
+                        // Total Received becomes 5.
+                        
+                        decimal fromRejected = grnDetail.RejectedQty;
+                        grnDetail.RejectedQty = 0;
+                        // Rest is already handled by ReceivedQty -= qtyToReturn
+                    }
 
+                    grnDetail.ReceivedQty -= qtyToReturn;
                     if (grnDetail.ReceivedQty < 0) grnDetail.ReceivedQty = 0;
-                    if (grnDetail.RejectedQty < 0) grnDetail.RejectedQty = 0;
 
                     // ========================================================
                     // ADDITIONAL LOGIC: UPDATE PRODUCT CURRENT STOCK
                     // ========================================================
-                    // Dashboard par "Current Stock" isi Products table se aata hai
                     var product = await _context.Products
                         .FirstOrDefaultAsync(p => p.Id == item.ProductId);
 
                     if (product != null)
                     {
-                        // Purchase Return = Stock warehouse se kam hoga (-)
                         product.CurrentStock -= item.ReturnQty;
                     }
-                    // ========================================================
                 }
 
                 // 6. Header Totals Update

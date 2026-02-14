@@ -58,6 +58,21 @@ namespace Inventory.API.Controllers
             }
         }
 
+        [HttpGet("get-received-stock/{supplierId}")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetReceivedStock(int supplierId)
+        {
+            try
+            {
+                var result = await _repository.GetReceivedStockBySupplierAsync(supplierId);
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = "Error fetching received stock", error = ex.Message });
+            }
+        }
+
 
         // POST: api/PurchaseReturn/create
         [HttpPost("create")]

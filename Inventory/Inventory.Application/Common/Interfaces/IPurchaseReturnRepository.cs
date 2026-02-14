@@ -11,6 +11,9 @@ public interface IPurchaseReturnRepository
 
     Task<List<SupplierSelectDto>> GetSuppliersWithRejectionsAsync();
 
+    // 1.2 Received stock return ke liye items fetch karna
+    Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId);
+
     // 2. Form se pura data save karne aur stock update karne ke liye [cite: 2026-02-03]
     Task<bool> CreatePurchaseReturnAsync(PurchaseReturn returnData);
 
