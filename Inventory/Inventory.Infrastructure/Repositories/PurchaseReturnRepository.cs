@@ -22,22 +22,23 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     // 1. UI Form ke liye Rejected Items fetch karein
     public async Task<List<RejectedItemDto>> GetRejectedItemsBySupplierAsync(int supplierId)
     {
-        // 1. GRNHeaders aur GRNDetails ko join karke rejected stock filter karein
-        var rejectedItems = await _context.GRNDetails
-            .Include(gd => gd.GRNHeader) // Navigation property mapping
-            .Where(gd => gd.GRNHeader.SupplierId == supplierId && gd.RejectedQty > 0)
-            .Select(gd => new RejectedItemDto
-            {
-                ProductId = gd.ProductId, // uniqueidentifier
-                                          // ProductName agar detail table mein nahi hai toh Product navigation use karein
-                ProductName = gd.Product != null ? gd.Product.Name : "Unknown Product",
-                GrnRef = gd.GRNHeader.GRNNumber, // Tracking ke liye GRNNumber use kiya hai
-                RejectedQty = gd.RejectedQty, // Decimal(18,2)
-                Rate = gd.UnitRate // Schema mein column name UnitRate hai
-            })
-            .ToListAsync();
+        // Join with PurchaseOrderItems to get original Gross Rate/Discount/GST [cite: PO Rate Integration]
+        var query = from gd in _context.GRNDetails.Include(x => x.Product)
+                    join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
+                    join poi in _context.PurchaseOrderItems on new { gh.PurchaseOrderId, gd.ProductId } equals new { poi.PurchaseOrderId, poi.ProductId }
+                    where gh.SupplierId == supplierId && gd.RejectedQty > 0
+                    select new RejectedItemDto
+                    {
+                        ProductId = gd.ProductId,
+                        ProductName = gd.Product != null ? gd.Product.Name : "Ukn-" + gd.ProductId.ToString().Substring(0,8),
+                        GrnRef = gh.GRNNumber,
+                        RejectedQty = gd.RejectedQty,
+                        Rate = poi.Rate, // Original Gross Rate
+                        GstPercent = poi.GstPercent,
+                        DiscountPercent = poi.DiscountPercent
+                    };
 
-        return rejectedItems;
+        return await query.ToListAsync();
     }
 
     public async Task<List<SupplierSelectDto>> GetSuppliersForPurchaseReturnAsync()
@@ -87,6 +88,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                         GrnRef = gh.GRNNumber,
                         AvailableQty = gd.ReceivedQty - gd.RejectedQty,
                         Rate = poi.Rate, // Original Gross Rate from PO
+                        GstPercent = poi.GstPercent,
+                        DiscountPercent = poi.DiscountPercent,
                         ReceivedDate = gh.ReceivedDate
                     };
 
@@ -386,6 +389,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                                   ReturnQty = pri.ReturnQty,
                                   Rate = pri.Rate,
                                   GstPercent = pri.GstPercent,
+                                  DiscountPercent = pri.DiscountPercent,
                                   TaxAmount = pri.TaxAmount,
                                   TotalAmount = pri.TotalAmount
                               }).ToListAsync();
