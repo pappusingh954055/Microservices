@@ -32,6 +32,22 @@ namespace Inventory.Application.SaleOrders.SaleReturn.Command
             }
             // --- VALIDATION LOGIC END ---
 
+            var items = dto.Items.Select(i => new SaleReturnItem
+            {
+                ProductId = i.ProductId,
+                ReturnQty = i.ReturnQty,
+                UnitPrice = i.UnitPrice,
+                DiscountPercent = i.DiscountPercent,
+                DiscountAmount = i.DiscountAmount, // (Qty * Rate) * (Disc% / 100)
+                TaxPercentage = i.TaxPercentage,
+                // Financial calculation: Tax on (Base Amount - Discount)
+                TaxAmount = ((i.ReturnQty * i.UnitPrice) - i.DiscountAmount) * (i.TaxPercentage / 100m),
+                TotalAmount = i.TotalAmount, // Already calculated correctly from frontend
+                Reason = i.Reason,
+                ItemCondition = i.ItemCondition,
+                CreatedOn = DateTime.Now
+            }).ToList();
+
             var header = new SaleReturnHeader
             {
                 CustomerId = dto.CustomerId,
@@ -41,23 +57,14 @@ namespace Inventory.Application.SaleOrders.SaleReturn.Command
                 ReturnNumber = "SR-" + DateTime.Now.ToString("yyyyMMddHHmm"),
                 Status = "Confirmed",
                 CreatedOn = DateTime.Now,
-                // Dashboard consistency ke liye sum total amount
-                TotalAmount = dto.Items.Sum(x => x.TotalAmount),
-                ReturnItems = dto.Items.Select(i => new SaleReturnItem
-                {
-                    ProductId = i.ProductId,
-                    ReturnQty = i.ReturnQty,
-                    UnitPrice = i.UnitPrice,
-                    DiscountPercent = i.DiscountPercent,
-                    DiscountAmount = i.DiscountAmount,
-                    TaxPercentage = i.TaxPercentage,
-                    // Financial calculation for line items
-                    TaxAmount = ((i.ReturnQty * i.UnitPrice) - i.DiscountAmount) * (i.TaxPercentage / 100m),
-                    TotalAmount = i.TotalAmount,
-                    Reason = i.Reason,
-                    ItemCondition = i.ItemCondition,
-                    CreatedOn = DateTime.Now
-                }).ToList()
+                
+                // Header Level Aggregations
+                SubTotal = items.Sum(x => x.ReturnQty * x.UnitPrice),
+                DiscountAmount = items.Sum(x => x.DiscountAmount),
+                TaxAmount = items.Sum(x => x.TaxAmount),
+                TotalAmount = items.Sum(x => x.TotalAmount),
+
+                ReturnItems = items
             };
 
             return await _repo.CreateSaleReturnAsync(header);
