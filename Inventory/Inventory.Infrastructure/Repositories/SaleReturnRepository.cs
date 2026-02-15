@@ -147,20 +147,6 @@ namespace Inventory.Infrastructure.Repositories
 
                     foreach (var item in header.ReturnItems)
                     {
-
-                        decimal itemSubTotal = item.ReturnQty * item.UnitPrice;
-                        decimal itemTax = itemSubTotal * (item.TaxPercentage / 100m);
-
-
-                        item.TaxAmount = itemTax;
-                        item.TotalAmount = itemSubTotal + itemTax;
-                        item.CreatedOn = DateTime.Now;
-
-
-                        calculatedSubTotal += itemSubTotal;
-                        calculatedTaxAmount += itemTax;
-
-
                         var product = await _context.Products.FindAsync(item.ProductId);
                         if (product != null)
                         {
@@ -169,14 +155,27 @@ namespace Inventory.Infrastructure.Repositories
                             product.ModifiedOn = DateTime.Now;
                             product.ModifiedBy = header.CreatedBy ?? "system";
                         }
+
+                        // Repository shouldn't recalculate if Handler already did, but if it does, it MUST be correct.
+                        // Assuming Handler passed correct DiscountAmount.
+                        decimal itemGrossTotal = item.ReturnQty * item.UnitPrice;
+                        decimal taxableAmount = itemGrossTotal - item.DiscountAmount;
+                        decimal itemTax = taxableAmount * (item.TaxPercentage / 100m);
+
+                        item.TaxAmount = itemTax;
+                        item.TotalAmount = taxableAmount + itemTax;
+                        item.CreatedOn = DateTime.Now;
+
+                        calculatedSubTotal += itemGrossTotal;
+                        calculatedTaxAmount += itemTax;
                     }
 
-                    // 3. Header table columns update (0.00 fix karne ke liye)
+                    // 3. Header table columns update
                     header.SubTotal = calculatedSubTotal;
                     header.TaxAmount = calculatedTaxAmount;
-                    header.DiscountAmount = header.DiscountAmount;
+                    // header.DiscountAmount is already set by handler? Yes.
                     // TotalAmount final sync
-                    header.TotalAmount = calculatedSubTotal + calculatedTaxAmount - (header.DiscountAmount);
+                    header.TotalAmount = calculatedSubTotal - header.DiscountAmount + calculatedTaxAmount;
                     header.CreatedOn = DateTime.Now;
 
                     // 4. Save Sale Return
@@ -243,14 +242,16 @@ namespace Inventory.Infrastructure.Repositories
             var today = DateTime.Today;
 
             // 1. Aaj kitne returns aaye
+            // 1. Aaj kitne returns aaye
             var totalToday = await _context.SaleReturnHeaders
                 .CountAsync(x => x.ReturnDate.Date == today);
 
-            // 2. Confirmed returns ka count aur refund value
-            var confirmedData = await _context.SaleReturnHeaders
-                .Where(x => x.Status == "CONFIRMED")
-                .Select(x => x.TotalAmount)
-                .ToListAsync();
+            // 2. Confirmed returns ka count aur refund value (DB Side Aggregation)
+            var confirmedQuery = _context.SaleReturnHeaders
+                .Where(x => x.Status.ToUpper() == "CONFIRMED");
+
+            var totalRefundValue = await confirmedQuery.SumAsync(x => x.TotalAmount);
+            var confirmedCount = await confirmedQuery.CountAsync();
 
             // 3. Stock re-filled pcs (Items table se sum)
             var totalPcs = await _context.SaleReturnItems
@@ -259,8 +260,8 @@ namespace Inventory.Infrastructure.Repositories
             return new SaleReturnSummaryDto
             {
                 TotalReturnsToday = totalToday,
-                TotalRefundValue = confirmedData.Sum(), // ₹5,062.20 logic
-                ConfirmedReturns = confirmedData.Count, // 10 logic
+                TotalRefundValue = totalRefundValue,
+                ConfirmedReturns = confirmedCount,
                 StockRefilledPcs = totalPcs
             };
         }
