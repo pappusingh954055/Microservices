@@ -30,8 +30,9 @@ public class GrnItemPrintDto
     public decimal RejectedQty { get; set; }
     public decimal ReceivedQty { get; set; }
 
-    // Pricing & Tax
+    // Pricing, Discount & Tax
     public decimal UnitRate { get; set; }
+    public decimal DiscountPercent { get; set; }
     public decimal GstPercentage { get; set; } // Product master se
     public decimal GstAmount { get; set; } // (ReceivedQty * UnitRate) * (GstPercentage / 100)
 

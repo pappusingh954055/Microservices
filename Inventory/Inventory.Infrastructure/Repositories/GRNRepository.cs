@@ -414,10 +414,11 @@ namespace Inventory.Infrastructure.Repositories
                                   AcceptedQty = d.AcceptedQty,
                                   RejectedQty = d.RejectedQty,
                                   UnitRate = d.UnitRate,
+                                  DiscountPercent = poi.DiscountPercent,
                                   // PO Table se direct data
                                   GstPercentage = poi.GstPercent,
-                                  GstAmount = (d.ReceivedQty * d.UnitRate) * (poi.GstPercent / 100),
-                                  Total = d.ReceivedQty * d.UnitRate
+                                  GstAmount = ((d.ReceivedQty * d.UnitRate) * (1 - poi.DiscountPercent / 100)) * (poi.GstPercent / 100),
+                                  Total = (d.ReceivedQty * d.UnitRate) * (1 - poi.DiscountPercent / 100)
                               }).ToList()
                 })
                 .FirstOrDefaultAsync();
@@ -427,7 +428,7 @@ namespace Inventory.Infrastructure.Repositories
             // Step 2: Footer Calculations (In-Memory calculation for speed)
             grnData.SubTotal = grnData.Items.Sum(i => i.Total);
             grnData.TotalTaxAmount = grnData.Items.Sum(i => i.GstAmount);
-            // Note: Agar header.TotalAmount me tax already added hai toh change na karein
+            grnData.TotalAmount = grnData.SubTotal + grnData.TotalTaxAmount;
 
             // Step 3: Supplier Microservice Call
             try
