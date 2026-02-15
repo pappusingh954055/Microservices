@@ -24,6 +24,8 @@ public class POItemDocumentDto
     public decimal Qty { get; set; }
     public string Unit { get; set; }
     public decimal Rate { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal GstPercent { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal Total { get; set; }
 }

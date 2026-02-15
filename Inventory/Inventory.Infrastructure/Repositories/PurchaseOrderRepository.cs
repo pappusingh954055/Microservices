@@ -590,6 +590,8 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                               Qty = item.Qty,
                               Unit = item.Unit,
                               Rate = item.Rate,
+                              DiscountPercent = item.DiscountPercent,
+                              GstPercent = item.GstPercent,
                               TaxAmount = item.TaxAmount,
                               Total = item.Total
                           }).ToList()
