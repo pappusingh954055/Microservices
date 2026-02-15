@@ -40,32 +40,33 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
         return rejectedItems;
     }
 
-    public async Task<List<SupplierSelectDto>> GetSuppliersWithRejectionsAsync()
+    public async Task<List<SupplierSelectDto>> GetSuppliersForPurchaseReturnAsync()
     {
         try
         {
-            // 1. Join Query jo navigation properties par depend nahi karti
-            var rejectedSupplierIds = await (from gd in _context.GRNDetails
-                                             join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
-                                             where gd.RejectedQty > 0
-                                             select gh.SupplierId)
-                                             .Distinct()
-                                             .ToListAsync();
+            // 1. Updated Join Query: Ab ye sirf RejectedQty nahi dekhega,
+            // balki un sabhi Suppliers ko layega jinse GRN receive hua hai.
+            var allSupplierIds = await (from gh in _context.GRNHeaders
+                                        select gh.SupplierId)
+                                       .Distinct()
+                                       .ToListAsync();
 
-            // Agar DB se IDs mil gayi (Jo SQL mein 1 dikha raha hai)
-            if (rejectedSupplierIds == null || !rejectedSupplierIds.Any())
+            // Agar kisi bhi supplier se koi GRN nahi hua toh empty list return karein
+            if (allSupplierIds == null || !allSupplierIds.Any())
             {
                 return new List<SupplierSelectDto>();
             }
 
-            // 2. IMPORTANT: Supplier Microservice Call
-            // Check karein ki Suppliers.API chal rahi hai, kyunki naam wahi se aayega.
-            var suppliers = await _supplierClient.GetSuppliersByIdsAsync(rejectedSupplierIds);
+            // 2. Supplier Microservice Call: Un IDs ke basis par Names aur details fetch karein
+            // Isse "ABC Enterprises" jaise naam dropdown mein bind honge
+            var suppliers = await _supplierClient.GetSuppliersByIdsAsync(allSupplierIds);
+
             return suppliers ?? new List<SupplierSelectDto>();
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error: {ex.Message}");
+            // Error logging taaki debug karna asaan ho
+            Console.WriteLine($"Error in GetSuppliersForPurchaseReturnAsync: {ex.Message}");
         }
         return new List<SupplierSelectDto>();
     }

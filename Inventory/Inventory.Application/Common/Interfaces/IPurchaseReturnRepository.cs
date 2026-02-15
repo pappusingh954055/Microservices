@@ -9,7 +9,7 @@ public interface IPurchaseReturnRepository
     // 1. Supplier select karte hi uske rejected items lane ke liye
     Task<List<RejectedItemDto>> GetRejectedItemsBySupplierAsync(int supplierId);
 
-    Task<List<SupplierSelectDto>> GetSuppliersWithRejectionsAsync();
+    Task<List<SupplierSelectDto>> GetSuppliersForPurchaseReturnAsync();
 
     // 1.2 Received stock return ke liye items fetch karna
     Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId);

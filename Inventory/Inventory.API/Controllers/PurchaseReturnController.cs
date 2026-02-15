@@ -45,7 +45,7 @@ namespace Inventory.API.Controllers
         {
             try
             {
-                var suppliers = await _repository.GetSuppliersWithRejectionsAsync();
+                var suppliers = await _repository.GetSuppliersForPurchaseReturnAsync();
 
                 if (suppliers == null || suppliers.Count == 0)
                     return Ok(new List<SupplierSelectDto>()); // Khali list bhejein agar koi rejection nahi hai
