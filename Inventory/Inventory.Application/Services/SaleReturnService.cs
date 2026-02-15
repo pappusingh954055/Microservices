@@ -101,6 +101,7 @@ public class SaleReturnService : ISaleReturnService
                     ProductName = i.Product.Name,
                     Qty = i.ReturnQty,
                     Rate = i.UnitPrice,
+                    DiscountPercent = i.DiscountPercent,
                     TaxPercent = i.TaxPercentage,
                     Total = i.TotalAmount
                 }).ToList()

@@ -19,6 +19,8 @@ public class SaleReturnItem : BaseAuditableEntity
 
     [Required]
     public decimal UnitPrice { get; set; }
+    public decimal DiscountPercent { get; set; }
+    public decimal DiscountAmount { get; set; }
 
     public decimal TaxPercentage { get; set; }
     public decimal TaxAmount { get; set; }

@@ -46,6 +46,9 @@ public sealed class InventoryDbContext : DbContext,
         {
             builder.HasKey(x => x.Id);
             builder.Property(x => x.PoNumber).IsRequired().HasMaxLength(50); //
+            builder.Property(x => x.SubTotal).HasPrecision(18, 2);
+            builder.Property(x => x.TotalTax).HasPrecision(18, 2);
+            builder.Property(x => x.GrandTotal).HasPrecision(18, 2);
 
             // Mapping Private Field for DDD
             builder.Metadata.FindNavigation(nameof(PurchaseOrder.Items))
@@ -64,6 +67,9 @@ public sealed class InventoryDbContext : DbContext,
             entity.HasKey(e => e.Id);
             entity.Property(e => e.ReturnNumber).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Status).HasDefaultValue("Draft"); // Default status set kiya hai
+            entity.Property(e => e.SubTotal).HasPrecision(18, 2);
+            entity.Property(e => e.TotalTax).HasPrecision(18, 2);
+            entity.Property(e => e.GrandTotal).HasPrecision(18, 2);
         });
 
         // Relationship: One Return has many Items [cite: 2026-02-03]
@@ -77,8 +83,44 @@ public sealed class InventoryDbContext : DbContext,
         modelBuilder.Entity<PurchaseOrderItem>(builder =>
         {
             builder.HasKey(x => x.Id);
-            builder.Property(x => x.Rate).HasPrecision(18, 2); //
-            builder.Property(x => x.Total).HasPrecision(18, 2); //
+            builder.Property(x => x.Qty).HasPrecision(18, 2);
+            builder.Property(x => x.Rate).HasPrecision(18, 2);
+            builder.Property(x => x.DiscountPercent).HasPrecision(18, 2);
+            builder.Property(x => x.GstPercent).HasPrecision(18, 2);
+            builder.Property(x => x.TaxAmount).HasPrecision(18, 2);
+            builder.Property(x => x.Total).HasPrecision(18, 2);
+            builder.Property(x => x.ReceivedQty).HasPrecision(18, 2);
+        });
+
+        // PurchaseReturnItem Configuration
+        modelBuilder.Entity<PurchaseReturnItem>(builder =>
+        {
+            builder.Property(x => x.ReturnQty).HasPrecision(18, 2);
+            builder.Property(x => x.Rate).HasPrecision(18, 2);
+            builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
+            builder.Property(x => x.GstPercent).HasPrecision(18, 2);
+            builder.Property(x => x.DiscountPercent).HasPrecision(18, 2);
+            builder.Property(x => x.TaxAmount).HasPrecision(18, 2);
+        });
+
+        // SaleReturn Configurations
+        modelBuilder.Entity<SaleReturnHeader>(builder =>
+        {
+            builder.Property(x => x.SubTotal).HasPrecision(18, 2);
+            builder.Property(x => x.TaxAmount).HasPrecision(18, 2);
+            builder.Property(x => x.DiscountAmount).HasPrecision(18, 2);
+            builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<SaleReturnItem>(builder =>
+        {
+            builder.Property(x => x.ReturnQty).HasPrecision(18, 2);
+            builder.Property(x => x.UnitPrice).HasPrecision(18, 2);
+            builder.Property(x => x.DiscountPercent).HasPrecision(18, 2);
+            builder.Property(x => x.DiscountAmount).HasPrecision(18, 2);
+            builder.Property(x => x.TaxPercentage).HasPrecision(18, 2);
+            builder.Property(x => x.TaxAmount).HasPrecision(18, 2);
+            builder.Property(x => x.TotalAmount).HasPrecision(18, 2);
         });
 
         // SaleOrder aur SaleOrderItem ke beech Cascade Delete configuration

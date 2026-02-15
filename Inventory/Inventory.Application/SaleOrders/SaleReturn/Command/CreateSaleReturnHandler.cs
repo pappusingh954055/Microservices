@@ -48,9 +48,11 @@ namespace Inventory.Application.SaleOrders.SaleReturn.Command
                     ProductId = i.ProductId,
                     ReturnQty = i.ReturnQty,
                     UnitPrice = i.UnitPrice,
+                    DiscountPercent = i.DiscountPercent,
+                    DiscountAmount = i.DiscountAmount,
                     TaxPercentage = i.TaxPercentage,
                     // Financial calculation for line items
-                    TaxAmount = (i.ReturnQty * i.UnitPrice) * (i.TaxPercentage / 100m),
+                    TaxAmount = ((i.ReturnQty * i.UnitPrice) - i.DiscountAmount) * (i.TaxPercentage / 100m),
                     TotalAmount = i.TotalAmount,
                     Reason = i.Reason,
                     ItemCondition = i.ItemCondition,

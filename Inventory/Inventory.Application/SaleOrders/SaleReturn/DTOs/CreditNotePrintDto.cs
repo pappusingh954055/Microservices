@@ -19,6 +19,7 @@ public class ReturnItemPrintDto
     public string ProductName { get; set; }
     public decimal Qty { get; set; }
     public decimal Rate { get; set; }
+    public decimal DiscountPercent { get; set; }
     public decimal TaxPercent { get; set; }
     public decimal Total { get; set; }
 }

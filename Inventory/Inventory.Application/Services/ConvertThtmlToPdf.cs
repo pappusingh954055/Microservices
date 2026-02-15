@@ -74,6 +74,7 @@ namespace Inventory.Application.Services
                         <th>Product</th>
                         <th>Qty</th>
                         <th>Rate</th>
+                        <th>Disc%</th>
                         <th>Tax%</th>
                         <th>Total</th>
                     </tr>
@@ -87,6 +88,7 @@ namespace Inventory.Application.Services
                     <td>{item.ProductName}</td>
                     <td>{item.Qty}</td>
                     <td>{item.Rate:N2}</td>
+                    <td>{item.DiscountPercent}%</td>
                     <td>{item.TaxPercent}%</td>
                     <td>{item.Total:N2}</td>
                 </tr>");
