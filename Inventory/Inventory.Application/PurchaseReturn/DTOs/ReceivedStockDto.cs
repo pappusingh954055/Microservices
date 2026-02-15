@@ -9,5 +9,6 @@ namespace Inventory.Application.PurchaseReturn.DTOs
         public string GrnRef { get; set; } // GRN Number
         public decimal AvailableQty { get; set; } // AcceptedQty or Current Stock
         public decimal Rate { get; set; }
+        public DateTime ReceivedDate { get; set; }
     }
 }

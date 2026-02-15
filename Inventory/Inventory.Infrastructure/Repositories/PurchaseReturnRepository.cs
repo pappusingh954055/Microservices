@@ -78,13 +78,16 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
         var receivedItems = await _context.GRNDetails
             .Include(gd => gd.GRNHeader)
             .Where(gd => gd.GRNHeader.SupplierId == supplierId && (gd.ReceivedQty - gd.RejectedQty) > 0)
+            .OrderByDescending(gd => gd.GRNHeader.ReceivedDate)
+            .ThenByDescending(gd => gd.GRNHeader.Id) // Better tie-breaker for latest entries
             .Select(gd => new ReceivedStockDto
             {
                 ProductId = gd.ProductId,
-                ProductName = gd.Product != null ? gd.Product.Name : "Unknown Product",
+                ProductName = (gd.Product != null && !string.IsNullOrEmpty(gd.Product.Name)) ? gd.Product.Name : "Product-" + gd.ProductId.ToString().Substring(0,8),
                 GrnRef = gd.GRNHeader.GRNNumber,
-                AvailableQty = gd.ReceivedQty - gd.RejectedQty, // This is AcceptedQty
-                Rate = gd.UnitRate
+                AvailableQty = gd.ReceivedQty - gd.RejectedQty,
+                Rate = gd.UnitRate,
+                ReceivedDate = gd.GRNHeader.ReceivedDate
             })
             .ToListAsync();
 
