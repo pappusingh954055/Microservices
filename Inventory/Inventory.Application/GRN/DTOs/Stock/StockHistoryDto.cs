@@ -21,6 +21,8 @@ public class StockHistoryDto
 {
     public DateTime ReceivedDate { get; set; }
     public string PONumber { get; set; } = string.Empty;
+
+    public string GRNNumber { get; set; }   
     public string SupplierName { get; set; } = string.Empty;
     public decimal ReceivedQty { get; set; }
     public decimal RejectedQty { get; set; }

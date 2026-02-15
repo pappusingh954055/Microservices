@@ -394,6 +394,7 @@ namespace Inventory.Infrastructure.Repositories
                     {
                         ReceivedDate = allG.GRNHeader.ReceivedDate,
                         PONumber = allG.GRNHeader.PurchaseOrder.PoNumber,
+                        GRNNumber = allG.GRNHeader.GRNNumber,
                         SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
                         ProductName = allG.Product.Name,
                         ReceivedQty = allG.ReceivedQty,
