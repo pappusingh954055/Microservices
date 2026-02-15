@@ -40,7 +40,7 @@ namespace Inventory.API.Controllers
 
 
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
-        [HttpGet("suppliers-with-rejections")]
+        [HttpGet("suppliers-purchase-return")]
         public async Task<IActionResult> GetSuppliersWithRejections()
         {
             try
