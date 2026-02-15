@@ -32,20 +32,29 @@ namespace Inventory.Application.SaleOrders.SaleReturn.Command
             }
             // --- VALIDATION LOGIC END ---
 
-            var items = dto.Items.Select(i => new SaleReturnItem
+            var items = dto.Items.Select(i =>
             {
-                ProductId = i.ProductId,
-                ReturnQty = i.ReturnQty,
-                UnitPrice = i.UnitPrice,
-                DiscountPercent = i.DiscountPercent,
-                DiscountAmount = i.DiscountAmount, // (Qty * Rate) * (Disc% / 100)
-                TaxPercentage = i.TaxPercentage,
-                // Financial calculation: Tax on (Base Amount - Discount)
-                TaxAmount = ((i.ReturnQty * i.UnitPrice) - i.DiscountAmount) * (i.TaxPercentage / 100m),
-                TotalAmount = i.TotalAmount, // Already calculated correctly from frontend
-                Reason = i.Reason,
-                ItemCondition = i.ItemCondition,
-                CreatedOn = DateTime.Now
+                var taxableAmount = (i.ReturnQty * i.UnitPrice) - i.DiscountAmount;
+                var taxAmount = taxableAmount * (i.TaxPercentage / 100m);
+                var totalAmount = taxableAmount + taxAmount;
+
+                Console.WriteLine($"[CreateReturn] Item: {i.ProductId} | Qty: {i.ReturnQty} | Rate: {i.UnitPrice} | Disc: {i.DiscountAmount}");
+                Console.WriteLine($"[CreateReturn] Taxable: {taxableAmount} | Tax: {taxAmount} | Total: {totalAmount}");
+                
+                return new SaleReturnItem
+                {
+                    ProductId = i.ProductId,
+                    ReturnQty = i.ReturnQty,
+                    UnitPrice = i.UnitPrice,
+                    DiscountPercent = i.DiscountPercent,
+                    DiscountAmount = i.DiscountAmount,
+                    TaxPercentage = i.TaxPercentage,
+                    TaxAmount = taxAmount,
+                    TotalAmount = totalAmount, // Backend Calculation
+                    Reason = i.Reason,
+                    ItemCondition = i.ItemCondition,
+                    CreatedOn = DateTime.Now
+                };
             }).ToList();
 
             var header = new SaleReturnHeader
