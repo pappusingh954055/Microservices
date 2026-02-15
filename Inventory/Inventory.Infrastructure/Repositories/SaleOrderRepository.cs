@@ -224,11 +224,14 @@ public class SaleOrderRepository : ISaleOrderRepository
                 Items = o.Items.Select(oi => new SaleOrderItemDto
                 {
                     ProductId = oi.ProductId,
-                    // ProductName direct column se aa jayega
                     ProductName = oi.ProductName,
                     Qty = oi.Qty,
+                    Unit = oi.Unit,
                     Rate = oi.Rate,
-                    Total = oi.Qty * oi.Rate
+                    DiscountPercent = oi.DiscountPercent,
+                    GstPercent = oi.GSTPercent,
+                    TaxAmount = oi.TaxAmount,
+                    Total = oi.Total
                 }).ToList()
             })
             .FirstOrDefaultAsync();

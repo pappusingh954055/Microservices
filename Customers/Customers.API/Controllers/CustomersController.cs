@@ -56,7 +56,6 @@ public class CustomersController : ControllerBase
     /// <param name="ids"></param>
     /// <returns></returns>
     [HttpPost("get-names")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> GetCustomerNames([FromBody] List<int> ids)
     {
         if (ids == null || !ids.Any()) return BadRequest("No IDs provided");
@@ -71,7 +70,6 @@ public class CustomersController : ControllerBase
     /// <param name="id"></param>
     /// <returns></returns>
     [HttpGet("{id}/name")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
     public async Task<IActionResult> GetCustomerNameById(int id)
     {
         var name = await _customerRepo.GetCustomerNameByIdAsync(id);
