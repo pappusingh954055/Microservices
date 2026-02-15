@@ -280,6 +280,7 @@ public class SaleOrderRepository : ISaleOrderRepository
                 ProductId = x.ProductId,
                 ProductName = x.ProductName,
                 Rate = x.Rate,
+                DiscountPercent = x.DiscountPercent,
                 TaxPercentage = x.GSTPercent,
 
                 // CRITICAL FIX: Original Sold (10) minus Already Returned (5) = Display (5)

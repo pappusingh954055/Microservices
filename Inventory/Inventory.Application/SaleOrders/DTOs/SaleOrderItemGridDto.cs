@@ -6,5 +6,6 @@ public class SaleOrderItemGridDto
     public string ProductName { get; set; } = string.Empty; // Table "Product" column
     public decimal SoldQty { get; set; } // Table "Sold Qty" column
     public decimal Rate { get; set; } // Table "Rate" column
+    public decimal DiscountPercent { get; set; } // Table "Disc %" column
     public decimal TaxPercentage { get; set; } // Table "Tax %" column
 }
