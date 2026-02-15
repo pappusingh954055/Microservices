@@ -12,6 +12,8 @@ namespace Customers.Infrastructure.Persistence
 
         // 🔹 DbSet for Customer
         public DbSet<Customer> Customers { get; set; }
+        public DbSet<CustomerReceipt> CustomerReceipts { get; set; }
+        public DbSet<CustomerLedger> CustomerLedgers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -19,6 +21,18 @@ namespace Customers.Infrastructure.Persistence
 
             // 🔹 Apply Fluent Configurations
             modelBuilder.ApplyConfiguration(new CustomerConfiguration());
+
+            modelBuilder.Entity<CustomerReceipt>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.ReceiptMode).IsRequired().HasMaxLength(50);
+            });
+
+            modelBuilder.Entity<CustomerLedger>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.TransactionType).IsRequired().HasMaxLength(50);
+            });
         }
 
     }
