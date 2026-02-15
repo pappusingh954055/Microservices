@@ -93,6 +93,7 @@ public class SaleReturnService : ISaleReturnService
                             .FirstOrDefault() ?? "N/A",
 
                 SubTotal = h.SubTotal,     // Database mapping
+                TotalDiscount = h.DiscountAmount, // New Mapping
                 TotalTax = h.TaxAmount,    // Database mapping
                 GrandTotal = h.TotalAmount, // Database mapping
 
@@ -109,6 +110,12 @@ public class SaleReturnService : ISaleReturnService
             .FirstOrDefaultAsync();
 
         if (data == null) return null;
+
+        Console.WriteLine($"[GetPrintDataAsync] ID: {id}, Total: {data.GrandTotal}, TotalDiscount: {data.TotalDiscount}");
+        foreach (var item in data.Items)
+        {
+            Console.WriteLine($"[GetPrintDataAsync] Item: {item.ProductName}, Qty: {item.Qty}, Rate: {item.Rate}, Disc%: {item.DiscountPercent}");
+        }
 
         // 2. Customer Name laane ke liye Helper Method (Dictionary Logic)
         var customerIds = new List<int> { data.CustomerId };

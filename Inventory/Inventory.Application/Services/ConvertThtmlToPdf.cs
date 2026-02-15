@@ -99,6 +99,7 @@ namespace Inventory.Application.Services
             </table>
             <div class='total-section'>
                 <p>Sub-Total: {data.SubTotal:N2}</p>
+                <p>Discount: {data.TotalDiscount:N2}</p>
                 <p>Tax: {data.TotalTax:N2}</p>
                 <hr/>
                 <h3>Grand Total: ₹{data.GrandTotal:N2}</h3>
