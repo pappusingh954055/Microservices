@@ -74,24 +74,28 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
     public async Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId)
     {
-        // Accepted qty fetch karein jo warehouse mein hai
-        var receivedItems = await _context.GRNDetails
-            .Include(gd => gd.GRNHeader)
-            .Where(gd => gd.GRNHeader.SupplierId == supplierId && (gd.ReceivedQty - gd.RejectedQty) > 0)
-            .OrderByDescending(gd => gd.GRNHeader.ReceivedDate)
-            .ThenByDescending(gd => gd.GRNHeader.Id) // Better tie-breaker for latest entries
-            .Select(gd => new ReceivedStockDto
-            {
-                ProductId = gd.ProductId,
-                ProductName = (gd.Product != null && !string.IsNullOrEmpty(gd.Product.Name)) ? gd.Product.Name : "Product-" + gd.ProductId.ToString().Substring(0,8),
-                GrnRef = gd.GRNHeader.GRNNumber,
-                AvailableQty = gd.ReceivedQty - gd.RejectedQty,
-                Rate = gd.UnitRate,
-                ReceivedDate = gd.GRNHeader.ReceivedDate
-            })
+        // Accepted qty fetch karein jo warehouse mein hai [cite: PO Rate Integration]
+        // Join with PurchaseOrderItems to get the original Gross Rate
+        var query = from gd in _context.GRNDetails.Include(x => x.Product)
+                    join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
+                    join poi in _context.PurchaseOrderItems on new { gh.PurchaseOrderId, gd.ProductId } equals new { poi.PurchaseOrderId, poi.ProductId }
+                    where gh.SupplierId == supplierId && (gd.ReceivedQty - gd.RejectedQty) > 0
+                    select new ReceivedStockDto
+                    {
+                        ProductId = gd.ProductId,
+                        ProductName = (gd.Product != null && !string.IsNullOrEmpty(gd.Product.Name)) ? gd.Product.Name : "Product-" + gd.ProductId.ToString().Substring(0, 8),
+                        GrnRef = gh.GRNNumber,
+                        AvailableQty = gd.ReceivedQty - gd.RejectedQty,
+                        Rate = poi.Rate, // Original Gross Rate from PO
+                        ReceivedDate = gh.ReceivedDate
+                    };
+
+        var result = await query
+            .OrderByDescending(x => x.ReceivedDate)
+            .ThenByDescending(x => x.GrnRef)
             .ToListAsync();
 
-        return receivedItems;
+        return result;
     }
 
 
@@ -128,14 +132,16 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                     if (item.ReturnQty > totalAvailable)
                         throw new Exception($"Cannot return more than available stock: {totalAvailable}");
 
-                    // 4. Financials mapping from PO
+                    // 3. Find PO Item for correct pricing [cite: PO Rate FIX]
                     var poItem = await _context.PurchaseOrderItems
-                        .FirstOrDefaultAsync(poi => poi.ProductId == item.ProductId);
+                        .FirstOrDefaultAsync(poi => poi.ProductId == item.ProductId 
+                                             && poi.PurchaseOrderId == grnDetail.GRNHeader.PurchaseOrderId);
 
                     if (poItem != null)
                     {
                         item.GstPercent = poItem.GstPercent;
                         item.DiscountPercent = poItem.DiscountPercent;
+                        item.Rate = poItem.Rate; // Save Gross Rate
 
                         decimal baseAmount = item.ReturnQty * item.Rate;
                         decimal discountAmt = baseAmount * (item.DiscountPercent / 100);
@@ -147,6 +153,13 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
 
                         totalHeaderSubTotal += taxableAmount;
                         totalHeaderTax += itemTax;
+                    }
+                    else
+                    {
+                        // Fallback if PO item not found (rare)
+                        decimal baseAmount = item.ReturnQty * item.Rate;
+                        item.TotalAmount = baseAmount;
+                        totalHeaderSubTotal += baseAmount;
                     }
 
                     // 5. STOCK LOGIC FIX (Important)
