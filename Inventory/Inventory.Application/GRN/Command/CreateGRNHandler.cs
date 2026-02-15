@@ -34,6 +34,10 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             RejectedQty = i.RejectedQty,
             AcceptedQty = i.AcceptedQty,
             UnitRate = i.UnitRate,
+            DiscountPercent = i.DiscountPercent,
+            GstPercent = i.GstPercent,
+            TaxAmount = i.TaxAmount,
+            Total = i.TotalAmount,
             UpdatedOn = DateTime.Now
         }).ToList();
 

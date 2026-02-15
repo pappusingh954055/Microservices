@@ -272,36 +272,37 @@ namespace Inventory.Infrastructure.Repositories
                     Items = grnHeaderId != null
                         ? _context.GRNDetails
                             .Where(g => g.GRNHeaderId == grnHeaderId)
-                            .Select(d => new POItemForGRNDTO
+                            .Include(d => d.Product)
+                            .Select(d => new { d, poi = _context.PurchaseOrderItems.FirstOrDefault(p => p.PurchaseOrderId == h.Id && p.ProductId == d.ProductId) })
+                            .Select(x => new POItemForGRNDTO
                             {
-                                ProductId = d.ProductId,
-                                ProductName = d.Product.Name ?? "N/A",
-                                OrderedQty = d.OrderedQty,
-                                // VIEW MODE: Historical data
-                                ReceivedQty = d.ReceivedQty,
-                                RejectedQty = d.RejectedQty,
-                                // Math Fix: Accepted hamesha Received - Rejected hota hai
-                                AcceptedQty = d.ReceivedQty - d.RejectedQty,
-                                UnitRate = d.UnitRate,
-                                // FIX: Past entry mein Pending '0' nahi hona chahiye.
-                                // Formula: Ordered - Received (uss transaction ke time ka balance)
-                                PendingQty = d.OrderedQty - d.ReceivedQty
+                                ProductId = x.d.ProductId,
+                                ProductName = x.d.Product.Name ?? "N/A",
+                                OrderedQty = x.d.OrderedQty,
+                                ReceivedQty = x.d.ReceivedQty,
+                                RejectedQty = x.d.RejectedQty,
+                                AcceptedQty = x.d.ReceivedQty - x.d.RejectedQty,
+                                UnitRate = x.d.UnitRate,
+                                PendingQty = x.d.OrderedQty - x.d.ReceivedQty,
+                                DiscountPercent = x.poi != null ? x.poi.DiscountPercent : 0,
+                                GstPercent = x.poi != null ? x.poi.GstPercent : 0,
+                                TaxAmount = (x.d.ReceivedQty - x.d.RejectedQty) * x.d.UnitRate * (x.poi != null ? x.poi.GstPercent / 100 : 0)
                             }).ToList()
                         : h.Items.Select(d => new POItemForGRNDTO
                         {
                             ProductId = d.ProductId,
                             ProductName = d.Product.Name ?? "N/A",
                             OrderedQty = d.Qty,
-                            UnitRate = d.Rate - (d.Rate * (d.DiscountPercent / 100)),
+                            UnitRate = d.Rate,
+                            DiscountPercent = d.DiscountPercent,
+                            GstPercent = d.GstPercent,
 
-                            // CREATE MODE: Naya maal receive karne ke liye pending calculation
-                            // Formula: Total Ordered - Cumulative Received so far
                             PendingQty = d.Qty - (d.ReceivedQty),
-
-                            // Default suggestion: Jitna pending hai utna hi receive mein dikhao
                             ReceivedQty = d.Qty - (d.ReceivedQty),
                             RejectedQty = 0,
-                            AcceptedQty = d.Qty - (d.ReceivedQty)
+                            AcceptedQty = d.Qty - (d.ReceivedQty),
+                            // Auto-calculate Tax Amount
+                            TaxAmount = ((d.Qty - (d.ReceivedQty)) * d.Rate * (1 - d.DiscountPercent / 100)) * (d.GstPercent / 100)
                         }).ToList()
                 }).FirstOrDefaultAsync();
         }

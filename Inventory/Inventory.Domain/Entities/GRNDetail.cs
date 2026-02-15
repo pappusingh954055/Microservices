@@ -18,5 +18,9 @@ namespace Inventory.Domain.Entities
         public decimal AcceptedQty { get; set; }
         public decimal ReceivedQty { get; set; } // User input quantity [cite: 2026-01-22]
         public decimal UnitRate { get; set; }
+        public decimal DiscountPercent { get; set; }
+        public decimal GstPercent { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal Total { get; set; }
     }
 }

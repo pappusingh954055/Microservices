@@ -13,5 +13,9 @@ namespace Inventory.Application.GRN.DTOs
         public decimal RejectedQty { get; set; }
         public decimal AcceptedQty { get; set; }
         public decimal UnitRate { get; set; }
+        public decimal DiscountPercent { get; set; }
+        public decimal GstPercent { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
     }
 }
