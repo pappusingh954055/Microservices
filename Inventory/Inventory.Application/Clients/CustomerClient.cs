@@ -72,7 +72,7 @@ public class CustomerClient : ICustomerClient
             CreatedBy = createdBy
         };
 
-        var response = await client.PostAsJsonAsync("api/customers/finance/sale", payload);
+        var response = await client.PostAsJsonAsync("api/finance/sale", payload);
 
         if (!response.IsSuccessStatusCode)
         {

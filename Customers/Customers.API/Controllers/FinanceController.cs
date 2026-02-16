@@ -8,7 +8,7 @@ using Customers.Domain.Entities;
 
 namespace Customers.API.Controllers
 {
-    [Route("api/customers/finance")]
+    [Route("api/finance")]
     [ApiController]
     public class FinanceController : ControllerBase
     {

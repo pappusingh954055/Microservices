@@ -1,6 +1,7 @@
 ﻿// Note: Command definition mein bhi return type 'int' se badal kar 'object' ya custom class karein
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.SaleOrders.Commands;
+using Inventory.Application.Clients;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using YourProjectNamespace.Entities;
@@ -9,11 +10,13 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
 {
     private readonly ISaleOrderRepository _repo;
     private readonly IInventoryDbContext _context;
+    private readonly ICustomerClient _customerClient;
 
-    public CreateSaleOrderHandler(ISaleOrderRepository repo, IInventoryDbContext context)
+    public CreateSaleOrderHandler(ISaleOrderRepository repo, IInventoryDbContext context, ICustomerClient customerClient)
     {
         _repo = repo;
         _context = context;
+        _customerClient = customerClient;
     }
 
     public async Task<object> Handle(CreateSaleOrderCommand request, CancellationToken cancellationToken)
@@ -74,6 +77,22 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
                     }
 
                     await _repo.CommitTransactionAsync();
+
+                    // Ledger Sync (Fire and forget or async)
+                    try
+                    {
+                        await _customerClient.RecordSaleAsync(
+                            saleOrder.CustomerId,
+                            saleOrder.GrandTotal,
+                            saleOrder.SONumber,
+                            $"Sale Invoice generated: {saleOrder.SONumber}",
+                            saleOrder.CreatedBy ?? "System"
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Ledger sync failed: {ex.Message}");
+                    }
 
                     // ✅ YAHAN FIX HAI: ID ke saath SONumber bhi return karein
                     return new { Id = savedId, SONumber = generatedSONo };
