@@ -1,17 +1,13 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Suppliers.Application.DTOs;
 using Suppliers.Application.Features.Suppliers.Commands;
 using Suppliers.Application.Features.Suppliers.Queries;
 using Suppliers.Domain.Entities;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Suppliers.API.Controllers
 {
-    [Route("api/suppliers/finance")]
+    [Route("api/finance")]
     [ApiController]
     public class FinanceController : ControllerBase
     {
@@ -31,7 +27,7 @@ namespace Suppliers.API.Controllers
         }
 
         // 2. Payment Entry
-        [HttpPost("payment")]
+        [HttpPost("payment-entry")]
         public async Task<IActionResult> RecordPayment([FromBody] SupplierPayment payment)
         {
             var command = new RecordSupplierPaymentCommand(new SupplierPaymentDto
