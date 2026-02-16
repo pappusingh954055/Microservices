@@ -47,6 +47,15 @@ namespace Suppliers.API.Controllers
             return Ok(payment);
         }
 
+        // 2.1 Purchase Entry (From Inventory GRN)
+        [HttpPost("purchase-entry")]
+        public async Task<IActionResult> RecordPurchase([FromBody] SupplierPurchaseDto purchase)
+        {
+            var command = new RecordSupplierPurchaseCommand(purchase);
+            var result = await _mediator.Send(command);
+            return Ok(result);
+        }
+
         // 3. Pending Dues Report
         [HttpGet("pending-dues")]
         public async Task<IActionResult> GetPendingDues()

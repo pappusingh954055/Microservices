@@ -27,4 +27,21 @@ public class SupplierClient : ISupplierClient
 
         return new List<SupplierSelectDto>();
     }
+
+    public async Task<bool> RecordPurchaseAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy)
+    {
+        var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+        var payload = new
+        {
+            SupplierId = supplierId,
+            Amount = amount,
+            ReferenceId = referenceId,
+            Description = description,
+            TransactionDate = DateTime.Now,
+            CreatedBy = createdBy
+        };
+
+        var response = await client.PostAsJsonAsync("api/finance/purchase-entry", payload);
+        return response.IsSuccessStatusCode;
+    }
 }

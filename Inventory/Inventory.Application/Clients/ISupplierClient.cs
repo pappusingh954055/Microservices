@@ -8,5 +8,6 @@ namespace Inventory.Application.Clients
     public interface ISupplierClient
     {
         Task<List<SupplierSelectDto>> GetSuppliersByIdsAsync(List<int> supplierIds);
+        Task<bool> RecordPurchaseAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy);
     }
 }

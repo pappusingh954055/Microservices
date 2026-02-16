@@ -1,4 +1,5 @@
 using Suppliers.Domain.Entities;
+using System;
 using System.Collections.Generic;
 
 namespace Suppliers.Application.DTOs
@@ -22,5 +23,15 @@ namespace Suppliers.Application.DTOs
     {
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
+    }
+
+    public class SupplierPurchaseDto
+    {
+        public int SupplierId { get; set; }
+        public decimal Amount { get; set; }
+        public string ReferenceId { get; set; } // GRN Number
+        public string Description { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public string CreatedBy { get; set; }
     }
 }

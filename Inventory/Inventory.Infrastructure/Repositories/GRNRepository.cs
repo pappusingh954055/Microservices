@@ -222,6 +222,24 @@ namespace Inventory.Infrastructure.Repositories
                         "/app/inventory/grn-list"
                     );
 
+                    // --- NEW: RECORD PURCHASE IN SUPPLIER LEDGER ---
+                    try
+                    {
+                        await _supplierClient.RecordPurchaseAsync(
+                            header.SupplierId,
+                            header.TotalAmount,
+                            header.GRNNumber,
+                            $"Goods Received via GRN: {header.GRNNumber}",
+                            header.CreatedBy
+                        );
+                    }
+                    catch (Exception ex)
+                    {
+                        // Log error but don't fail the whole GRN save 
+                        // as stock is already updated and transaction committed
+                        Console.WriteLine($"Ledger Sync Error: {ex.Message}");
+                    }
+
                     return header.GRNNumber;
                 }
                 catch (Exception ex)
