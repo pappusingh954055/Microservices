@@ -1,10 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Customers.Domain.Entities;
 using Customers.Infrastructure.Persistence;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace Customers.API.Controllers
 {
@@ -78,12 +75,43 @@ namespace Customers.API.Controllers
                 .Select(g => new
                 {
                     CustomerId = g.Key,
-                    TotalBalance = g.OrderByDescending(l => l.Id).First().Balance
+                    PendingAmount = g.OrderByDescending(l => l.Id).First().Balance
                 })
-                .Where(x => x.TotalBalance > 0)
+                .Where(x => x.PendingAmount > 0)
                 .ToListAsync();
 
-            return Ok(outstanding);
+            var customerIds = outstanding.Select(o => o.CustomerId).ToList();
+            var customers = await _context.Customers.Where(c => customerIds.Contains(c.Id)).ToListAsync();
+
+            var result = outstanding.Select(o => new
+            {
+                o.CustomerId,
+                o.PendingAmount,
+                TotalAmount = o.PendingAmount * 1.2m, // Placeholder logic for Total vs Pending
+                CustomerName = customers.FirstOrDefault(c => c.Id == o.CustomerId)?.CustomerName ?? "Unknown",
+                Status = "Overdue",
+                DueDate = DateTime.Now.AddDays(7)
+            });
+
+            return Ok(result);
+        }
+
+        // 4. Total Receipts (For P&L)
+        [HttpPost("total-receipts")]
+        public async Task<IActionResult> GetTotalReceipts([FromBody] DateRangeDto dateRange)
+        {
+            var totalReceipts = await _context.CustomerReceipts
+                .Where(r => r.ReceiptDate >= dateRange.StartDate && r.ReceiptDate <= dateRange.EndDate)
+                .SumAsync(r => r.Amount);
+
+            return Ok(new { TotalReceipts = totalReceipts });
         }
     }
+
+    public class DateRangeDto
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+    }
+    
 }

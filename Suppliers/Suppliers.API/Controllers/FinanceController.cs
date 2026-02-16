@@ -76,12 +76,41 @@ namespace Suppliers.API.Controllers
                 .Select(g => new
                 {
                     SupplierId = g.Key,
-                    TotalBalance = g.OrderByDescending(l => l.Id).First().Balance
+                    PendingAmount = g.OrderByDescending(l => l.Id).First().Balance
                 })
-                .Where(x => x.TotalBalance > 0)
+                .Where(x => x.PendingAmount > 0)
                 .ToListAsync();
 
-            return Ok(dues);
+            var supplierIds = dues.Select(d => d.SupplierId).ToList();
+            var suppliers = await _context.Suppliers.Where(s => supplierIds.Contains(s.Id)).ToListAsync();
+
+            var result = dues.Select(d => new 
+            {
+                d.SupplierId,
+                d.PendingAmount,
+                SupplierName = suppliers.FirstOrDefault(s => s.Id == d.SupplierId)?.Name ?? "Unknown",
+                Status = "Overdue",
+                DueDate = DateTime.Now.AddDays(7)
+            });
+
+            return Ok(result);
         }
+
+        // 4. Total Payments (For P&L)
+        [HttpPost("total-payments")]
+        public async Task<IActionResult> GetTotalPayments([FromBody] DateRangeDto dateRange)
+        {
+            var totalPayments = await _context.SupplierPayments
+                .Where(p => p.PaymentDate >= dateRange.StartDate && p.PaymentDate <= dateRange.EndDate)
+                .SumAsync(p => p.Amount);
+
+            return Ok(new { TotalPayments = totalPayments });
+        }
+    }
+
+    public class DateRangeDto
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 }
