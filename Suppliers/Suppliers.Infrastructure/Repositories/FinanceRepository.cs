@@ -103,5 +103,28 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 
             return result;
         }
+        public async Task<List<PaymentReportDto>> GetPaymentsReportAsync(DateRangeDto dateRange)
+        {
+            var payments = await _context.SupplierPayments
+                .Where(p => p.PaymentDate >= dateRange.StartDate && p.PaymentDate <= dateRange.EndDate)
+                .OrderByDescending(p => p.PaymentDate)
+                .ToListAsync();
+
+            var supplierIds = payments.Select(p => p.SupplierId).Distinct().ToList();
+            var suppliers = await _context.Suppliers.Where(s => supplierIds.Contains(s.Id)).ToListAsync();
+
+            return payments.Select(p => new PaymentReportDto
+            {
+                Id = p.Id,
+                SupplierId = p.SupplierId,
+                SupplierName = suppliers.FirstOrDefault(s => s.Id == p.SupplierId)?.Name ?? "Unknown",
+                Amount = p.Amount,
+                PaymentDate = p.PaymentDate,
+                PaymentMode = p.PaymentMode,
+                ReferenceNumber = p.ReferenceNumber,
+                Remarks = p.Remarks,
+                CreatedBy = p.CreatedBy
+            }).ToList();
+        }
     }
 }

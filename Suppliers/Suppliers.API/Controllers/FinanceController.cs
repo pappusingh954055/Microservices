@@ -79,5 +79,13 @@ namespace Suppliers.API.Controllers
             var result = await _mediator.Send(new GetGRNPaymentStatusesQuery(grnNumbers));
             return Ok(result);
         }
+
+        // 6. Payments Report
+        [HttpPost("payments-report")]
+        public async Task<IActionResult> GetPaymentsReport([FromBody] DateRangeDto dateRange)
+        {
+            var result = await _mediator.Send(new GetPaymentsReportQuery(dateRange));
+            return Ok(result);
+        }
     }
 }

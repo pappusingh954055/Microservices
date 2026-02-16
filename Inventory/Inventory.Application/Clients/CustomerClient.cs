@@ -57,4 +57,27 @@ public class CustomerClient : ICustomerClient
 
         return new List<int>();
     }
+
+    public async Task RecordSaleAsync(int customerId, decimal amount, string referenceId, string description, string createdBy)
+    {
+        var client = _httpClientFactory.CreateClient("CustomerService");
+
+        var payload = new
+        {
+            CustomerId = customerId,
+            Amount = amount,
+            ReferenceId = referenceId,
+            Description = description,
+            TransactionDate = DateTime.Now,
+            CreatedBy = createdBy
+        };
+
+        var response = await client.PostAsJsonAsync("api/customers/finance/sale", payload);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to record sale in customer ledger: {error}");
+        }
+    }
 }

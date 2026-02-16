@@ -40,4 +40,14 @@ namespace Customers.Application.DTOs
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
     }
+
+    public class CustomerSaleDto
+    {
+        public int CustomerId { get; set; }
+        public decimal Amount { get; set; }
+        public string ReferenceId { get; set; } // Invoice/Sale Order Number
+        public string Description { get; set; }
+        public DateTime TransactionDate { get; set; }
+        public string CreatedBy { get; set; }
+    }
 }

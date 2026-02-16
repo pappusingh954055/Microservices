@@ -37,6 +37,15 @@ namespace Customers.API.Controllers
             return Ok(new { Id = id }); // Returning object to be consistent
         }
 
+        // 2b. Sale Entry (called from Inventory when Sale is confirmed)
+        [HttpPost("sale")]
+        public async Task<IActionResult> RecordSale([FromBody] CustomerSaleDto saleDto)
+        {
+            var command = new RecordCustomerSaleCommand(saleDto);
+            var id = await _mediator.Send(command);
+            return Ok(new { Id = id });
+        }
+
         // 3. Outstanding Tracker
         [HttpGet("outstanding")]
         public async Task<IActionResult> GetOutstanding()

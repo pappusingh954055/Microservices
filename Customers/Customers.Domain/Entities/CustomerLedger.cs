@@ -13,6 +13,7 @@ namespace Customers.Domain.Entities
         public decimal Balance { get; set; }
         public DateTime TransactionDate { get; set; }
         public string? Description { get; set; }
+        public string CreatedBy { get; set; } = "System";
         public DateTime CreatedDate { get; set; } = DateTime.Now;
     }
 }

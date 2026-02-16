@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore.Storage;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System;
+using System.Collections.Generic;
+using Inventory.Application.Clients;
 using YourProjectNamespace.Entities;
 
 public class SaleOrderRepository : ISaleOrderRepository
@@ -14,10 +17,12 @@ public class SaleOrderRepository : ISaleOrderRepository
     private readonly InventoryDbContext _context;
     private IDbContextTransaction? _transaction; 
     private readonly HttpClient _httpClient;
+    private readonly ICustomerClient _customerClient;
    
-    public SaleOrderRepository(InventoryDbContext context, IHttpClientFactory httpClientFactory)
+    public SaleOrderRepository(InventoryDbContext context, IHttpClientFactory httpClientFactory, ICustomerClient customerClient)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
+        _customerClient = customerClient;
        
         if (httpClientFactory == null) throw new ArgumentNullException(nameof(httpClientFactory));
 
@@ -200,7 +205,27 @@ public class SaleOrderRepository : ISaleOrderRepository
 
         // 3. Status update karein aur save karein
         order.Status = status;
-        return await _context.SaveChangesAsync() > 0;
+        var saved = await _context.SaveChangesAsync() > 0;
+
+        if (saved && status == "Confirmed")
+        {
+            try
+            {
+                await _customerClient.RecordSaleAsync(
+                    order.CustomerId,
+                    order.GrandTotal,
+                    order.SONumber,
+                    $"Sale Invoice generated: {order.SONumber}",
+                    "System"
+                );
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Customer Ledger sync error: {ex.Message}");
+            }
+        }
+
+        return saved;
     }
 
     public async Task<SaleOrderDetailDto?> GetSaleOrderByIdAsync(int id)

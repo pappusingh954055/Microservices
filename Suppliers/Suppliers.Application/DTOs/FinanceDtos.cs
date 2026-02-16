@@ -34,4 +34,17 @@ namespace Suppliers.Application.DTOs
         public DateTime TransactionDate { get; set; }
         public string CreatedBy { get; set; }
     }
+
+    public class PaymentReportDto
+    {
+        public int Id { get; set; }
+        public int SupplierId { get; set; }
+        public string SupplierName { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime PaymentDate { get; set; }
+        public string PaymentMode { get; set; }
+        public string ReferenceNumber { get; set; }
+        public string Remarks { get; set; }
+        public string CreatedBy { get; set; }
+    }
 }
