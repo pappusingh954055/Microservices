@@ -330,8 +330,11 @@ namespace Inventory.Infrastructure.Repositories
                 GRNNo = g.GRNNumber,
                 RefPO = g.PurchaseOrder.PoNumber,
                 SupplierName = g.PurchaseOrder.SupplierName,
+                SupplierId = g.SupplierId,  // For payment navigation
                 ReceivedDate = g.ReceivedDate,
                 Status = g.Status,
+                TotalAmount = g.TotalAmount,  // GRN Total Amount
+                PaymentStatus = "Unpaid",  // Default - To be calculated from Supplier Ledger
 
                 Items = g.GRNItems.Select(d => new GRNItemSummaryDto
                 {

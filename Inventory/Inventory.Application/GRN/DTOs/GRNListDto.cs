@@ -8,8 +8,11 @@ namespace Inventory.Application.GRN.DTOs
         public string GRNNo { get; set; }
         public string RefPO { get; set; }
         public string SupplierName { get; set; }
+        public int SupplierId { get; set; }  // For payment navigation
         public DateTime ReceivedDate { get; set; }
         public string Status { get; set; } // Completed or Partial
+        public string PaymentStatus { get; set; } = "Unpaid"; // Paid, Partial, Unpaid
+        public decimal TotalAmount { get; set; }  // GRN Total Amount
                                            // Yeh do fields expansion aur badge logic ke liye zaroori hain
         public decimal TotalRejected { get; set; }
         public List<GRNItemSummaryDto> Items { get; set; } = new List<GRNItemSummaryDto>();
