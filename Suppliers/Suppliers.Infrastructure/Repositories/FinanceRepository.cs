@@ -46,15 +46,15 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 
         public async Task<List<PendingDueDto>> GetPendingDuesAsync()
         {
-            var dues = await _context.SupplierLedgers
+            var latestEntries = await _context.SupplierLedgers
                 .GroupBy(l => l.SupplierId)
-                .Select(g => new
-                {
-                    SupplierId = g.Key,
-                    PendingAmount = g.OrderByDescending(l => l.Id).First().Balance
-                })
-                .Where(x => x.PendingAmount > 0)
+                .Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault())
                 .ToListAsync();
+
+            var dues = latestEntries
+                .Where(l => l != null && l.Balance > 0)
+                .Select(l => new { l.SupplierId, PendingAmount = l.Balance })
+                .ToList();
 
             var supplierIds = dues.Select(d => d.SupplierId).ToList();
             var suppliers = await _context.Suppliers.Where(s => supplierIds.Contains(s.Id)).ToListAsync();
@@ -64,7 +64,7 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
                 SupplierId = d.SupplierId,
                 PendingAmount = d.PendingAmount,
                 SupplierName = suppliers.FirstOrDefault(s => s.Id == d.SupplierId)?.Name ?? "Unknown",
-                Status = "Overdue",
+                Status = "Active",
                 DueDate = System.DateTime.Now.AddDays(7)
             }).ToList();
         }
@@ -125,6 +125,28 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
                 Remarks = p.Remarks,
                 CreatedBy = p.CreatedBy
             }).ToList();
+        }
+
+        public async Task<decimal> GetTotalPendingDuesAsync()
+        {
+            var supplierIds = await _context.SupplierLedgers
+                .Select(l => l.SupplierId)
+                .Distinct()
+                .ToListAsync();
+
+            decimal total = 0;
+            foreach (var id in supplierIds)
+            {
+                var lastBalance = await _context.SupplierLedgers
+                    .Where(l => l.SupplierId == id)
+                    .OrderByDescending(l => l.Id)
+                    .Select(l => l.Balance)
+                    .FirstOrDefaultAsync();
+
+                total += lastBalance;
+            }
+
+            return total;
         }
     }
 }

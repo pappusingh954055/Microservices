@@ -15,5 +15,6 @@ namespace Customers.Application.Common.Interfaces
         Task<List<CustomerLedger>> GetLedgerAsync(int customerId);
         Task<List<OutstandingDto>> GetOutstandingAsync();
         Task<decimal> GetTotalReceiptsAsync(DateRangeDto dateRange);
+        Task<decimal> GetTotalOutstandingAsync();
     }
 }

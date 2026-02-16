@@ -64,6 +64,13 @@ namespace Suppliers.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("pending-total")]
+        public async Task<IActionResult> GetPendingTotal()
+        {
+            var total = await _mediator.Send(new GetTotalPendingDuesQuery());
+            return Ok(new { TotalPending = total });
+        }
+
         // 4. Total Payments (For P&L)
         [HttpPost("total-payments")]
         public async Task<IActionResult> GetTotalPayments([FromBody] DateRangeDto dateRange)

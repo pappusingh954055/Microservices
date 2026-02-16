@@ -54,6 +54,13 @@ namespace Customers.API.Controllers
             return Ok(result);
         }
 
+        [HttpGet("outstanding-total")]
+        public async Task<IActionResult> GetOutstandingTotal()
+        {
+            var total = await _mediator.Send(new GetTotalOutstandingQuery());
+            return Ok(new { TotalOutstanding = total });
+        }
+
         // 4. Total Receipts (For P&L)
         [HttpPost("total-receipts")]
         public async Task<IActionResult> GetTotalReceipts([FromBody] DateRangeDto dateRange)

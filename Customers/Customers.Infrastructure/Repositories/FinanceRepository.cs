@@ -51,15 +51,16 @@ namespace Customers.Infrastructure.Repositories
 
         public async Task<List<OutstandingDto>> GetOutstandingAsync()
         {
-            var outstanding = await _context.CustomerLedgers
+            // Get last entry for each customer
+            var latestEntries = await _context.CustomerLedgers
                 .GroupBy(l => l.CustomerId)
-                .Select(g => new
-                {
-                    CustomerId = g.Key,
-                    PendingAmount = g.OrderByDescending(l => l.Id).First().Balance
-                })
-                .Where(x => x.PendingAmount > 0)
+                .Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault())
                 .ToListAsync();
+
+            var outstanding = latestEntries
+                .Where(l => l != null && l.Balance > 0)
+                .Select(l => new { l.CustomerId, PendingAmount = l.Balance })
+                .ToList();
 
             var customerIds = outstanding.Select(o => o.CustomerId).ToList();
             var customers = await _context.Customers.Where(c => customerIds.Contains(c.Id)).ToListAsync();
@@ -68,9 +69,9 @@ namespace Customers.Infrastructure.Repositories
             {
                 CustomerId = o.CustomerId,
                 PendingAmount = o.PendingAmount,
-                TotalAmount = o.PendingAmount, // Logic can be updated if Total != Pending
+                TotalAmount = o.PendingAmount,
                 CustomerName = customers.FirstOrDefault(c => c.Id == o.CustomerId)?.CustomerName ?? "Unknown",
-                Status = "Overdue",
+                Status = "Active",
                 DueDate = System.DateTime.Now.AddDays(7)
             }).ToList();
         }
@@ -80,6 +81,29 @@ namespace Customers.Infrastructure.Repositories
             return await _context.CustomerReceipts
                 .Where(r => r.ReceiptDate >= dateRange.StartDate && r.ReceiptDate <= dateRange.EndDate)
                 .SumAsync(r => r.Amount);
+        }
+
+        public async Task<decimal> GetTotalOutstandingAsync()
+        {
+            // Get all customer IDs
+            var customerIds = await _context.CustomerLedgers
+                .Select(l => l.CustomerId)
+                .Distinct()
+                .ToListAsync();
+
+            decimal total = 0;
+            foreach (var id in customerIds)
+            {
+                var lastBalance = await _context.CustomerLedgers
+                    .Where(l => l.CustomerId == id)
+                    .OrderByDescending(l => l.Id)
+                    .Select(l => l.Balance)
+                    .FirstOrDefaultAsync();
+                
+                total += lastBalance;
+            }
+
+            return total;
         }
     }
 }
