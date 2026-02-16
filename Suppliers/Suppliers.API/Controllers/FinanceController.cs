@@ -1,5 +1,9 @@
+using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Suppliers.Application.DTOs;
+using Suppliers.Application.Features.Suppliers.Commands;
+using Suppliers.Application.Features.Suppliers.Queries;
 using Suppliers.Domain.Entities;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,62 +11,42 @@ using System.Threading.Tasks;
 
 namespace Suppliers.API.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/suppliers/finance")]
     [ApiController]
     public class FinanceController : ControllerBase
     {
-        private readonly SupplierDbContext _context;
+        private readonly IMediator _mediator;
 
-        public FinanceController(SupplierDbContext context)
+        public FinanceController(IMediator mediator)
         {
-            _context = context;
+            _mediator = mediator;
         }
 
         // 1. Supplier Ledger (Khaata)
         [HttpGet("ledger/{supplierId}")]
         public async Task<IActionResult> GetLedger(int supplierId)
         {
-            var ledger = await _context.SupplierLedgers
-                .Where(l => l.SupplierId == supplierId)
-                .OrderByDescending(l => l.TransactionDate)
-                .ToListAsync();
-
-            var supplier = await _context.Suppliers.FindAsync(supplierId);
-            
-            return Ok(new { 
-                SupplierName = supplier?.Name,
-                Ledger = ledger 
-            });
+            var result = await _mediator.Send(new GetSupplierLedgerQuery(supplierId));
+            return Ok(result);
         }
 
         // 2. Payment Entry
         [HttpPost("payment")]
         public async Task<IActionResult> RecordPayment([FromBody] SupplierPayment payment)
         {
-            _context.SupplierPayments.Add(payment);
-
-            // Update Ledger
-            var lastLedger = await _context.SupplierLedgers
-                .Where(l => l.SupplierId == payment.SupplierId)
-                .OrderByDescending(l => l.Id)
-                .FirstOrDefaultAsync();
-
-            decimal currentBalance = (lastLedger?.Balance ?? 0) - payment.Amount;
-
-            var ledgerEntry = new SupplierLedger
+            var command = new RecordSupplierPaymentCommand(new SupplierPaymentDto
             {
                 SupplierId = payment.SupplierId,
-                TransactionType = "Payment",
-                ReferenceId = payment.ReferenceNumber ?? "PAY-" + System.Guid.NewGuid().ToString().Substring(0,8),
-                Debit = payment.Amount,
-                Credit = 0,
-                Balance = currentBalance,
-                TransactionDate = payment.PaymentDate,
-                Description = "Payment Made: " + payment.PaymentMode
-            };
+                Amount = payment.Amount,
+                PaymentDate = payment.PaymentDate,
+                PaymentMode = payment.PaymentMode,
+                ReferenceNumber = payment.ReferenceNumber,
+                Remarks = payment.Remarks,
+                CreatedBy = payment.CreatedBy
+            });
 
-            _context.SupplierLedgers.Add(ledgerEntry);
-            await _context.SaveChangesAsync();
+            var id = await _mediator.Send(command);
+            payment.Id = id;
 
             return Ok(payment);
         }
@@ -71,28 +55,7 @@ namespace Suppliers.API.Controllers
         [HttpGet("pending-dues")]
         public async Task<IActionResult> GetPendingDues()
         {
-            var dues = await _context.SupplierLedgers
-                .GroupBy(l => l.SupplierId)
-                .Select(g => new
-                {
-                    SupplierId = g.Key,
-                    PendingAmount = g.OrderByDescending(l => l.Id).First().Balance
-                })
-                .Where(x => x.PendingAmount > 0)
-                .ToListAsync();
-
-            var supplierIds = dues.Select(d => d.SupplierId).ToList();
-            var suppliers = await _context.Suppliers.Where(s => supplierIds.Contains(s.Id)).ToListAsync();
-
-            var result = dues.Select(d => new 
-            {
-                d.SupplierId,
-                d.PendingAmount,
-                SupplierName = suppliers.FirstOrDefault(s => s.Id == d.SupplierId)?.Name ?? "Unknown",
-                Status = "Overdue",
-                DueDate = DateTime.Now.AddDays(7)
-            });
-
+            var result = await _mediator.Send(new GetPendingDuesQuery());
             return Ok(result);
         }
 
@@ -100,17 +63,8 @@ namespace Suppliers.API.Controllers
         [HttpPost("total-payments")]
         public async Task<IActionResult> GetTotalPayments([FromBody] DateRangeDto dateRange)
         {
-            var totalPayments = await _context.SupplierPayments
-                .Where(p => p.PaymentDate >= dateRange.StartDate && p.PaymentDate <= dateRange.EndDate)
-                .SumAsync(p => p.Amount);
-
+            var totalPayments = await _mediator.Send(new GetTotalPaymentsQuery(dateRange));
             return Ok(new { TotalPayments = totalPayments });
         }
-    }
-
-    public class DateRangeDto
-    {
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
     }
 }

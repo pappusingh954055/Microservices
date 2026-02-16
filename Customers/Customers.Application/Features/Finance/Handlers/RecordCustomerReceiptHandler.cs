@@ -1,0 +1,62 @@
+using MediatR;
+using Customers.Application.Common.Interfaces;
+using Customers.Application.Features.Finance.Commands;
+using Customers.Domain.Entities;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Customers.Application.Features.Finance.Handlers
+{
+    public class RecordCustomerReceiptHandler : IRequestHandler<RecordCustomerReceiptCommand, int>
+    {
+        private readonly IFinanceRepository _repository;
+
+        public RecordCustomerReceiptHandler(IFinanceRepository repository)
+        {
+            _repository = repository;
+        }
+
+        public async Task<int> Handle(RecordCustomerReceiptCommand request, CancellationToken cancellationToken)
+        {
+            var receiptDto = request.ReceiptData;
+
+            var customerReceipt = new CustomerReceipt
+            {
+                CustomerId = receiptDto.CustomerId,
+                Amount = receiptDto.Amount,
+                ReceiptDate = receiptDto.ReceiptDate,
+                ReceiptMode = receiptDto.ReceiptMode,
+                ReferenceNumber = receiptDto.ReferenceNumber,
+                Remarks = receiptDto.Remarks,
+                CreatedBy = receiptDto.CreatedBy,
+                CreatedDate = DateTime.Now
+            };
+
+            await _repository.AddReceiptAsync(customerReceipt);
+
+            var lastLedger = await _repository.GetLastLedgerEntryAsync(receiptDto.CustomerId);
+            decimal currentBalance = (lastLedger?.Balance ?? 0) - receiptDto.Amount;
+
+            var ledgerEntry = new CustomerLedger
+            {
+                CustomerId = receiptDto.CustomerId,
+                TransactionType = "Receipt",
+                ReferenceId = string.IsNullOrWhiteSpace(receiptDto.ReferenceNumber) 
+                    ? "REC-" + System.Guid.NewGuid().ToString().Substring(0, 8) 
+                    : receiptDto.ReferenceNumber,
+                Debit = 0,
+                Credit = receiptDto.Amount,
+                Balance = currentBalance,
+                TransactionDate = receiptDto.ReceiptDate,
+                Description = "Receipt Received: " + receiptDto.ReceiptMode,
+                CreatedDate = DateTime.Now
+            };
+
+            await _repository.AddLedgerEntryAsync(ledgerEntry);
+            await _repository.SaveChangesAsync();
+
+            return customerReceipt.Id; 
+        }
+    }
+}

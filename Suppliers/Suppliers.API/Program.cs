@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Suppliers.Application.Interfaces;
+using Suppliers.Infrastructure.Repositories;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using System.Security.Claims;
@@ -28,6 +30,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Creat
 
 // Repository Inject karna
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
+builder.Services.AddScoped<IFinanceRepository, FinanceRepository>();
 
 builder.Services.AddCors(o => o.AddPolicy("AllowAngularDev", p =>
 {

@@ -25,6 +25,7 @@ namespace Customers.Infrastructure
                     }));
 
             services.AddScoped<ICustomerRepository, CustomerRepository>();
+            services.AddScoped<IFinanceRepository, FinanceRepository>();
 
 
             //services.AddScoped<CustomerDbContext>(

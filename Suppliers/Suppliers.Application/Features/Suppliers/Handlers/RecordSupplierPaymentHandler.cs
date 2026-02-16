@@ -1,0 +1,54 @@
+using MediatR;
+using Suppliers.Application.DTOs;
+using Suppliers.Application.Features.Suppliers.Commands;
+using Suppliers.Application.Interfaces;
+using Suppliers.Domain.Entities;
+using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace Suppliers.Application.Features.Suppliers.Handlers
+{
+    public class RecordSupplierPaymentHandler(IFinanceRepository repository) : IRequestHandler<RecordSupplierPaymentCommand, int>
+    {
+        private readonly IFinanceRepository _repository = repository;
+
+        public async Task<int> Handle(RecordSupplierPaymentCommand request, CancellationToken cancellationToken)
+        {
+            var paymentDto = request.PaymentData;
+
+            var supplierPayment = new SupplierPayment
+            {
+                SupplierId = paymentDto.SupplierId,
+                Amount = paymentDto.Amount,
+                PaymentDate = paymentDto.PaymentDate,
+                PaymentMode = paymentDto.PaymentMode,
+                ReferenceNumber = paymentDto.ReferenceNumber,
+                Remarks = paymentDto.Remarks,
+                CreatedBy = paymentDto.CreatedBy
+            };
+
+            await _repository.AddPaymentAsync(supplierPayment);
+
+            var lastLedger = await _repository.GetLastLedgerEntryAsync(paymentDto.SupplierId);
+            decimal currentBalance = (lastLedger?.Balance ?? 0) - paymentDto.Amount;
+
+            var supplierLedger = new SupplierLedger
+            {
+                SupplierId = paymentDto.SupplierId,
+                TransactionType = "Payment",
+                ReferenceId = paymentDto.ReferenceNumber ?? "PAY-" + System.Guid.NewGuid().ToString().Substring(0, 8),
+                Debit = paymentDto.Amount,
+                Credit = 0,
+                Balance = currentBalance,
+                TransactionDate = paymentDto.PaymentDate,
+                Description = "Payment Made: " + paymentDto.PaymentMode
+            };
+
+            await _repository.AddLedgerEntryAsync(supplierLedger);
+            await _repository.SaveChangesAsync();
+
+            return supplierPayment.Id; // Assuming Id is updated after AddAsync/SaveChanges? Wait, AddAsync usually doesn't update Id unless using EF Core Change Tracker and SaveChanges.
+        }
+    }
+}
