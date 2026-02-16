@@ -15,5 +15,6 @@ namespace Suppliers.Application.Interfaces // Adjust namespace if needed
         Task<List<SupplierLedger>> GetLedgerAsync(int supplierId);
         Task<List<PendingDueDto>> GetPendingDuesAsync();
         Task<decimal> GetTotalPaymentsAsync(DateRangeDto dateRange);
+        Task<Dictionary<string, decimal>> GetGRNPaymentStatusesAsync(List<string> grnNumbers);
     }
 }

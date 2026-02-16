@@ -44,4 +44,17 @@ public class SupplierClient : ISupplierClient
         var response = await client.PostAsJsonAsync("api/finance/purchase-entry", payload);
         return response.IsSuccessStatusCode;
     }
+
+    public async Task<Dictionary<string, decimal>> GetGRNPaymentStatusesAsync(List<string> grnNumbers)
+    {
+        var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+        var response = await client.PostAsJsonAsync("api/finance/get-grn-statuses", grnNumbers);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<Dictionary<string, decimal>>() ?? new Dictionary<string, decimal>();
+        }
+
+        return new Dictionary<string, decimal>();
+    }
 }

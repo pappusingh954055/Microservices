@@ -13,6 +13,7 @@ namespace Inventory.Application.GRN.DTOs
         public string Status { get; set; } // Completed or Partial
         public string PaymentStatus { get; set; } = "Unpaid"; // Paid, Partial, Unpaid
         public decimal TotalAmount { get; set; }  // GRN Total Amount
+        public decimal PaidAmount { get; set; }   // Already paid
                                            // Yeh do fields expansion aur badge logic ke liye zaroori hain
         public decimal TotalRejected { get; set; }
         public List<GRNItemSummaryDto> Items { get; set; } = new List<GRNItemSummaryDto>();

@@ -37,12 +37,12 @@ namespace Suppliers.Application.Features.Suppliers.Handlers
             {
                 SupplierId = paymentDto.SupplierId,
                 TransactionType = "Payment",
-                ReferenceId = paymentDto.ReferenceNumber ?? "PAY-" + System.Guid.NewGuid().ToString().Substring(0, 8),
+                ReferenceId = !string.IsNullOrEmpty(paymentDto.ReferenceNumber) ? paymentDto.ReferenceNumber : "PAY-" + System.Guid.NewGuid().ToString().Substring(0, 8),
                 Debit = paymentDto.Amount,
                 Credit = 0,
                 Balance = currentBalance,
                 TransactionDate = paymentDto.PaymentDate,
-                Description = "Payment Made: " + paymentDto.PaymentMode
+                Description = !string.IsNullOrEmpty(paymentDto.Remarks) ? paymentDto.Remarks : $"Payment for {paymentDto.ReferenceNumber ?? "Invoice"}"
             };
 
             await _repository.AddLedgerEntryAsync(supplierLedger);

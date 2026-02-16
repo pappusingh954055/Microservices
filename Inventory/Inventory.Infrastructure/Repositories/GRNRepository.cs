@@ -282,6 +282,7 @@ namespace Inventory.Infrastructure.Repositories
                     GrnNumber = grnHeaderId != null ?
                                 _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.GRNNumber).FirstOrDefault() :
                                 "AUTO-GEN",
+                    SupplierId = h.SupplierId,
                     SupplierName = h.SupplierName ?? "Unknown",
                     Remarks = grnHeaderId != null ?
                               _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.Remarks).FirstOrDefault() : "",
@@ -397,6 +398,55 @@ namespace Inventory.Infrastructure.Repositories
                 .Skip(pageIndex * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
+
+            // --- CROSS MODULE PAYMENT CHECK ---
+            if (items.Any())
+            {
+                try
+                {
+                    // Pass both GRN Numbers and PO Numbers for matching
+                    var searchTerms = items.Select(x => x.GRNNo).ToList();
+                    searchTerms.AddRange(items.Where(x => !string.IsNullOrEmpty(x.RefPO)).Select(x => x.RefPO!).Distinct());
+                    
+                    var paidAmounts = await _supplierClient.GetGRNPaymentStatusesAsync(searchTerms);
+                    foreach (var item in items)
+                    {
+                        decimal totalPaidAmount = 0;
+                        
+                        // Prioritize GRN-specific payment matches
+                        if (paidAmounts != null && paidAmounts.ContainsKey(item.GRNNo))
+                        {
+                            totalPaidAmount = paidAmounts[item.GRNNo];
+                        }
+                        // Fallback to PO-specific match only if GRN match is zero
+                        else if (paidAmounts != null && !string.IsNullOrEmpty(item.RefPO) && 
+                                 paidAmounts.ContainsKey(item.RefPO))
+                        {
+                            totalPaidAmount = paidAmounts[item.RefPO];
+                        }
+
+                        if (totalPaidAmount >= item.TotalAmount)
+                        {
+                            item.PaymentStatus = "Paid";
+                        }
+                        else if (totalPaidAmount > 0)
+                        {
+                            item.PaymentStatus = "Partial";
+                        }
+                        else 
+                        {
+                            item.PaymentStatus = "Unpaid";
+                        }
+
+                        item.PaidAmount = totalPaidAmount;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log error but show default unpaid
+                    Console.WriteLine($"Payment Status Sync Error: {ex.Message}");
+                }
+            }
 
             return new GRNPagedResponseDto { Items = items, TotalCount = totalCount };
         }

@@ -71,5 +71,13 @@ namespace Suppliers.API.Controllers
             var totalPayments = await _mediator.Send(new GetTotalPaymentsQuery(dateRange));
             return Ok(new { TotalPayments = totalPayments });
         }
+
+        // 5. GRN Payment Status (For Inventory List)
+        [HttpPost("get-grn-statuses")]
+        public async Task<IActionResult> GetGRNStatuses([FromBody] List<string> grnNumbers)
+        {
+            var result = await _mediator.Send(new GetGRNPaymentStatusesQuery(grnNumbers));
+            return Ok(result);
+        }
     }
 }

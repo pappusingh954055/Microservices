@@ -75,5 +75,33 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
                 .Where(p => p.PaymentDate >= dateRange.StartDate && p.PaymentDate <= dateRange.EndDate)
                 .SumAsync(p => p.Amount);
         }
+
+        public async Task<Dictionary<string, decimal>> GetGRNPaymentStatusesAsync(List<string> grnNumbers)
+        {
+            if (grnNumbers == null || !grnNumbers.Any()) return new Dictionary<string, decimal>();
+
+            var result = new Dictionary<string, decimal>(StringComparer.OrdinalIgnoreCase);
+
+            // Fetch all payments that might be relevant. 
+            var relevantPayments = await _context.SupplierLedgers
+                .Where(l => l.TransactionType == "Payment" && l.Description != null)
+                .Select(l => new { l.Description, l.ReferenceId, l.Debit })
+                .ToListAsync();
+
+            foreach (var grn in grnNumbers)
+            {
+                // Calculate total paid for this GRN
+                decimal totalPaid = relevantPayments
+                    .Where(p => 
+                        (p.Description != null && p.Description.Contains(grn, StringComparison.OrdinalIgnoreCase)) ||
+                        (p.ReferenceId != null && p.ReferenceId.Contains(grn, StringComparison.OrdinalIgnoreCase))
+                    )
+                    .Sum(p => p.Debit);
+
+                result[grn] = totalPaid;
+            }
+
+            return result;
+        }
     }
 }
