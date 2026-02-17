@@ -103,28 +103,73 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 
             return result;
         }
-        public async Task<List<PaymentReportDto>> GetPaymentsReportAsync(DateRangeDto dateRange)
+        public async Task<PaginatedListDto<PaymentReportDto>> GetPaymentsReportAsync(PaymentReportRequestDto request)
         {
-            var payments = await _context.SupplierPayments
-                .Where(p => p.PaymentDate >= dateRange.StartDate && p.PaymentDate <= dateRange.EndDate)
-                .OrderByDescending(p => p.PaymentDate)
+            var query = from p in _context.SupplierPayments
+                        join s in _context.Suppliers on p.SupplierId equals s.Id
+                        select new { p, s };
+
+            // 1. Filtering by Date Range
+            query = query.Where(x => x.p.PaymentDate >= request.StartDate && x.p.PaymentDate <= request.EndDate);
+
+            // 2. Filtering by SupplierId
+            if (request.SupplierId.HasValue && request.SupplierId.Value > 0)
+            {
+                query = query.Where(x => x.p.SupplierId == request.SupplierId.Value);
+            }
+
+            // 3. Searching (Global Search)
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var searchTerm = request.SearchTerm.ToLower();
+                query = query.Where(x => 
+                    x.s.Name.ToLower().Contains(searchTerm) || 
+                    (x.p.ReferenceNumber != null && x.p.ReferenceNumber.ToLower().Contains(searchTerm)) || 
+                    (x.p.Remarks != null && x.p.Remarks.ToLower().Contains(searchTerm)) ||
+                    x.p.PaymentMode.ToLower().Contains(searchTerm)
+                );
+            }
+
+            // 4. Sorting
+            query = request.SortBy.ToLower() switch
+            {
+                "paymentdate" => request.SortOrder == "desc" ? query.OrderByDescending(x => x.p.PaymentDate) : query.OrderBy(x => x.p.PaymentDate),
+                "amount" => request.SortOrder == "desc" ? query.OrderByDescending(x => x.p.Amount) : query.OrderBy(x => x.p.Amount),
+                "suppliername" => request.SortOrder == "desc" ? query.OrderByDescending(x => x.s.Name) : query.OrderBy(x => x.s.Name),
+                "referencenumber" => request.SortOrder == "desc" ? query.OrderByDescending(x => x.p.ReferenceNumber) : query.OrderBy(x => x.p.ReferenceNumber),
+                _ => query.OrderByDescending(x => x.p.PaymentDate)
+            };
+
+            // 5. Total Count
+            var totalCount = await query.CountAsync();
+
+            // 6. Pagination
+            var pagedResults = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .ToListAsync();
 
-            var supplierIds = payments.Select(p => p.SupplierId).Distinct().ToList();
-            var suppliers = await _context.Suppliers.Where(s => supplierIds.Contains(s.Id)).ToListAsync();
-
-            return payments.Select(p => new PaymentReportDto
+            // 7. Mapping to DTO
+            var items = pagedResults.Select(x => new PaymentReportDto
             {
-                Id = p.Id,
-                SupplierId = p.SupplierId,
-                SupplierName = suppliers.FirstOrDefault(s => s.Id == p.SupplierId)?.Name ?? "Unknown",
-                Amount = p.Amount,
-                PaymentDate = p.PaymentDate,
-                PaymentMode = p.PaymentMode,
-                ReferenceNumber = p.ReferenceNumber,
-                Remarks = p.Remarks,
-                CreatedBy = p.CreatedBy
+                Id = x.p.Id,
+                SupplierId = x.p.SupplierId,
+                SupplierName = x.s.Name,
+                Amount = x.p.Amount,
+                PaymentDate = x.p.PaymentDate,
+                PaymentMode = x.p.PaymentMode,
+                ReferenceNumber = x.p.ReferenceNumber,
+                Remarks = x.p.Remarks,
+                CreatedBy = x.p.CreatedBy
             }).ToList();
+
+            return new PaginatedListDto<PaymentReportDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize
+            };
         }
 
         public async Task<decimal> GetTotalPendingDuesAsync()

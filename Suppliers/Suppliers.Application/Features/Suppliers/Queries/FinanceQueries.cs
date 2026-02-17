@@ -13,6 +13,6 @@ namespace Suppliers.Application.Features.Suppliers.Queries
     
     public record GetGRNPaymentStatusesQuery(List<string> GrnNumbers) : IRequest<Dictionary<string, decimal>>;
 
-    public record GetPaymentsReportQuery(DateRangeDto DateRange) : IRequest<List<PaymentReportDto>>;
+    public record GetPaymentsReportQuery(PaymentReportRequestDto Request) : IRequest<PaginatedListDto<PaymentReportDto>>;
     public record GetTotalPendingDuesQuery() : IRequest<decimal>;
 }

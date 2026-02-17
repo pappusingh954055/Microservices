@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 
 namespace Suppliers.Application.Features.Suppliers.Handlers
 {
-    public class GetPaymentsReportHandler(IFinanceRepository repository) : IRequestHandler<GetPaymentsReportQuery, List<PaymentReportDto>>
+    public class GetPaymentsReportHandler(IFinanceRepository repository) : IRequestHandler<GetPaymentsReportQuery, PaginatedListDto<PaymentReportDto>>
     {
         private readonly IFinanceRepository _repository = repository;
 
-        public async Task<List<PaymentReportDto>> Handle(GetPaymentsReportQuery request, CancellationToken cancellationToken)
+        public async Task<PaginatedListDto<PaymentReportDto>> Handle(GetPaymentsReportQuery request, CancellationToken cancellationToken)
         {
-            return await _repository.GetPaymentsReportAsync(request.DateRange);
+            return await _repository.GetPaymentsReportAsync(request.Request);
         }
     }
 }

@@ -47,4 +47,25 @@ namespace Suppliers.Application.DTOs
         public string Remarks { get; set; }
         public string CreatedBy { get; set; }
     }
+
+    public class PaymentReportRequestDto
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int? SupplierId { get; set; }
+        public string SearchTerm { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string SortBy { get; set; } = "PaymentDate";
+        public string SortOrder { get; set; } = "desc";
+    }
+
+    public class PaginatedListDto<T>
+    {
+        public List<T> Items { get; set; }
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+    }
 }
