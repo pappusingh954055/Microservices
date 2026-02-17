@@ -66,6 +66,14 @@ namespace Customers.API.Controllers
             return Ok(new { TotalOutstanding = total });
         }
 
+        [HttpGet("pending-dues")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetPendingDues()
+        {
+            var result = await _mediator.Send(new GetPendingDuesQuery());
+            return Ok(result);
+        }
+
         // 4. Total Receipts (For P&L)
         [HttpPost("total-receipts")]
         //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]

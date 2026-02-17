@@ -221,5 +221,30 @@ namespace Customers.Infrastructure.Repositories
 
             return total;
         }
+
+        public async Task<List<OutstandingDto>> GetPendingDuesAsync()
+        {
+            // 1. Get latest ledger entry ID for each customer
+            var latestLedgerIds = await _context.CustomerLedgers
+                .GroupBy(l => l.CustomerId)
+                .Select(g => g.Max(l => l.Id))
+                .ToListAsync();
+
+            // 2. Fetch those ledger entries and join with Customers
+            var dues = await (from l in _context.CustomerLedgers
+                        join c in _context.Customers on l.CustomerId equals c.Id
+                        where latestLedgerIds.Contains(l.Id) && l.Balance > 0
+                        select new OutstandingDto
+                        {
+                            CustomerId = l.CustomerId,
+                            CustomerName = c.CustomerName,
+                            PendingAmount = l.Balance,
+                            TotalAmount = l.Balance,
+                            Status = "Active",
+                            DueDate = System.DateTime.Now.AddDays(7)
+                        }).ToListAsync();
+
+            return dues;
+        }
     }
 }

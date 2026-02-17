@@ -16,5 +16,6 @@ namespace Customers.Application.Common.Interfaces
         Task<OutstandingPagedResultDto> GetOutstandingAsync(OutstandingRequestDto request);
         Task<decimal> GetTotalReceiptsAsync(DateRangeDto dateRange);
         Task<decimal> GetTotalOutstandingAsync();
+        Task<List<OutstandingDto>> GetPendingDuesAsync();
     }
 }
