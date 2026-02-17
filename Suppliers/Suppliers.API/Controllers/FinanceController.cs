@@ -95,6 +95,15 @@ namespace Suppliers.API.Controllers
             return Ok(result);
         }
 
+        // 5.1 Supplier Balances
+        [HttpPost("get-balances")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetSupplierBalances([FromBody] List<int> supplierIds)
+        {
+            var result = await _mediator.Send(new GetSupplierBalancesQuery(supplierIds));
+            return Ok(result);
+        }
+
         // 6. Payments Report
         [HttpPost("payments-report")]
         //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]

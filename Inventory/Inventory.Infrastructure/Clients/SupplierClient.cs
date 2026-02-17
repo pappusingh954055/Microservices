@@ -111,5 +111,27 @@ namespace Inventory.Infrastructure.Clients
                 // Throw Exception so Repository sees it
                 throw new HttpRequestException($"Supplier Service Request Failed: {response.StatusCode} at {_client.BaseAddress}");
         }
+
+        public async Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds)
+        {
+            if (supplierIds == null || !supplierIds.Any()) return new Dictionary<int, decimal>();
+
+            try
+            {
+                AddAuthorizationHeader(); // Attach Token
+                var response = await _client.PostAsJsonAsync("api/finance/get-balances", supplierIds);
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<Dictionary<int, decimal>>() ?? new Dictionary<int, decimal>();
+                }
+                return new Dictionary<int, decimal>();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SupplierClient] Connect Error: {ex.Message}");
+                // Return empty dictionary on failure so we don't block the listing
+                return new Dictionary<int, decimal>();
+            }
+        }
     }
 }

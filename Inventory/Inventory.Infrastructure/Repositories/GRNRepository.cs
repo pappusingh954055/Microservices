@@ -408,7 +408,17 @@ namespace Inventory.Infrastructure.Repositories
                     var searchTerms = items.Select(x => x.GRNNo).ToList();
                     searchTerms.AddRange(items.Where(x => !string.IsNullOrEmpty(x.RefPO)).Select(x => x.RefPO!).Distinct());
                     
-                    var paidAmounts = await _supplierClient.GetGRNPaymentStatusesAsync(searchTerms);
+                    var paidAmountsTask = _supplierClient.GetGRNPaymentStatusesAsync(searchTerms);
+
+                    // Fetch Supplier Balances
+                    var supplierIds = items.Select(x => x.SupplierId).Distinct().ToList();
+                    var supplierBalancesTask = _supplierClient.GetSupplierBalancesAsync(supplierIds);
+
+                    await Task.WhenAll(paidAmountsTask, supplierBalancesTask);
+
+                    var paidAmounts = paidAmountsTask.Result;
+                    var supplierBalances = supplierBalancesTask.Result;
+
                     foreach (var item in items)
                     {
                         decimal totalPaidAmount = 0;
@@ -425,7 +435,17 @@ namespace Inventory.Infrastructure.Repositories
                             totalPaidAmount = paidAmounts[item.RefPO];
                         }
 
-                        if (totalPaidAmount >= item.TotalAmount)
+                        // Fix for Ledger-Based Payment Status
+                        decimal currentSupplierBalance = (supplierBalances != null && supplierBalances.ContainsKey(item.SupplierId)) 
+                            ? supplierBalances[item.SupplierId] 
+                            : 999999; // Default to high positive to avoid accidental Paid unlock
+
+                        // Logic:
+                        // 1. If explicit payments cover the amount -> Paid
+                        // 2. If Supplier Balance <= 0 -> Everything is Paid (we owe nothing)
+                        // 3. Else Partial or Unpaid
+
+                        if (totalPaidAmount >= item.TotalAmount || currentSupplierBalance <= 0)
                         {
                             item.PaymentStatus = "Paid";
                         }
@@ -439,6 +459,7 @@ namespace Inventory.Infrastructure.Repositories
                         }
 
                         item.PaidAmount = totalPaidAmount;
+                        // item.SupplierBalance = currentSupplierBalance; // If we wanted to show it
                     }
                 }
                 catch (Exception ex)

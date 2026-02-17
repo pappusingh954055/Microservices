@@ -259,5 +259,23 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 
             return total;
         }
+
+        public async Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds)
+        {
+            if (supplierIds == null || !supplierIds.Any()) return new Dictionary<int, decimal>();
+
+            // Get the LAST ledger entry for each supplier to get the current balance
+            var latestBalances = await _context.SupplierLedgers
+                .Where(l => supplierIds.Contains(l.SupplierId))
+                .GroupBy(l => l.SupplierId)
+                .Select(g => new
+                {
+                    SupplierId = g.Key,
+                    Balance = g.OrderByDescending(x => x.Id).Select(x => x.Balance).FirstOrDefault()
+                })
+                .ToDictionaryAsync(x => x.SupplierId, x => x.Balance);
+
+            return latestBalances;
+        }
     }
 }

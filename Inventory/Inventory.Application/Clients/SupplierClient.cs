@@ -57,4 +57,17 @@ public class SupplierClient : ISupplierClient
 
         return new Dictionary<string, decimal>();
     }
+
+    public async Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds)
+    {
+        var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+        var response = await client.PostAsJsonAsync("api/finance/get-balances", supplierIds);
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<Dictionary<int, decimal>>() ?? new Dictionary<int, decimal>();
+        }
+
+        return new Dictionary<int, decimal>();
+    }
 }
