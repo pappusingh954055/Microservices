@@ -10,6 +10,36 @@ namespace Customers.Application.DTOs
         public List<CustomerLedger> Ledger { get; set; }
     }
 
+    public class CustomerLedgerRequestDto
+    {
+        public int CustomerId { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string SearchTerm { get; set; }
+        public string? TypeFilter { get; set; }
+        public string? ReferenceFilter { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string SortBy { get; set; } = "TransactionDate";
+        public string SortOrder { get; set; } = "desc";
+    }
+
+    public class CustomerLedgerPagedResultDto
+    {
+        public string CustomerName { get; set; }
+        public decimal CurrentBalance { get; set; }
+        public PaginatedListDto<CustomerLedger> Ledger { get; set; }
+    }
+
+    public class PaginatedListDto<T>
+    {
+        public List<T> Items { get; set; }
+        public int TotalCount { get; set; }
+        public int PageNumber { get; set; }
+        public int PageSize { get; set; }
+        public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
+    }
+
     public class CustomerReceiptDto
     {
         public int CustomerId { get; set; }

@@ -41,12 +41,79 @@ namespace Customers.Infrastructure.Repositories
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<CustomerLedger>> GetLedgerAsync(int customerId)
+        public async Task<CustomerLedgerPagedResultDto> GetLedgerAsync(CustomerLedgerRequestDto request)
         {
-            return await _context.CustomerLedgers
-                .Where(l => l.CustomerId == customerId)
-                .OrderByDescending(l => l.TransactionDate)
+            var customer = await _context.Customers.FindAsync(request.CustomerId);
+            var query = _context.CustomerLedgers.Where(l => l.CustomerId == request.CustomerId);
+
+            // 1. Date Filtering
+            if (request.StartDate.HasValue)
+                query = query.Where(l => l.TransactionDate >= request.StartDate.Value);
+            if (request.EndDate.HasValue)
+                query = query.Where(l => l.TransactionDate <= request.EndDate.Value);
+
+            // 1.1 Column Specific Filters
+            if (!string.IsNullOrWhiteSpace(request.TypeFilter))
+            {
+                var type = request.TypeFilter.ToLower();
+                query = query.Where(l => l.TransactionType.ToLower().Contains(type));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ReferenceFilter))
+            {
+                var refId = request.ReferenceFilter.ToLower();
+                query = query.Where(l => l.ReferenceId != null && l.ReferenceId.ToLower().Contains(refId));
+            }
+
+            // 2. Searching (Global)
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(l => 
+                    l.TransactionType.ToLower().Contains(term) || 
+                    (l.ReferenceId != null && l.ReferenceId.ToLower().Contains(term)) || 
+                    (l.Description != null && l.Description.ToLower().Contains(term))
+                );
+            }
+
+            // 3. Sorting
+            query = request.SortBy.ToLower() switch
+            {
+                "transactiondate" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.TransactionDate) : query.OrderBy(l => l.TransactionDate),
+                "transactiontype" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.TransactionType) : query.OrderBy(l => l.TransactionType),
+                "referenceid" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.ReferenceId) : query.OrderBy(l => l.ReferenceId),
+                "debit" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Debit) : query.OrderBy(l => l.Debit),
+                "credit" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Credit) : query.OrderBy(l => l.Credit),
+                "balance" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Balance) : query.OrderBy(l => l.Balance),
+                _ => query.OrderByDescending(l => l.TransactionDate)
+            };
+
+            // 4. Counts and Summaries
+            var totalCount = await query.CountAsync();
+            var currentBalance = await _context.CustomerLedgers
+                .Where(l => l.CustomerId == request.CustomerId)
+                .OrderByDescending(l => l.Id)
+                .Select(l => l.Balance)
+                .FirstOrDefaultAsync();
+
+            // 5. Pagination
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .ToListAsync();
+
+            return new CustomerLedgerPagedResultDto
+            {
+                CustomerName = customer?.CustomerName ?? "Unknown",
+                CurrentBalance = currentBalance,
+                Ledger = new PaginatedListDto<CustomerLedger>
+                {
+                    Items = items,
+                    TotalCount = totalCount,
+                    PageNumber = request.PageNumber,
+                    PageSize = request.PageSize
+                }
+            };
         }
 
         public async Task<List<OutstandingDto>> GetOutstandingAsync()

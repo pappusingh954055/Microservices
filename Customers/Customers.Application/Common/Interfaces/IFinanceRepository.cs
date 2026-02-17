@@ -12,7 +12,7 @@ namespace Customers.Application.Common.Interfaces
         Task AddLedgerEntryAsync(CustomerLedger ledgerEntry);
         Task SaveChangesAsync();
 
-        Task<List<CustomerLedger>> GetLedgerAsync(int customerId);
+        Task<CustomerLedgerPagedResultDto> GetLedgerAsync(CustomerLedgerRequestDto request);
         Task<List<OutstandingDto>> GetOutstandingAsync();
         Task<decimal> GetTotalReceiptsAsync(DateRangeDto dateRange);
         Task<decimal> GetTotalOutstandingAsync();

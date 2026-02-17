@@ -20,11 +20,11 @@ namespace Customers.API.Controllers
         }
 
         // 1. Customer Ledger
-        [HttpGet("ledger/{customerId}")]
+        [HttpPost("ledger")]
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
-        public async Task<IActionResult> GetLedger(int customerId)
+        public async Task<IActionResult> GetLedger([FromBody] CustomerLedgerRequestDto request)
         {
-            var result = await _mediator.Send(new GetCustomerLedgerQuery(customerId));
+            var result = await _mediator.Send(new GetCustomerLedgerQuery(request));
             return Ok(result);
         }
 

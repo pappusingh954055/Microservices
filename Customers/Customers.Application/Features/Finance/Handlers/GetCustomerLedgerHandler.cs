@@ -7,27 +7,18 @@ using System.Threading.Tasks;
 
 namespace Customers.Application.Features.Finance.Handlers
 {
-    public class GetCustomerLedgerHandler : IRequestHandler<GetCustomerLedgerQuery, CustomerLedgerResultDto>
+    public class GetCustomerLedgerHandler : IRequestHandler<GetCustomerLedgerQuery, CustomerLedgerPagedResultDto>
     {
         private readonly IFinanceRepository _financeRepository;
-        private readonly ICustomerRepository _customerRepository;
 
-        public GetCustomerLedgerHandler(IFinanceRepository financeRepository, ICustomerRepository customerRepository)
+        public GetCustomerLedgerHandler(IFinanceRepository financeRepository)
         {
             _financeRepository = financeRepository;
-            _customerRepository = customerRepository;
         }
 
-        public async Task<CustomerLedgerResultDto> Handle(GetCustomerLedgerQuery request, CancellationToken cancellationToken)
+        public async Task<CustomerLedgerPagedResultDto> Handle(GetCustomerLedgerQuery request, CancellationToken cancellationToken)
         {
-            var ledger = await _financeRepository.GetLedgerAsync(request.CustomerId);
-            var customerName = await _customerRepository.GetCustomerNameByIdAsync(request.CustomerId);
-
-            return new CustomerLedgerResultDto
-            {
-                CustomerName = customerName ?? "Unknown",
-                Ledger = ledger
-            };
+            return await _financeRepository.GetLedgerAsync(request.Request);
         }
     }
 }
