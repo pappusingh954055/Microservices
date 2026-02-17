@@ -12,7 +12,7 @@ namespace Suppliers.Application.Interfaces // Adjust namespace if needed
         Task AddLedgerEntryAsync(SupplierLedger ledgerEntry);
         Task SaveChangesAsync();
 
-        Task<List<SupplierLedger>> GetLedgerAsync(int supplierId);
+        Task<SupplierLedgerPagedResultDto> GetLedgerAsync(SupplierLedgerRequestDto request);
         Task<List<PendingDueDto>> GetPendingDuesAsync();
         Task<decimal> GetTotalPaymentsAsync(DateRangeDto dateRange);
         Task<Dictionary<string, decimal>> GetGRNPaymentStatusesAsync(List<string> grnNumbers);

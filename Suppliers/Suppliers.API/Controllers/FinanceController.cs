@@ -20,11 +20,11 @@ namespace Suppliers.API.Controllers
         }
 
         // 1. Supplier Ledger (Khaata)
-        [HttpGet("ledger/{supplierId}")]
+        [HttpPost("ledger")]
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
-        public async Task<IActionResult> GetLedger(int supplierId)
+        public async Task<IActionResult> GetLedger([FromBody] SupplierLedgerRequestDto request)
         {
-            var result = await _mediator.Send(new GetSupplierLedgerQuery(supplierId));
+            var result = await _mediator.Send(new GetSupplierLedgerQuery(request));
             return Ok(result);
         }
 

@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace Suppliers.Application.Features.Suppliers.Queries
 {
-    public record GetSupplierLedgerQuery(int SupplierId) : IRequest<SupplierLedgerResultDto>;
+    public record GetSupplierLedgerQuery(SupplierLedgerRequestDto Request) : IRequest<SupplierLedgerPagedResultDto>;
 
     public record GetPendingDuesQuery() : IRequest<List<PendingDueDto>>;
 

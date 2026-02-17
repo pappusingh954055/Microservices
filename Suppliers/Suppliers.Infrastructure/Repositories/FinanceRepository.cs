@@ -36,12 +36,64 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
             await _context.SaveChangesAsync();
         }
 
-        public async Task<List<SupplierLedger>> GetLedgerAsync(int supplierId)
+        public async Task<SupplierLedgerPagedResultDto> GetLedgerAsync(SupplierLedgerRequestDto request)
         {
-            return await _context.SupplierLedgers
-                .Where(l => l.SupplierId == supplierId)
-                .OrderByDescending(l => l.TransactionDate)
+            var supplier = await _context.Suppliers.FindAsync(request.SupplierId);
+            var query = _context.SupplierLedgers.Where(l => l.SupplierId == request.SupplierId);
+
+            // 1. Date Filtering
+            if (request.StartDate.HasValue)
+                query = query.Where(l => l.TransactionDate >= request.StartDate.Value);
+            if (request.EndDate.HasValue)
+                query = query.Where(l => l.TransactionDate <= request.EndDate.Value);
+
+            // 2. Searching
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(l => 
+                    l.TransactionType.ToLower().Contains(term) || 
+                    (l.ReferenceId != null && l.ReferenceId.ToLower().Contains(term)) || 
+                    (l.Description != null && l.Description.ToLower().Contains(term))
+                );
+            }
+
+            // 3. Sorting
+            query = request.SortBy.ToLower() switch
+            {
+                "transactiondate" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.TransactionDate) : query.OrderBy(l => l.TransactionDate),
+                "debit" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Debit) : query.OrderBy(l => l.Debit),
+                "credit" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Credit) : query.OrderBy(l => l.Credit),
+                "balance" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Balance) : query.OrderBy(l => l.Balance),
+                _ => query.OrderByDescending(l => l.TransactionDate)
+            };
+
+            // 4. Counts and Summaries
+            var totalCount = await query.CountAsync();
+            var currentBalance = await _context.SupplierLedgers
+                .Where(l => l.SupplierId == request.SupplierId)
+                .OrderByDescending(l => l.Id)
+                .Select(l => l.Balance)
+                .FirstOrDefaultAsync();
+
+            // 5. Pagination
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .ToListAsync();
+
+            return new SupplierLedgerPagedResultDto
+            {
+                SupplierName = supplier?.Name ?? "Unknown",
+                CurrentBalance = currentBalance,
+                Ledger = new PaginatedListDto<SupplierLedger>
+                {
+                    Items = items,
+                    TotalCount = totalCount,
+                    PageNumber = request.PageNumber,
+                    PageSize = request.PageSize
+                }
+            };
         }
 
         public async Task<List<PendingDueDto>> GetPendingDuesAsync()

@@ -10,6 +10,25 @@ namespace Suppliers.Application.DTOs
         public List<SupplierLedger> Ledger { get; set; }
     }
 
+    public class SupplierLedgerRequestDto
+    {
+        public int SupplierId { get; set; }
+        public DateTime? StartDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string SearchTerm { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string SortBy { get; set; } = "TransactionDate";
+        public string SortOrder { get; set; } = "desc";
+    }
+
+    public class SupplierLedgerPagedResultDto
+    {
+        public string SupplierName { get; set; }
+        public decimal CurrentBalance { get; set; }
+        public PaginatedListDto<SupplierLedger> Ledger { get; set; }
+    }
+
     public class PendingDueDto
     {
         public int SupplierId { get; set; }
