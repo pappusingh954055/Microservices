@@ -21,7 +21,7 @@ namespace Suppliers.API.Controllers
 
         // 1. Supplier Ledger (Khaata)
         [HttpPost("ledger")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetLedger([FromBody] SupplierLedgerRequestDto request)
         {
             var result = await _mediator.Send(new GetSupplierLedgerQuery(request));
@@ -30,7 +30,7 @@ namespace Suppliers.API.Controllers
 
         // 2. Payment Entry
         [HttpPost("payment-entry")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> RecordPayment([FromBody] SupplierPayment payment)
         {
             var command = new RecordSupplierPaymentCommand(new SupplierPaymentDto
@@ -52,7 +52,7 @@ namespace Suppliers.API.Controllers
 
         // 2.1 Purchase Entry (From Inventory GRN)
         [HttpPost("purchase-entry")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> RecordPurchase([FromBody] SupplierPurchaseDto purchase)
         {
             var command = new RecordSupplierPurchaseCommand(purchase);
@@ -62,7 +62,7 @@ namespace Suppliers.API.Controllers
 
         // 3. Pending Dues Report
         [HttpGet("pending-dues")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPendingDues()
         {
             var result = await _mediator.Send(new GetPendingDuesQuery());
@@ -79,7 +79,7 @@ namespace Suppliers.API.Controllers
 
         // 4. Total Payments (For P&L)
         [HttpPost("total-payments")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetTotalPayments([FromBody] DateRangeDto dateRange)
         {
             var totalPayments = await _mediator.Send(new GetTotalPaymentsQuery(dateRange));
@@ -88,7 +88,7 @@ namespace Suppliers.API.Controllers
 
         // 5. GRN Payment Status (For Inventory List)
         [HttpPost("get-grn-statuses")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetGRNStatuses([FromBody] List<string> grnNumbers)
         {
             var result = await _mediator.Send(new GetGRNPaymentStatusesQuery(grnNumbers));
@@ -97,7 +97,7 @@ namespace Suppliers.API.Controllers
 
         // 6. Payments Report
         [HttpPost("payments-report")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPaymentsReport([FromBody] PaymentReportRequestDto request)
         {
             var result = await _mediator.Send(new GetPaymentsReportQuery(request));

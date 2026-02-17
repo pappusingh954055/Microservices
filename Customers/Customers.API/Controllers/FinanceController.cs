@@ -21,7 +21,7 @@ namespace Customers.API.Controllers
 
         // 1. Customer Ledger
         [HttpPost("ledger")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetLedger([FromBody] CustomerLedgerRequestDto request)
         {
             var result = await _mediator.Send(new GetCustomerLedgerQuery(request));
@@ -30,7 +30,7 @@ namespace Customers.API.Controllers
 
         // 2. Receipt Entry
         [HttpPost("receipt")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> RecordReceipt([FromBody] CustomerReceiptDto receiptDto)
         {
             var command = new RecordCustomerReceiptCommand(receiptDto);
@@ -41,7 +41,7 @@ namespace Customers.API.Controllers
 
         // 2b. Sale Entry (called from Inventory when Sale is confirmed)
         [HttpPost("sale")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> RecordSale([FromBody] CustomerSaleDto saleDto)
         {
             var command = new RecordCustomerSaleCommand(saleDto);
@@ -51,7 +51,7 @@ namespace Customers.API.Controllers
 
         // 3. Outstanding Tracker
         [HttpPost("outstanding")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetOutstanding([FromBody] OutstandingRequestDto request)
         {
             var result = await _mediator.Send(new GetOutstandingQuery(request));
@@ -59,7 +59,7 @@ namespace Customers.API.Controllers
         }
 
         [HttpGet("outstanding-total")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetOutstandingTotal()
         {
             var total = await _mediator.Send(new GetTotalOutstandingQuery());
@@ -68,7 +68,7 @@ namespace Customers.API.Controllers
 
         // 4. Total Receipts (For P&L)
         [HttpPost("total-receipts")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        //[Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetTotalReceipts([FromBody] DateRangeDto dateRange)
         {
             var total = await _mediator.Send(new GetTotalReceiptsQuery(dateRange));
