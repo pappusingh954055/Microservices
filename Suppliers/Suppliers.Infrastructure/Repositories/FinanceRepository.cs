@@ -47,8 +47,20 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
             if (request.EndDate.HasValue)
                 query = query.Where(l => l.TransactionDate <= request.EndDate.Value);
 
-            // 2. Searching
-            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            // 1.1 Column Specific Filters
+            if (!string.IsNullOrWhiteSpace(request.TypeFilter))
+            {
+                var type = request.TypeFilter.ToLower();
+                query = query.Where(l => l.TransactionType.ToLower().Contains(type));
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.ReferenceFilter))
+            {
+                var refId = request.ReferenceFilter.ToLower();
+                query = query.Where(l => l.ReferenceId != null && l.ReferenceId.ToLower().Contains(refId));
+            }
+
+            // 2. Searching (Global)
             {
                 var term = request.SearchTerm.ToLower();
                 query = query.Where(l => 
@@ -62,6 +74,8 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
             query = request.SortBy.ToLower() switch
             {
                 "transactiondate" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.TransactionDate) : query.OrderBy(l => l.TransactionDate),
+                "transactiontype" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.TransactionType) : query.OrderBy(l => l.TransactionType),
+                "referenceid" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.ReferenceId) : query.OrderBy(l => l.ReferenceId),
                 "debit" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Debit) : query.OrderBy(l => l.Debit),
                 "credit" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Credit) : query.OrderBy(l => l.Credit),
                 "balance" => request.SortOrder == "desc" ? query.OrderByDescending(l => l.Balance) : query.OrderBy(l => l.Balance),
