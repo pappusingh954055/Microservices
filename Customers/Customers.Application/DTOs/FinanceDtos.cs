@@ -65,6 +65,23 @@ namespace Customers.Application.DTOs
         public DateTime DueDate { get; set; }
     }
 
+    public class OutstandingRequestDto
+    {
+        public string? SearchTerm { get; set; }
+        public string? CustomerNameFilter { get; set; }
+        public string? StatusFilter { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string SortBy { get; set; } = "CustomerName";
+        public string SortOrder { get; set; } = "asc";
+    }
+
+    public class OutstandingPagedResultDto
+    {
+        public PaginatedListDto<OutstandingDto> Items { get; set; }
+        public decimal TotalOutstandingAmount { get; set; }
+    }
+
     public class DateRangeDto
     {
         public DateTime StartDate { get; set; }

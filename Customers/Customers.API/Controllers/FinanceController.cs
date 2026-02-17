@@ -50,11 +50,11 @@ namespace Customers.API.Controllers
         }
 
         // 3. Outstanding Tracker
-        [HttpGet("outstanding")]
+        [HttpPost("outstanding")]
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
-        public async Task<IActionResult> GetOutstanding()
+        public async Task<IActionResult> GetOutstanding([FromBody] OutstandingRequestDto request)
         {
-            var result = await _mediator.Send(new GetOutstandingQuery());
+            var result = await _mediator.Send(new GetOutstandingQuery(request));
             return Ok(result);
         }
 

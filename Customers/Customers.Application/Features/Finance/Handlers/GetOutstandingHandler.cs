@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace Customers.Application.Features.Finance.Handlers
 {
-    public class GetOutstandingHandler : IRequestHandler<GetOutstandingQuery, List<OutstandingDto>>
+    public class GetOutstandingHandler : IRequestHandler<GetOutstandingQuery, OutstandingPagedResultDto>
     {
         private readonly IFinanceRepository _repository;
 
@@ -17,9 +17,9 @@ namespace Customers.Application.Features.Finance.Handlers
             _repository = repository;
         }
 
-        public async Task<List<OutstandingDto>> Handle(GetOutstandingQuery request, CancellationToken cancellationToken)
+        public async Task<OutstandingPagedResultDto> Handle(GetOutstandingQuery request, CancellationToken cancellationToken)
         {
-            return await _repository.GetOutstandingAsync();
+            return await _repository.GetOutstandingAsync(request.Request);
         }
     }
 }

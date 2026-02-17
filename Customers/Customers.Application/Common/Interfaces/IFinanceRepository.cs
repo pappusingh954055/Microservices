@@ -13,7 +13,7 @@ namespace Customers.Application.Common.Interfaces
         Task SaveChangesAsync();
 
         Task<CustomerLedgerPagedResultDto> GetLedgerAsync(CustomerLedgerRequestDto request);
-        Task<List<OutstandingDto>> GetOutstandingAsync();
+        Task<OutstandingPagedResultDto> GetOutstandingAsync(OutstandingRequestDto request);
         Task<decimal> GetTotalReceiptsAsync(DateRangeDto dateRange);
         Task<decimal> GetTotalOutstandingAsync();
     }

@@ -116,31 +116,80 @@ namespace Customers.Infrastructure.Repositories
             };
         }
 
-        public async Task<List<OutstandingDto>> GetOutstandingAsync()
+        public async Task<OutstandingPagedResultDto> GetOutstandingAsync(OutstandingRequestDto request)
         {
-            // Get last entry for each customer
-            var latestEntries = await _context.CustomerLedgers
+            // 1. Get latest ledger entry for each customer
+            var latestLedgerIds = _context.CustomerLedgers
                 .GroupBy(l => l.CustomerId)
-                .Select(g => g.OrderByDescending(l => l.Id).FirstOrDefault())
+                .Select(g => g.Max(l => l.Id));
+
+            var query = from l in _context.CustomerLedgers
+                        join c in _context.Customers on l.CustomerId equals c.Id
+                        where latestLedgerIds.Contains(l.Id) && l.Balance > 0
+                        select new OutstandingDto
+                        {
+                            CustomerId = l.CustomerId,
+                            CustomerName = c.CustomerName,
+                            PendingAmount = l.Balance,
+                            TotalAmount = l.Balance, // For now keeping same as balance
+                            Status = "Active",
+                            DueDate = System.DateTime.Now.AddDays(7) // Mock due date
+                        };
+
+            // 2. Searching
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(o => o.CustomerName.ToLower().Contains(term) || o.CustomerId.ToString().Contains(term));
+            }
+
+            // 2.1 Customer Name Filtering
+            if (!string.IsNullOrWhiteSpace(request.CustomerNameFilter))
+            {
+                var name = request.CustomerNameFilter.ToLower();
+                query = query.Where(o => o.CustomerName.ToLower().Contains(name));
+            }
+
+            // 2.2 Status Filtering
+            if (!string.IsNullOrWhiteSpace(request.StatusFilter))
+            {
+                var status = request.StatusFilter.ToLower();
+                query = query.Where(o => o.Status.ToLower().Contains(status));
+            }
+
+            // 3. Sorting
+            query = request.SortBy.ToLower() switch
+            {
+                "customerid" => request.SortOrder == "desc" ? query.OrderByDescending(o => o.CustomerId) : query.OrderBy(o => o.CustomerId),
+                "customername" => request.SortOrder == "desc" ? query.OrderByDescending(o => o.CustomerName) : query.OrderBy(o => o.CustomerName),
+                "pendingamount" => request.SortOrder == "desc" ? query.OrderByDescending(o => o.PendingAmount) : query.OrderBy(o => o.PendingAmount),
+                "totalamount" => request.SortOrder == "desc" ? query.OrderByDescending(o => o.TotalAmount) : query.OrderBy(o => o.TotalAmount),
+                "status" => request.SortOrder == "desc" ? query.OrderByDescending(o => o.Status) : query.OrderBy(o => o.Status),
+                "duedate" => request.SortOrder == "desc" ? query.OrderByDescending(o => o.DueDate) : query.OrderBy(o => o.DueDate),
+                _ => request.SortOrder == "desc" ? query.OrderByDescending(o => o.CustomerName) : query.OrderBy(o => o.CustomerName)
+            };
+
+            // 4. Counts and Totals
+            var totalCount = await query.CountAsync();
+            var totalAmount = await query.SumAsync(o => o.PendingAmount);
+
+            // 5. Pagination
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
                 .ToListAsync();
 
-            var outstanding = latestEntries
-                .Where(l => l != null && l.Balance > 0)
-                .Select(l => new { l.CustomerId, PendingAmount = l.Balance })
-                .ToList();
-
-            var customerIds = outstanding.Select(o => o.CustomerId).ToList();
-            var customers = await _context.Customers.Where(c => customerIds.Contains(c.Id)).ToListAsync();
-
-            return outstanding.Select(o => new OutstandingDto
+            return new OutstandingPagedResultDto
             {
-                CustomerId = o.CustomerId,
-                PendingAmount = o.PendingAmount,
-                TotalAmount = o.PendingAmount,
-                CustomerName = customers.FirstOrDefault(c => c.Id == o.CustomerId)?.CustomerName ?? "Unknown",
-                Status = "Active",
-                DueDate = System.DateTime.Now.AddDays(7)
-            }).ToList();
+                TotalOutstandingAmount = totalAmount,
+                Items = new PaginatedListDto<OutstandingDto>
+                {
+                    Items = items,
+                    TotalCount = totalCount,
+                    PageNumber = request.PageNumber,
+                    PageSize = request.PageSize
+                }
+            };
         }
 
         public async Task<decimal> GetTotalReceiptsAsync(DateRangeDto dateRange)
