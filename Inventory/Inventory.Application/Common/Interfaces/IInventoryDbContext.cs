@@ -29,6 +29,7 @@ namespace Inventory.Application.Common.Interfaces
         DbSet<Product> Products { get; }
         DbSet<ExpenseCategory> ExpenseCategories { get; }
         DbSet<ExpenseEntry> ExpenseEntries { get; }
+        DbSet<GatePass> GatePasses { get; }
 
         // Is property se Handler ka error fix ho jayega
         DatabaseFacade Database { get; }

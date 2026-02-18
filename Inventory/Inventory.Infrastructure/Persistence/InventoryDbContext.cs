@@ -37,6 +37,7 @@ public sealed class InventoryDbContext : DbContext,
     public DbSet<AppNotification> AppNotifications { get; set; }
     public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
     public DbSet<ExpenseEntry> ExpenseEntries { get; set; }
+    public DbSet<GatePass> GatePasses => Set<GatePass>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -168,6 +169,16 @@ public sealed class InventoryDbContext : DbContext,
                   .WithMany(c => c.Expenses)
                   .HasForeignKey(e => e.CategoryId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // GatePass Configuration
+        modelBuilder.Entity<GatePass>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.PassNo).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.PassNo).IsUnique();
+            entity.Property(e => e.TotalQty).HasPrecision(18, 2);
+            entity.Property(e => e.TotalWeight).HasPrecision(18, 2);
         });
     }
 }
