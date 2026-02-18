@@ -1,6 +1,10 @@
 using Inventory.API.Common;
+using Inventory.Application.Common.Models;
 using Inventory.Application.GatePasses.Commands.CreateGatePass;
+using Inventory.Application.GatePasses.Commands.DeleteGatePass;
 using Inventory.Application.GatePasses.DTOs;
+using Inventory.Application.GatePasses.Queries.GetGatePassById;
+using Inventory.Application.GatePasses.Queries.GetGatePassesPaged;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -9,7 +13,7 @@ using System.Threading.Tasks;
 namespace Inventory.API.Controllers
 {
     [ApiController]
-    [Route("api/inventory/gate-passes")]
+    [Route("api/[controller]")]
     public class GatePassController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -31,6 +35,34 @@ namespace Inventory.API.Controllers
             ));
         }
 
-        // Add Get/List later if requested
+        [HttpPost("GetPaged")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetPaged(GetGatePassesQuery query)
+        {
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+
+        [HttpGet("{id}")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var result = await _mediator.Send(new GetGatePassByIdQuery(id));
+            if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _mediator.Send(new DeleteGatePassCommand(id));
+            if (!result) return NotFound();
+            
+            return Ok(ApiResponse<bool>.Ok(
+                true,
+                "Gate Pass deleted successfully"
+            ));
+        }
     }
 }
