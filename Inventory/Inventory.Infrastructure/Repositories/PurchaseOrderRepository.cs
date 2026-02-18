@@ -349,7 +349,8 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                 PoNumber = po.PoNumber,
                 SupplierName = po.SupplierName,
                 PoDate = po.PoDate,
-                Status = po.Status
+                Status = po.Status,
+                ExpectedQty = po.Items.Sum(x => x.Qty)
             })
             .OrderByDescending(po => po.Id)
             .ToListAsync();

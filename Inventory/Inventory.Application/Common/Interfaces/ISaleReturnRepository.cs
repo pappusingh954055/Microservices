@@ -20,6 +20,7 @@ public interface ISaleReturnRepository
     Task<List<SaleReturnExportDto>> GetExportDataAsync(DateTime? fromDate, DateTime? toDate);
 
     Task<SaleReturnSummaryDto> GetDashboardSummaryAsync();
+    Task<List<PendingSRDto>> GetPendingSaleReturnsAsync();
 
     
 }

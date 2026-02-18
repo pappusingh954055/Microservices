@@ -266,6 +266,47 @@ namespace Inventory.Infrastructure.Repositories
             };
         }
 
-       
+        public async Task<List<PendingSRDto>> GetPendingSaleReturnsAsync()
+        {
+            var returns = await _context.SaleReturnHeaders
+                .AsNoTracking()
+                .Where(x => x.Status == "Confirmed")
+                .OrderByDescending(x => x.ReturnDate)
+                .Select(x => new PendingSRDto
+                {
+                    Id = x.SaleReturnHeaderId,
+                    ReturnNumber = x.ReturnNumber,
+                    ReturnDate = x.ReturnDate,
+                    Status = x.Status,
+                    // Note: We'll add CustomerId to DTO or use it from projection
+                    TotalQty = x.ReturnItems.Sum(i => i.ReturnQty)
+                })
+                .ToListAsync();
+
+            if (returns == null || !returns.Any()) return new List<PendingSRDto>();
+
+            // For customer names, we need CustomerId which is in the entity but not in DTO yet.
+            // Let's re-query with CustomerId or modify projection.
+            
+            var detailedReturns = await _context.SaleReturnHeaders
+                .AsNoTracking()
+                .Where(x => x.Status == "Confirmed")
+                .OrderByDescending(x => x.ReturnDate)
+                .Select(x => new { x.SaleReturnHeaderId, x.CustomerId })
+                .ToListAsync();
+
+            var customerIds = detailedReturns.Select(x => x.CustomerId).Distinct().ToList();
+            var customerMap = await _customerClient.GetCustomerNamesAsync(customerIds);
+
+            foreach (var r in returns)
+            {
+                var original = detailedReturns.First(x => x.SaleReturnHeaderId == r.Id);
+                r.CustomerName = customerMap != null && customerMap.ContainsKey(original.CustomerId) 
+                                 ? customerMap[original.CustomerId] 
+                                 : "Unknown Customer";
+            }
+
+            return returns;
+        }
     }
 }

@@ -13,5 +13,6 @@ namespace Inventory.Application.SaleOrders.DTOs
         public string CustomerName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public decimal GrandTotal { get; set; }
+        public decimal TotalQty { get; set; }
     }
 }

@@ -11,5 +11,6 @@ namespace Inventory.Application.PurchaseOrders.DTOs
         public string SupplierName { get; set; }
         public DateTime PoDate { get; set; }
         public string Status { get; set; }
+        public decimal ExpectedQty { get; set; }
     }
 }

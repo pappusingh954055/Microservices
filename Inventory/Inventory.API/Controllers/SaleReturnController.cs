@@ -106,4 +106,12 @@ public class SaleReturnController : ControllerBase
         var summary = await _repo.GetDashboardSummaryAsync();
         return Ok(summary);
     }
+
+    [HttpGet("pending-returns")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> GetPendingReturns()
+    {
+        var result = await _repo.GetPendingSaleReturnsAsync();
+        return Ok(result);
+    }
 }

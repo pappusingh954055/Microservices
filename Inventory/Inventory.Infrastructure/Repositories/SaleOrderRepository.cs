@@ -155,6 +155,7 @@ public class SaleOrderRepository : ISaleOrderRepository
                 CustomerId = o.CustomerId,
                 Status = o.Status,
                 GrandTotal = o.GrandTotal,
+                TotalQty = o.Items.Sum(i => i.Qty),
                 CustomerName = "Loading..."
             })
             .ToListAsync();
