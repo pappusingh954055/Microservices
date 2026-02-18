@@ -131,9 +131,9 @@ namespace Customers.Infrastructure.Repositories
                             CustomerId = l.CustomerId,
                             CustomerName = c.CustomerName,
                             PendingAmount = l.Balance,
-                            TotalAmount = l.Balance, // For now keeping same as balance
-                            Status = "Active",
-                            DueDate = System.DateTime.Now.AddDays(7), // Mock due date
+                            TotalAmount = l.Balance, 
+                            Status = (l.TransactionDate.AddDays(15) < System.DateTime.Now) ? "Overdue" : "Active",
+                            DueDate = l.TransactionDate.AddDays(15), 
                             LastReferenceId = l.ReferenceId
                         };
 
@@ -241,8 +241,8 @@ namespace Customers.Infrastructure.Repositories
                             CustomerName = c.CustomerName,
                             PendingAmount = l.Balance,
                             TotalAmount = l.Balance,
-                            Status = "Active",
-                            DueDate = System.DateTime.Now.AddDays(7)
+                            Status = (l.TransactionDate.AddDays(15) < System.DateTime.Now) ? "Overdue" : "Active",
+                            DueDate = l.TransactionDate.AddDays(15)
                         }).ToListAsync();
 
             return dues;
