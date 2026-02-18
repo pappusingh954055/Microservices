@@ -186,5 +186,13 @@ namespace Inventory.API.Controllers
             // File return karein proper MIME type ke saath [cite: 2026-02-04]
             return File(fileContent, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
+
+        [HttpGet("pending-prs")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetPendingPRs()
+        {
+            var result = await _repository.GetPendingPurchaseReturnsAsync();
+            return Ok(result);
+        }
     }
 }

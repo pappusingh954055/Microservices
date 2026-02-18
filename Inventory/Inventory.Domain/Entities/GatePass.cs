@@ -8,7 +8,7 @@ namespace Inventory.Domain.Entities
         public string PassNo { get; set; }
         public string PassType { get; set; } // Inward / Outward
         public int ReferenceType { get; set; } // 1=PO, 2=GRN...
-        public int ReferenceId { get; set; }
+        public string ReferenceId { get; set; } // Changed to string to support GUIDs
         public string ReferenceNo { get; set; }
         public string? InvoiceNo { get; set; } // For Inward
         public string PartyName { get; set; }

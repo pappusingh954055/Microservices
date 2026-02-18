@@ -321,6 +321,39 @@ public class SaleOrderRepository : ISaleOrderRepository
     }
 
 
+    public async Task<List<PendingSODto>> GetPendingSaleOrdersAsync()
+    {
+        var orders = await _context.SaleOrders
+            .AsNoTracking()
+            .Where(x => x.Status == "Confirmed")
+            .OrderByDescending(x => x.SODate)
+            .Select(x => new PendingSODto
+            {
+                Id = x.Id,
+                SoNumber = x.SONumber,
+                SoDate = x.SODate,
+                Status = x.Status,
+                CustomerId = x.CustomerId,
+                TotalQty = x.Items.Sum(i => i.Qty)
+            })
+            .ToListAsync();
+
+        if (orders == null || !orders.Any()) return new List<PendingSODto>();
+
+        var customerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
+        var customerDictionary = await GetCustomerNamesFromService(customerIds);
+
+        foreach (var order in orders)
+        {
+            if (customerDictionary != null && customerDictionary.TryGetValue(order.CustomerId, out var name))
+                order.CustomerName = name;
+            else
+                order.CustomerName = "Unknown Customer";
+        }
+
+        return orders;
+    }
+
     // Helper method jo actual Microservice call handle karega
     private async Task<Dictionary<int, string>> GetCustomerNamesFromService(List<int> customerIds)
     {

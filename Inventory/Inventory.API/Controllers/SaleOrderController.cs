@@ -3,6 +3,7 @@ using Inventory.Application.Common.Interfaces;
 using Inventory.Application.DTOs.SaleOrder;
 using Inventory.Application.SaleOrders.Commands;
 using Inventory.Application.SaleOrders.DTOs;
+using Inventory.Application.SaleOrders.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -237,5 +238,13 @@ public class SaleOrderController : ControllerBase
             return Ok(new List<SaleOrderItemGridDto>());
 
         return Ok(items);
+    }
+
+    [HttpGet("pending-sos")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> GetPendingSOs()
+    {
+        var result = await _mediator.Send(new GetPendingSOQuery());
+        return Ok(result);
     }
 }

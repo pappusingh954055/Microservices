@@ -38,5 +38,7 @@ namespace Inventory.Application.Common.Interfaces
         Task<List<SaleOrderLookupDto>> GetOrdersByCustomerAsync(int customerId);
 
         Task<List<SaleOrderItemGridDto>> GetItemsForGridByOrderIdAsync(int saleOrderId);
+
+        Task<List<PendingSODto>> GetPendingSaleOrdersAsync();
     }
 }

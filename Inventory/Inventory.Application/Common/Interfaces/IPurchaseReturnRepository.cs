@@ -29,4 +29,6 @@ public interface IPurchaseReturnRepository
     Task<PurchaseReturnDetailDto?> GetPurchaseReturnByIdAsync(Guid id);
 
     Task<byte[]> ExportPurchaseReturnsToExcelAsync(DateTime? fromDate, DateTime? toDate);
+
+    Task<List<PendingPRDto>> GetPendingPurchaseReturnsAsync();
 }

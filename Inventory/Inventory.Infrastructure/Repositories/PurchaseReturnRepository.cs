@@ -477,4 +477,37 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             }
         }
     }
+
+    public async Task<List<PendingPRDto>> GetPendingPurchaseReturnsAsync()
+    {
+        var returns = await _context.PurchaseReturns
+            .AsNoTracking()
+            .Where(x => x.Status == "Confirmed")
+            .OrderByDescending(x => x.ReturnDate)
+            .Select(x => new PendingPRDto
+            {
+                Id = x.Id,
+                ReturnNumber = x.ReturnNumber,
+                ReturnDate = x.ReturnDate,
+                Status = x.Status,
+                SupplierId = x.SupplierId,
+                TotalQty = x.Items.Sum(i => i.ReturnQty)
+            })
+            .ToListAsync();
+
+        if (returns == null || !returns.Any()) return new List<PendingPRDto>();
+
+        var supplierIds = returns.Select(r => (long)r.SupplierId).Distinct().ToList();
+        var supplierNames = await GetSupplierNamesFromMicroservice(supplierIds);
+
+        foreach (var pr in returns)
+        {
+            if (supplierNames != null && supplierNames.TryGetValue((long)pr.SupplierId, out var name))
+                pr.SupplierName = name;
+            else
+                pr.SupplierName = "Unknown Supplier";
+        }
+
+        return returns;
+    }
 }
