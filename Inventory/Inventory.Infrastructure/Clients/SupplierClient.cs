@@ -133,5 +133,34 @@ namespace Inventory.Infrastructure.Clients
                 return new Dictionary<int, decimal>();
             }
         }
+
+        public async Task<bool> RecordPurchaseReturnAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy)
+        {
+            var payload = new
+            {
+                SupplierId = supplierId,
+                Amount = amount, // This should be positive, backend logic handles it as debit note
+                ReferenceId = referenceId,
+                Description = description,
+                TransactionDate = DateTime.Now,
+                CreatedBy = createdBy,
+                TransactionType = "DebitNote"
+            };
+
+            // Using same finance entry endpoint but with specific type updated
+            AddAuthorizationHeader(); // Attach Token
+            
+            // Adjusted endpoint if your finance service uses a specific one for returns
+            // Or use the generic one if it supports TransactionType
+            var response = await _client.PostAsJsonAsync("api/finance/purchase-return-entry", payload);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                    var content = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[SupplierClient] Purchase Return Failed: {response.StatusCode} - {content}");
+                    return false;
+            }
+            return true;
+        }
     }
 }

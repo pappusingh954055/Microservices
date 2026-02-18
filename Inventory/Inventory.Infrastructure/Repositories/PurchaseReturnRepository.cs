@@ -213,6 +213,26 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
                 _context.PurchaseReturns.Add(returnData);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+
+                // 7. Ledger Update (Debit Note) - Microservice Call
+                // We do this AFTER commit to ensure local data is safe. 
+                // In a real production system, use Outbox Pattern for guaranteed delivery.
+                try 
+                {
+                   await _supplierClient.RecordPurchaseReturnAsync(
+                       returnData.SupplierId, 
+                       returnData.GrandTotal, 
+                       returnData.ReturnNumber, 
+                       $"Purchase Return / Debit Note: {returnData.ReturnNumber}", 
+                       "System" // or returnData.CreatedBy
+                   );
+                }
+                catch (Exception ex)
+                {
+                    // Log error but don't fail the operation as the return is already created
+                    Console.WriteLine($"Failed to update ledger for PR {returnData.ReturnNumber}: {ex.Message}");
+                }
+
                 return true;
             }
             catch (Exception ex)

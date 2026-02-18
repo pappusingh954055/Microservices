@@ -11,5 +11,6 @@ namespace Inventory.Application.Clients
         Task<bool> RecordPurchaseAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy);
         Task<Dictionary<string, decimal>> GetGRNPaymentStatusesAsync(List<string> grnNumbers);
         Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds);
+        Task<bool> RecordPurchaseReturnAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy);
     }
 }

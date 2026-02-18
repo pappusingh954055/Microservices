@@ -9,7 +9,7 @@ namespace Inventory.Application.GatePasses.DTOs
         public string PassNo { get; set; }
         public string PassType { get; set; }
         public int ReferenceType { get; set; }
-        public int ReferenceId { get; set; }
+        public string ReferenceId { get; set; }
         public string ReferenceNo { get; set; }
         public string? InvoiceNo { get; set; }
         public string PartyName { get; set; }

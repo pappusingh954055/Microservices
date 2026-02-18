@@ -8,7 +8,7 @@ namespace Inventory.Application.GatePasses.Commands.CreateGatePass
     {
         public string PassType { get; set; } // Inward, Outward
         public int ReferenceType { get; set; }
-        public int ReferenceId { get; set; }
+        public string ReferenceId { get; set; }
         public string ReferenceNo { get; set; }
         public string? InvoiceNo { get; set; }
         public string PartyName { get; set; } // Supplier/Customer

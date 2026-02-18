@@ -58,6 +58,26 @@ public class SupplierClient : ISupplierClient
         return new Dictionary<string, decimal>();
     }
 
+    public async Task<bool> RecordPurchaseReturnAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy)
+    {
+        var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+        var payload = new
+        {
+            SupplierId = supplierId,
+            Amount = amount, // This should be positive, backend logic handles it as debit note
+            ReferenceId = referenceId,
+            Description = description,
+            TransactionDate = DateTime.Now,
+            CreatedBy = createdBy,
+            TransactionType = "DebitNote"
+        };
+        
+        // Using same finance entry endpoint but with specific type or dedicated endpoint
+        // Assuming generic entry point handles types
+        var response = await client.PostAsJsonAsync("api/finance/purchase-return-entry", payload);
+        return response.IsSuccessStatusCode;
+    }
+
     public async Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds)
     {
         var client = _httpClientFactory.CreateClient("SupplierServiceClient");
