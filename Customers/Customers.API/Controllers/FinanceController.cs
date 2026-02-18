@@ -1,10 +1,8 @@
-using MediatR;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Customers.Application.DTOs;
 using Customers.Application.Features.Finance.Commands;
 using Customers.Application.Features.Finance.Queries;
-using Customers.Domain.Entities;
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Customers.API.Controllers
 {
@@ -37,6 +35,15 @@ namespace Customers.API.Controllers
             var id = await _mediator.Send(command);
             
             return Ok(new { Id = id }); // Returning object to be consistent
+        }
+
+        // 2a. Bulk Receipt Entry
+        [HttpPost("bulk-receipts")]
+        public async Task<IActionResult> RecordBulkReceipts([FromBody] BulkReceiptDto bulkReceiptDto)
+        {
+            var command = new BulkRecordCustomerReceiptCommand(bulkReceiptDto.Receipts);
+            var result = await _mediator.Send(command);
+            return Ok(new { Success = result });
         }
 
         // 2b. Sale Entry (called from Inventory when Sale is confirmed)

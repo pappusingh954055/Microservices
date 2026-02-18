@@ -1,5 +1,4 @@
 using Customers.Domain.Entities;
-using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace Customers.Application.DTOs
