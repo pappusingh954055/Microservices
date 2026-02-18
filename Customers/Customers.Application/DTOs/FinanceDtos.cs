@@ -63,6 +63,7 @@ namespace Customers.Application.DTOs
         public string CustomerName { get; set; }
         public string Status { get; set; }
         public DateTime DueDate { get; set; }
+        public string? LastReferenceId { get; set; }
     }
 
     public class OutstandingRequestDto

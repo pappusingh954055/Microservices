@@ -133,7 +133,8 @@ namespace Customers.Infrastructure.Repositories
                             PendingAmount = l.Balance,
                             TotalAmount = l.Balance, // For now keeping same as balance
                             Status = "Active",
-                            DueDate = System.DateTime.Now.AddDays(7) // Mock due date
+                            DueDate = System.DateTime.Now.AddDays(7), // Mock due date
+                            LastReferenceId = l.ReferenceId
                         };
 
             // 2. Searching

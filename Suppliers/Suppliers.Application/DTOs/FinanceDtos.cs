@@ -38,6 +38,7 @@ namespace Suppliers.Application.DTOs
         public string SupplierName { get; set; }
         public string Status { get; set; }
         public DateTime DueDate { get; set; }
+        public string? LastReferenceId { get; set; }
     }
 
     public class DateRangeDto

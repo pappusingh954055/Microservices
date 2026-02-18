@@ -119,7 +119,7 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 
             var dues = latestEntries
                 .Where(l => l != null && l.Balance > 0)
-                .Select(l => new { l.SupplierId, PendingAmount = l.Balance })
+                .Select(l => new { l.SupplierId, PendingAmount = l.Balance, ReferenceId = l.ReferenceId })
                 .ToList();
 
             var supplierIds = dues.Select(d => d.SupplierId).ToList();
@@ -131,7 +131,8 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
                 PendingAmount = d.PendingAmount,
                 SupplierName = suppliers.FirstOrDefault(s => s.Id == d.SupplierId)?.Name ?? "Unknown",
                 Status = "Active",
-                DueDate = System.DateTime.Now.AddDays(7)
+                DueDate = System.DateTime.Now.AddDays(7),
+                LastReferenceId = d.ReferenceId
             }).ToList();
         }
 
