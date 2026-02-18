@@ -246,5 +246,27 @@ namespace Customers.Infrastructure.Repositories
 
             return dues;
         }
+
+        public async Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int months)
+        {
+            var startDate = System.DateTime.Now.AddMonths(-(months - 1));
+            startDate = new System.DateTime(startDate.Year, startDate.Month, 1);
+
+            var receipts = await _context.CustomerReceipts
+                .Where(r => r.ReceiptDate >= startDate)
+                .ToListAsync();
+
+            var trend = receipts
+                .GroupBy(r => new { r.ReceiptDate.Year, r.ReceiptDate.Month })
+                .Select(g => new MonthlyTrendDto
+                {
+                    Month = new System.DateTime(g.Key.Year, g.Key.Month, 1).ToString("MMM yyyy"),
+                    Amount = g.Sum(r => r.Amount)
+                })
+                .OrderBy(t => System.DateTime.Parse(t.Month))
+                .ToList();
+
+            return trend;
+        }
     }
 }

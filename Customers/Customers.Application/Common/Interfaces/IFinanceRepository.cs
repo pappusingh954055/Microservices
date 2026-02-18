@@ -17,5 +17,6 @@ namespace Customers.Application.Common.Interfaces
         Task<decimal> GetTotalReceiptsAsync(DateRangeDto dateRange);
         Task<decimal> GetTotalOutstandingAsync();
         Task<List<OutstandingDto>> GetPendingDuesAsync();
+        Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int months);
     }
 }

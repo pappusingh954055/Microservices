@@ -19,5 +19,6 @@ namespace Suppliers.Application.Interfaces // Adjust namespace if needed
         Task<PaginatedListDto<PaymentReportDto>> GetPaymentsReportAsync(PaymentReportRequestDto request);
         Task<decimal> GetTotalPendingDuesAsync();
         Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds);
+        Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int months);
     }
 }

@@ -112,5 +112,12 @@ namespace Suppliers.API.Controllers
             var result = await _mediator.Send(new GetPaymentsReportQuery(request));
             return Ok(result);
         }
+
+        [HttpGet("monthly-payments")]
+        public async Task<IActionResult> GetMonthlyPayments([FromQuery] int months = 6)
+        {
+            var result = await _mediator.Send(new GetMonthlyPaymentsTrendQuery(months));
+            return Ok(result);
+        }
     }
 }

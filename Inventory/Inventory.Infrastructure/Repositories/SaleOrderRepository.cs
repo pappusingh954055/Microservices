@@ -10,7 +10,7 @@ using System.Net.Http.Json;
 using System;
 using System.Collections.Generic;
 using Inventory.Application.Clients;
-using YourProjectNamespace.Entities;
+using Inventory.Domain.Entities.SO;
 
 public class SaleOrderRepository : ISaleOrderRepository
 {

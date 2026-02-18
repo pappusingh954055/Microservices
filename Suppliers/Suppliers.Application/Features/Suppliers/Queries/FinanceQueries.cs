@@ -15,4 +15,5 @@ namespace Suppliers.Application.Features.Suppliers.Queries
 
     public record GetPaymentsReportQuery(PaymentReportRequestDto Request) : IRequest<PaginatedListDto<PaymentReportDto>>;
     public record GetTotalPendingDuesQuery() : IRequest<decimal>;
+    public record GetMonthlyPaymentsTrendQuery(int Months) : IRequest<List<MonthlyTrendDto>>;
 }

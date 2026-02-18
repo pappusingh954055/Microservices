@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Text;
-using YourProjectNamespace.Entities;
+using Inventory.Domain.Entities.SO;
 
 namespace Inventory.Application.Common.Interfaces
 {

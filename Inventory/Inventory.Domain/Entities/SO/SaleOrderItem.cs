@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace YourProjectNamespace.Entities
+namespace Inventory.Domain.Entities.SO
 {
     public class SaleOrderItem
     {

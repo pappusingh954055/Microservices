@@ -89,4 +89,10 @@ namespace Suppliers.Application.DTOs
         public int PageSize { get; set; }
         public int TotalPages => (int)Math.Ceiling(TotalCount / (double)PageSize);
     }
+
+    public class MonthlyTrendDto
+    {
+        public string Month { get; set; }
+        public decimal Amount { get; set; }
+    }
 }

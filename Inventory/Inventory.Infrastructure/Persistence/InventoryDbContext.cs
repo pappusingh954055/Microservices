@@ -1,7 +1,7 @@
 ﻿using Inventory.Domain.Entities;
+using Inventory.Domain.Entities.SO;
 using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
-using YourProjectNamespace.Entities;
 
 namespace Inventory.Infrastructure.Persistence;
 
@@ -35,6 +35,8 @@ public sealed class InventoryDbContext : DbContext,
     public DbSet<SaleReturnItem> SaleReturnItems { get; set; }
 
     public DbSet<AppNotification> AppNotifications { get; set; }
+    public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
+    public DbSet<ExpenseEntry> ExpenseEntries { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -147,5 +149,25 @@ public sealed class InventoryDbContext : DbContext,
         .WithMany(pl => pl.PriceListItems)
         .HasForeignKey(pi => pi.PriceListId)
         .OnDelete(DeleteBehavior.NoAction); 
+
+        // ExpenseCategory Configuration
+        modelBuilder.Entity<ExpenseCategory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+        });
+
+        // ExpenseEntry Configuration
+        modelBuilder.Entity<ExpenseEntry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+            entity.Property(e => e.PaymentMode).IsRequired().HasMaxLength(50);
+            
+            entity.HasOne(e => e.Category)
+                  .WithMany(c => c.Expenses)
+                  .HasForeignKey(e => e.CategoryId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
     }
 }

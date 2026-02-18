@@ -97,4 +97,10 @@ namespace Customers.Application.DTOs
         public DateTime TransactionDate { get; set; }
         public string CreatedBy { get; set; }
     }
+
+    public class MonthlyTrendDto
+    {
+        public string Month { get; set; }
+        public decimal Amount { get; set; }
+    }
 }

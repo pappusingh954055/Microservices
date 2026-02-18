@@ -82,5 +82,12 @@ namespace Customers.API.Controllers
             var total = await _mediator.Send(new GetTotalReceiptsQuery(dateRange));
             return Ok(new { TotalReceipts = total });
         }
+
+        [HttpGet("monthly-receipts")]
+        public async Task<IActionResult> GetMonthlyReceipts([FromQuery] int months = 6)
+        {
+            var result = await _mediator.Send(new GetMonthlyReceiptsTrendQuery(months));
+            return Ok(result);
+        }
     }
 }

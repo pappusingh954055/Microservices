@@ -1,8 +1,8 @@
 ﻿using Inventory.Domain.Entities;
+using Inventory.Domain.Entities.SO;
 using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
-using YourProjectNamespace.Entities;
 
 namespace Inventory.Application.Common.Interfaces
 {
@@ -27,6 +27,8 @@ namespace Inventory.Application.Common.Interfaces
         public DbSet<AppNotification> AppNotifications { get; }
 
         DbSet<Product> Products { get; }
+        DbSet<ExpenseCategory> ExpenseCategories { get; }
+        DbSet<ExpenseEntry> ExpenseEntries { get; }
 
         // Is property se Handler ka error fix ho jayega
         DatabaseFacade Database { get; }

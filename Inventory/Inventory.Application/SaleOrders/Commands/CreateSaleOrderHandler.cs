@@ -4,7 +4,7 @@ using Inventory.Application.SaleOrders.Commands;
 using Inventory.Application.Clients;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
-using YourProjectNamespace.Entities;
+using Inventory.Domain.Entities.SO;
 
 public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, object> // Change int to object
 {

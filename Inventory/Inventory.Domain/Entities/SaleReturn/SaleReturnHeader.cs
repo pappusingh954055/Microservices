@@ -1,6 +1,6 @@
 ﻿using Inventory.Domain.Common;
+using Inventory.Domain.Entities.SO;
 using System.ComponentModel.DataAnnotations;
-using YourProjectNamespace.Entities;
 
 namespace Inventory.Domain.Entities;
 
