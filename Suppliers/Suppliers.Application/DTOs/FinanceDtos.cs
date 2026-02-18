@@ -55,6 +55,7 @@ namespace Suppliers.Application.DTOs
         public string Description { get; set; }
         public DateTime TransactionDate { get; set; }
         public string CreatedBy { get; set; }
+        public string? TransactionType { get; set; } // Added for Debit Notes
     }
 
     public class PaymentReportDto

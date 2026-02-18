@@ -16,25 +16,26 @@ namespace Suppliers.Application.Features.Suppliers.Handlers
         public async Task<bool> Handle(RecordSupplierPurchaseCommand request, CancellationToken cancellationToken)
         {
             var dto = request.PurchaseData;
+            var isDebitNote = dto.TransactionType == "DebitNote"; // Check if it's a return
 
             // Get last balance to calculate new balance
             var lastLedger = await _repository.GetLastLedgerEntryAsync(dto.SupplierId);
             
             // For Supplier: 
             // Purchase (Credit) increases Balance (we owe them more)
-            // Payment (Debit) decreases Balance (we owe them less)
-            decimal currentBalance = (lastLedger?.Balance ?? 0) + dto.Amount;
+            // Payment/DebitNote (Debit) decreases Balance (we owe them less)
+            decimal currentBalance = (lastLedger?.Balance ?? 0) + (isDebitNote ? -dto.Amount : dto.Amount);
 
             var supplierLedger = new SupplierLedger
             {
                 SupplierId = dto.SupplierId,
-                TransactionType = "Purchase",
+                TransactionType = isDebitNote ? "Debit Note" : "Purchase",
                 ReferenceId = dto.ReferenceId,
-                Debit = 0,
-                Credit = dto.Amount,
+                Debit = isDebitNote ? dto.Amount : 0,
+                Credit = isDebitNote ? 0 : dto.Amount,
                 Balance = currentBalance,
                 TransactionDate = dto.TransactionDate,
-                Description = dto.Description ?? "Purchase via GRN: " + dto.ReferenceId
+                Description = dto.Description ?? (isDebitNote ? "Purchase Return: " : "Purchase via GRN: ") + dto.ReferenceId
             };
 
             await _repository.AddLedgerEntryAsync(supplierLedger);

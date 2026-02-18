@@ -72,9 +72,8 @@ public class SupplierClient : ISupplierClient
             TransactionType = "DebitNote"
         };
         
-        // Using same finance entry endpoint but with specific type or dedicated endpoint
-        // Assuming generic entry point handles types
-        var response = await client.PostAsJsonAsync("api/finance/purchase-return-entry", payload);
+        // Using same finance entry endpoint but with specific type
+        var response = await client.PostAsJsonAsync("api/finance/purchase-entry", payload);
         return response.IsSuccessStatusCode;
     }
 
