@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using Identity.Application.Interfaces;
 using Identity.Domain.Users;
 
+using MediatR;
+using Identity.Application.Commands.EditUser;
+
 namespace Identity.API.Controllers;
 
 [ApiController]
@@ -9,10 +12,12 @@ namespace Identity.API.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
+    private readonly IMediator _mediator;
 
-    public UsersController(IUserRepository userRepository)
+    public UsersController(IUserRepository userRepository, IMediator mediator)
     {
         _userRepository = userRepository;
+        _mediator = mediator;
     }
 
     [HttpGet]
@@ -40,6 +45,20 @@ public class UsersController : ControllerBase
         user.SetActive(isActive);
         await _userRepository.UpdateAsync(user);
         return Ok();
+    }
+
+    [HttpPut("{id}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] EditUserCommand command)
+    {
+        if (id != command.Id)
+            return BadRequest("ID in URL and body must match");
+
+        var result = await _mediator.Send(command);
+
+        if (!result.IsSuccess)
+            return BadRequest(result.Error);
+
+        return Ok(result.Value);
     }
 
     [HttpGet("check-duplicate")]

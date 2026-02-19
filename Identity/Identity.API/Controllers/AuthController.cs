@@ -2,6 +2,7 @@
 using Identity.Application.Commands.RegisterUser;
 using Identity.Application.DTOs;
 using Identity.Application.Queries.LoginUser;
+using Identity.Application.Commands.ChangePassword;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -79,6 +80,17 @@ namespace Identity.API.Controllers
                 return BadRequest(result.Error);
 
             return Ok();
+        }
+
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordCommand command)
+        {
+            var result = await _mediator.Send(command);
+
+            if (!result.IsSuccess)
+                return BadRequest(result.Error);
+
+            return Ok(new { Message = "Password changed successfully" });
         }
 
     }
