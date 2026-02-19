@@ -71,6 +71,12 @@ public class UserRepository : IUserRepository
                 u.RefreshTokens.Any(rt => rt.Token == refreshToken));
     }
 
+    public async Task<User?> GetByResetTokenAsync(string resetToken)
+    {
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.ResetToken == resetToken);
+    }
+
     public async Task<List<User>> GetAllUsersAsync()
     {
         return await _context.Users

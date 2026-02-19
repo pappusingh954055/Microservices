@@ -3,6 +3,8 @@ using Identity.Application.Commands.RegisterUser;
 using Identity.Application.DTOs;
 using Identity.Application.Queries.LoginUser;
 using Identity.Application.Commands.ChangePassword;
+using Identity.Application.Commands.ForgotPassword;
+using Identity.Application.Commands.ResetPassword;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -91,6 +93,29 @@ namespace Identity.API.Controllers
                 return BadRequest(result.Error);
 
             return Ok(new { Message = "Password changed successfully" });
+        }
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordCommand command)
+        {
+            var result = await _mediator.Send(command);
+
+            if (!result.IsSuccess)
+                return BadRequest(result.Error);
+
+            // In a real app, don't return the token. For dev, we return it.
+            return Ok(new { Message = "Password reset token generated", Token = result.Value });
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordCommand command)
+        {
+            var result = await _mediator.Send(command);
+
+            if (!result.IsSuccess)
+                return BadRequest(result.Error);
+
+            return Ok(new { Message = "Password reset successfully" });
         }
 
     }
