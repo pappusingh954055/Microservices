@@ -23,8 +23,8 @@ namespace Inventory.Application.Common.Interfaces
 
         Task<List<StockExportDto>> GetSaleReportDataAsync(List<int> orderIds);
 
-        // Naya signature jo parameters ke saath total count bhi return karega
-        Task<(List<SaleOrderListDto> Data, int TotalCount)> GetAllSaleOrdersAsync(
+        // Naya signature jo parameters ke saath total count aur Global Stats bhi return karega
+        Task<(List<SaleOrderListDto> Data, int TotalCount, decimal TotalSalesAmount, int PendingDispatchCount, int UnpaidOrdersCount)> GetAllSaleOrdersAsync(
             string searchTerm,
             int pageNumber,
             int pageSize,

@@ -91,7 +91,7 @@ public class SaleOrderController : ControllerBase
      [FromQuery] string sortOrder = "desc")
     {
         // 1. Repository method call with parameters [cite: 2026-02-03]
-        var (orders, totalCount) = await _saleRepo.GetAllSaleOrdersAsync(
+        var (orders, totalCount, totalSalesAmount, pendingDispatchCount, unpaidOrdersCount) = await _saleRepo.GetAllSaleOrdersAsync(
             searchTerm,
             pageNumber,
             pageSize,
@@ -99,11 +99,14 @@ public class SaleOrderController : ControllerBase
             sortOrder
         );
 
-        // 2. Return data along with total count for frontend pagination
+        // 2. Return data along with total count and global stats for frontend
         return Ok(new
         {
             data = orders,
-            totalCount = totalCount
+            totalCount = totalCount,
+            totalSalesAmount = totalSalesAmount,
+            pendingDispatchCount = pendingDispatchCount,
+            unpaidOrdersCount = unpaidOrdersCount
         });
     }
 
@@ -156,7 +159,7 @@ public class SaleOrderController : ControllerBase
     {
         // Excel export ke liye hum pagination bypass karenge
         // Hum pageNumber 1 aur pageSize bahut bada (e.g. 1000000) bhejenge taaki sab mil jaye [cite: 2026-02-03]
-        var (orders, totalCount) = await _saleRepo.GetAllSaleOrdersAsync(
+        var (orders, totalCount, _, _, _) = await _saleRepo.GetAllSaleOrdersAsync(
             searchTerm: "",
             pageNumber: 1,
             pageSize: 1000000, // Saare records lene ke liye

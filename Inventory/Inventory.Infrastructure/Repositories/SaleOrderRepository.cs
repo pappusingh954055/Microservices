@@ -102,7 +102,7 @@ public class SaleOrderRepository : ISaleOrderRepository
             }).ToListAsync();
     }
 
-    public async Task<(List<SaleOrderListDto> Data, int TotalCount)> GetAllSaleOrdersAsync(
+    public async Task<(List<SaleOrderListDto> Data, int TotalCount, decimal TotalSalesAmount, int PendingDispatchCount, int UnpaidOrdersCount)> GetAllSaleOrdersAsync(
      string searchTerm,
      int pageNumber,
      int pageSize,
@@ -123,8 +123,13 @@ public class SaleOrderRepository : ISaleOrderRepository
                 o.Status.ToLower().Contains(searchTerm));
         }
 
-        // 3. Count (Fast performance before heavy operations)
+        // 🎯 3. Calculate Global Stats (Before Pagination)
         var totalCount = await query.CountAsync();
+        var totalSalesAmount = await query.Where(o => o.Status == "Confirmed").SumAsync(o => (decimal?)o.GrandTotal) ?? 0;
+        var pendingDispatchCount = await query.Where(o => o.Status == "Confirmed" && (o.GatePassNo == null || o.GatePassNo == "")).CountAsync();
+        
+        // Note: Unpaid count is hard to calculate globally without Finance Service data 
+        var unpaidOrdersCount = 0; 
 
         // 4. Enhanced Sorting Logic
         bool isDesc = sortOrder?.ToLower() == "desc" || string.IsNullOrEmpty(sortOrder);
@@ -162,7 +167,7 @@ public class SaleOrderRepository : ISaleOrderRepository
             .ToListAsync();
 
         if (orders == null || !orders.Any())
-            return (new List<SaleOrderListDto>(), 0);
+            return (new List<SaleOrderListDto>(), 0, 0, 0, 0);
 
         // 6. External Service Mapping (Batched)
         var customerIds = orders.Select(o => o.CustomerId).Distinct().ToList();
@@ -176,7 +181,7 @@ public class SaleOrderRepository : ISaleOrderRepository
                 order.CustomerName = "Unknown Customer";
         }
 
-        return (orders, totalCount);
+        return (orders, totalCount, totalSalesAmount, pendingDispatchCount, unpaidOrdersCount);
     }
 
     public async Task<bool> UpdateSaleOrderStatusAsync(int id, string status)
