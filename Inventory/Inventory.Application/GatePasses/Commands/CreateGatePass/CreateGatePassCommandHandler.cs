@@ -57,6 +57,26 @@ namespace Inventory.Application.GatePasses.Commands.CreateGatePass
             };
 
             _context.GatePasses.Add(entity);
+
+            // --- NEW: Update Reference Table with GatePassNo ---
+            if (request.ReferenceType == 3 && int.TryParse(request.ReferenceId, out int soId)) // 3 = SaleOrder
+            {
+                var saleOrder = await _context.SaleOrders.FirstOrDefaultAsync(s => s.Id == soId, cancellationToken);
+                if (saleOrder != null)
+                {
+                    saleOrder.GatePassNo = entity.PassNo;
+                }
+            }
+            else if (request.ReferenceType == 1 && int.TryParse(request.ReferenceId, out int poId)) // 1 = PurchaseOrder
+            {
+                var purchaseOrder = await _context.PurchaseOrders.FirstOrDefaultAsync(p => p.Id == poId, cancellationToken);
+                if (purchaseOrder != null)
+                {
+                    // Update if property exists (assuming we added it)
+                    // purchaseOrder.GatePassNo = entity.PassNo; 
+                }
+            }
+
             await _context.SaveChangesAsync(cancellationToken);
 
             return new GatePassDto

@@ -11,6 +11,7 @@ namespace Inventory.Application.GRN.DTOs
         public int SupplierId { get; set; }  // For payment navigation
         public DateTime ReceivedDate { get; set; }
         public string Status { get; set; } // Completed or Partial
+        public string? GatePassNo { get; set; }
         public string PaymentStatus { get; set; } = "Unpaid"; // Paid, Partial, Unpaid
         public decimal TotalAmount { get; set; }  // GRN Total Amount
         public decimal PaidAmount { get; set; }   // Already paid

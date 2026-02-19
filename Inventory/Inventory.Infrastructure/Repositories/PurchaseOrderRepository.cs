@@ -341,8 +341,15 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
 
     public async Task<IEnumerable<PendingPODto>> GetPendingPurchaseOrdersAsync()
     {
+        // 1. Fetch POs that are Approved and have pending quantities
+        // 2. SAFETY LOCK: Exclude POs that already have an "At-Gate" Gate Pass (Status 1)
         return await _context.PurchaseOrders.AsNoTracking()
-            .Where(po => po.Status == "Approved" && !_context.GRNHeaders.Any(grn => grn.PurchaseOrderId == po.Id))
+            .Where(po => (po.Status == "Approved" || po.Status == "Partially Received") 
+                && po.Items.Any(i => i.Qty > i.ReceivedQty))
+            .Where(po => !_context.GatePasses.Any(gp => 
+                gp.ReferenceType == 1 && // 1 = PurchaseOrder
+                gp.ReferenceId == po.Id.ToString() && 
+                gp.Status == 1)) // 1 = Entered/At-Gate
             .Select(po => new PendingPODto
             {
                 Id = po.Id,
@@ -350,7 +357,7 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                 SupplierName = po.SupplierName,
                 PoDate = po.PoDate,
                 Status = po.Status,
-                ExpectedQty = po.Items.Sum(x => x.Qty)
+                ExpectedQty = po.Items.Sum(x => x.Qty - x.ReceivedQty) // Show balance quantity
             })
             .OrderByDescending(po => po.Id)
             .ToListAsync();

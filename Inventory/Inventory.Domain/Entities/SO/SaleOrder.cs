@@ -38,6 +38,7 @@ namespace Inventory.Domain.Entities.SO
         [Required]
         [StringLength(20)]
         public string Status { get; set; } // Draft, Confirmed, etc. [cite: 3]
+        public string? GatePassNo { get; set; }
 
         [Required]
         public string CreatedBy { get; set; } // Login user ki email/ID [cite: 3]

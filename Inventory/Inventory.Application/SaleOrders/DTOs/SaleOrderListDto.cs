@@ -12,6 +12,7 @@ namespace Inventory.Application.SaleOrders.DTOs
         public int CustomerId { get; set; } // Mapping ke liye zaroori hai
         public string CustomerName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
+        public string? GatePassNo { get; set; }
         public decimal GrandTotal { get; set; }
         public decimal TotalQty { get; set; }
     }

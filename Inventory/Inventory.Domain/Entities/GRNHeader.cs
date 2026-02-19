@@ -12,6 +12,7 @@ namespace Inventory.Domain.Entities
         public DateTime ReceivedDate { get; set; }
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } // 'Completed' or 'Partial' [cite: 2026-01-22]
+        public string? GatePassNo { get; set; }
         public string Remarks { get; set; }
         public string CreatedBy { get; set; }
 

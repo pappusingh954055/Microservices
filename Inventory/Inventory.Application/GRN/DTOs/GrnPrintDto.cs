@@ -7,6 +7,7 @@
     public string SupplierName { get; set; } = string.Empty; // Microservice se resolve hoga
     public DateTime ReceivedDate { get; set; }
     public string Status { get; set; } = string.Empty; // e.g., "Received"
+    public string? GatePassNo { get; set; }
     public string Remarks { get; set; } = string.Empty;
 
     // Footer Calculations

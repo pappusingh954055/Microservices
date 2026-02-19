@@ -18,6 +18,7 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             PurchaseOrderId = dto.POHeaderId,
             SupplierId = dto.SupplierId,
             ReceivedDate = dto.ReceivedDate,
+            GatePassNo = dto.GatePassNo,
             TotalAmount = dto.TotalAmount,
             Remarks = dto.Remarks,
             CreatedBy = dto.CreatedBy,

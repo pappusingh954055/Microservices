@@ -211,6 +211,18 @@ namespace Inventory.Infrastructure.Repositories
                         _context.PurchaseOrders.Update(po);
                     }
 
+                    // --- EXTRA LOGIC: Update Gate Pass Status to 'Completed' (4) ---
+                    if (!string.IsNullOrEmpty(header.GatePassNo))
+                    {
+                        var gatePass = await _context.GatePasses
+                                                     .FirstOrDefaultAsync(g => g.PassNo == header.GatePassNo);
+                        if (gatePass != null)
+                        {
+                            gatePass.Status = 4; // 4 = Completed/Received
+                            _context.GatePasses.Update(gatePass);
+                        }
+                    }
+
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
@@ -352,6 +364,7 @@ namespace Inventory.Infrastructure.Repositories
                 SupplierId = g.SupplierId,  // For payment navigation
                 ReceivedDate = g.ReceivedDate,
                 Status = g.Status,
+                GatePassNo = g.GatePassNo,
                 TotalAmount = g.TotalAmount,  // GRN Total Amount
                 PaymentStatus = "Unpaid",  // Default - To be calculated from Supplier Ledger
 
@@ -486,7 +499,8 @@ namespace Inventory.Infrastructure.Repositories
                     PurchaseOrderId = h.PurchaseOrderId,
                     SupplierId = h.SupplierId,
                     ReceivedDate = h.ReceivedDate,
-                    Status = h.Status, //
+                    Status = h.Status, 
+                    GatePassNo = h.GatePassNo,
                     Remarks = h.Remarks,
                     TotalAmount = h.TotalAmount,
                     // Items ko optimize tarike se fetch karne ke liye join logic

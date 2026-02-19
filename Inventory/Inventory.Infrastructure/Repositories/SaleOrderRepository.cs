@@ -154,6 +154,7 @@ public class SaleOrderRepository : ISaleOrderRepository
                 SoDate = o.SODate,
                 CustomerId = o.CustomerId,
                 Status = o.Status,
+                GatePassNo = o.GatePassNo,
                 GrandTotal = o.GrandTotal,
                 TotalQty = o.Items.Sum(i => i.Qty),
                 CustomerName = "Loading..."
@@ -324,9 +325,15 @@ public class SaleOrderRepository : ISaleOrderRepository
 
     public async Task<List<PendingSODto>> GetPendingSaleOrdersAsync()
     {
+        // 1. Fetch SOs that are Confirmed
+        // 2. SAFETY LOCK: Exclude SOs that already have an "At-Gate" Gate Pass (Status 1)
         var orders = await _context.SaleOrders
             .AsNoTracking()
             .Where(x => x.Status == "Confirmed")
+            .Where(po => !_context.GatePasses.Any(gp => 
+                gp.ReferenceType == 3 && // 3 = SaleOrder
+                gp.ReferenceId == po.Id.ToString() && 
+                gp.Status == 1)) // 1 = Entered/At-Gate
             .OrderByDescending(x => x.SODate)
             .Select(x => new PendingSODto
             {
