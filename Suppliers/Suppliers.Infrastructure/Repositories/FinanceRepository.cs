@@ -300,5 +300,20 @@ namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 
             return trend;
         }
+
+        public async Task<bool> IsReferenceUniqueAsync(string referenceNumber)
+        {
+            if (string.IsNullOrWhiteSpace(referenceNumber)) return true; // Empty reference is allowed multiple times (e.g. simple cash)
+
+            // Check in Payments
+            bool existsInPayments = await _context.SupplierPayments.AnyAsync(r => r.ReferenceNumber == referenceNumber);
+            if (existsInPayments) return false;
+
+            // Check in Ledger
+            bool existsInLedger = await _context.SupplierLedgers.AnyAsync(l => l.ReferenceId == referenceNumber);
+            if (existsInLedger) return false;
+
+            return true;
+        }
     }
 }

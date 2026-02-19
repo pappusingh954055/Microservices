@@ -269,5 +269,20 @@ namespace Customers.Infrastructure.Repositories
 
             return trend;
         }
+
+        public async Task<bool> IsReferenceUniqueAsync(string referenceNumber)
+        {
+            if (string.IsNullOrWhiteSpace(referenceNumber)) return true; // Empty reference is allowed multiple times (e.g. simple cash)
+            
+            // Check in Receipts
+            bool existsInReceipts = await _context.CustomerReceipts.AnyAsync(r => r.ReferenceNumber == referenceNumber);
+            if (existsInReceipts) return false;
+
+            // Check in Ledger (for safety)
+            bool existsInLedger = await _context.CustomerLedgers.AnyAsync(l => l.ReferenceId == referenceNumber);
+            if (existsInLedger) return false;
+
+            return true;
+        }
     }
 }

@@ -21,6 +21,16 @@ namespace Customers.Application.Features.Finance.Handlers
         {
             var receiptDto = request.ReceiptData;
 
+            // 🎯 Unique Reference/Cheque Number Check
+            if (!string.IsNullOrWhiteSpace(receiptDto.ReferenceNumber))
+            {
+                var isUnique = await _repository.IsReferenceUniqueAsync(receiptDto.ReferenceNumber);
+                if (!isUnique)
+                {
+                    throw new InvalidOperationException($"Duplicate Reference: Cheque/Ref No. {receiptDto.ReferenceNumber} already exists in the system.");
+                }
+            }
+
             var customerReceipt = new CustomerReceipt
             {
                 CustomerId = receiptDto.CustomerId,

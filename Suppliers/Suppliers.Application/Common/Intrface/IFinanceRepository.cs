@@ -20,5 +20,6 @@ namespace Suppliers.Application.Interfaces // Adjust namespace if needed
         Task<decimal> GetTotalPendingDuesAsync();
         Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds);
         Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int months);
+        Task<bool> IsReferenceUniqueAsync(string referenceNumber);
     }
 }

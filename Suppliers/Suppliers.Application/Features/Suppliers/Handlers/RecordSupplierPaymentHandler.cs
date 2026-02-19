@@ -17,6 +17,16 @@ namespace Suppliers.Application.Features.Suppliers.Handlers
         {
             var paymentDto = request.PaymentData;
 
+            // 🎯 Unique Reference/Cheque Number Check
+            if (!string.IsNullOrWhiteSpace(paymentDto.ReferenceNumber))
+            {
+                var isUnique = await _repository.IsReferenceUniqueAsync(paymentDto.ReferenceNumber);
+                if (!isUnique)
+                {
+                    throw new InvalidOperationException($"Duplicate Reference: Cheque/Ref No. {paymentDto.ReferenceNumber} already exists in the system.");
+                }
+            }
+
             var supplierPayment = new SupplierPayment
             {
                 SupplierId = paymentDto.SupplierId,
