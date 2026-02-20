@@ -38,6 +38,7 @@ public sealed class InventoryDbContext : DbContext,
     public DbSet<ExpenseCategory> ExpenseCategories { get; set; }
     public DbSet<ExpenseEntry> ExpenseEntries { get; set; }
     public DbSet<GatePass> GatePasses => Set<GatePass>();
+    public DbSet<UnitMaster> Units => Set<UnitMaster>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

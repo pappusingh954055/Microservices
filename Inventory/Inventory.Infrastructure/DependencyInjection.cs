@@ -60,6 +60,8 @@ namespace Inventory.Infrastructure
             services.AddScoped<ISupplierClient, SupplierClient>();
 
             services.AddScoped<INotificationRepository, NotificationRepository>();
+            
+            services.AddScoped<IUnitRepository, UnitRepository>();
 
             services.AddScoped<IInventoryDbContext>(
             provider => provider.GetRequiredService<InventoryDbContext>());

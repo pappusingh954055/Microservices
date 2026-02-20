@@ -1,4 +1,5 @@
-﻿using Inventory.Domain.Entities;
+﻿using DinkToPdf;
+using Inventory.Domain.Entities;
 using Inventory.Domain.Entities.SO;
 using Inventory.Domain.PriceLists;
 using Microsoft.EntityFrameworkCore;
@@ -30,6 +31,7 @@ namespace Inventory.Application.Common.Interfaces
         DbSet<ExpenseCategory> ExpenseCategories { get; }
         DbSet<ExpenseEntry> ExpenseEntries { get; }
         DbSet<GatePass> GatePasses { get; }
+        public DbSet<UnitMaster> Units { get; }
 
         // Is property se Handler ka error fix ho jayega
         DatabaseFacade Database { get; }
