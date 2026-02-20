@@ -13,9 +13,13 @@ namespace Inventory.Infrastructure.Repositories
 
         public async Task AddAsync(UnitMaster unit) => await _context.Units.AddAsync(unit);
 
-        public Task DeleteAsync(int id)
+        public async Task DeleteAsync(int id)
         {
-            throw new NotImplementedException();
+            var unit = await _context.Units.FindAsync(id);
+            if (unit != null)
+            {
+                _context.Units.Remove(unit);
+            }
         }
 
         public async Task<IEnumerable<UnitMaster>> GetAllAsync()
@@ -27,9 +31,10 @@ namespace Inventory.Infrastructure.Repositories
 
         public async Task<UnitMaster> GetByIdAsync(int id) => await _context.Units.FindAsync(id);
 
-        public async Task UpdateAsync(UnitMaster unit)
+        public Task UpdateAsync(UnitMaster unit)
         {
-            throw new NotImplementedException();
+            _context.Units.Update(unit);
+            return Task.CompletedTask;
         }
 
         public async Task<bool> ExistsAsync(string name)

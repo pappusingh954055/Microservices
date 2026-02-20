@@ -63,6 +63,29 @@ namespace Inventory.API.Controllers
             return result ? Ok(new { message = "Units imported successfully" }) : BadRequest("Could not import units");
         }
 
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateUnitCommand command)
+        {
+            if (id != command.Id) return BadRequest("ID mismatch");
+            var result = await _mediator.Send(command);
+            return result ? Ok() : BadRequest("Could not update unit");
+        }
+
+        [HttpDelete("delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _mediator.Send(new DeleteUnitCommand(id));
+            return result ? Ok() : BadRequest("Could not delete unit");
+        }
+
+        [HttpGet("getbyid/{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var units = await _mediator.Send(new GetAllUnitsQuery());
+            var unit = units.FirstOrDefault(u => u.Id == id);
+            return unit != null ? Ok(unit) : NotFound();
+        }
+
         [HttpGet("get")]
         public async Task<IActionResult> GetAll()
             => Ok(await _mediator.Send(new GetAllUnitsQuery()));

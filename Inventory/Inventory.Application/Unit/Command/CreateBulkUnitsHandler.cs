@@ -42,4 +42,43 @@ namespace Inventory.Application.Unit.Command
             return await _uow.SaveChangesAsync(ct) > 0; 
         }
     }
+    public class UpdateUnitHandler : IRequestHandler<UpdateUnitCommand, bool>
+    {
+        private readonly IUnitRepository _repo;
+        private readonly IUnitOfWork _uow;
+
+        public UpdateUnitHandler(IUnitRepository repo, IUnitOfWork uow)
+        {
+            _repo = repo;
+            _uow = uow;
+        }
+
+        public async Task<bool> Handle(UpdateUnitCommand request, CancellationToken ct)
+        {
+            var unit = await _repo.GetByIdAsync(request.Id);
+            if (unit == null) return false;
+
+            unit.Update(request.Name, request.Description, request.IsActive);
+            await _repo.UpdateAsync(unit);
+            return await _uow.SaveChangesAsync(ct) > 0;
+        }
+    }
+
+    public class DeleteUnitHandler : IRequestHandler<DeleteUnitCommand, bool>
+    {
+        private readonly IUnitRepository _repo;
+        private readonly IUnitOfWork _uow;
+
+        public DeleteUnitHandler(IUnitRepository repo, IUnitOfWork uow)
+        {
+            _repo = repo;
+            _uow = uow;
+        }
+
+        public async Task<bool> Handle(DeleteUnitCommand request, CancellationToken ct)
+        {
+            await _repo.DeleteAsync(request.Id);
+            return await _uow.SaveChangesAsync(ct) > 0;
+        }
+    }
 }
