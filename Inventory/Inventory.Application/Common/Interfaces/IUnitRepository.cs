@@ -5,4 +5,5 @@
     Task AddAsync(UnitMaster unit);
     Task UpdateAsync(UnitMaster unit);
     Task DeleteAsync(int id);
+    Task<bool> ExistsAsync(string name);
 }

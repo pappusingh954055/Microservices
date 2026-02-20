@@ -27,9 +27,14 @@ namespace Inventory.Infrastructure.Repositories
 
         public async Task<UnitMaster> GetByIdAsync(int id) => await _context.Units.FindAsync(id);
 
-        public Task UpdateAsync(UnitMaster unit)
+        public async Task UpdateAsync(UnitMaster unit)
         {
             throw new NotImplementedException();
+        }
+
+        public async Task<bool> ExistsAsync(string name)
+        {
+            return await _context.Units.AnyAsync(u => u.Name.ToLower() == name.ToLower());
         }
     }
 }
