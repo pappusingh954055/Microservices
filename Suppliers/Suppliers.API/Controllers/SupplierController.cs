@@ -120,5 +120,13 @@ namespace Suppliers.API.Controllers
             }
         }
 
+        [HttpGet("search-ids")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<ActionResult<List<int>>> SearchIdsByName([FromQuery] string name)
+        {
+            var ids = await _supplierRepository.GetIdsByNameAsync(name);
+            return Ok(ids);
+        }
     }
 }
+

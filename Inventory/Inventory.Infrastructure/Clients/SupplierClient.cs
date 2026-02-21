@@ -13,16 +13,16 @@ namespace Inventory.Infrastructure.Clients
 {
     public class SupplierClient : ISupplierClient
     {
-        private readonly HttpClient _client;
+        private readonly IHttpClientFactory _httpClientFactory;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         public SupplierClient(IHttpClientFactory factory, IHttpContextAccessor httpContextAccessor)
         {
-            _client = factory.CreateClient("SupplierServiceClient"); 
+            _httpClientFactory = factory;
             _httpContextAccessor = httpContextAccessor;
         }
 
-        private void AddAuthorizationHeader()
+        private void AddAuthorizationHeader(HttpClient client)
         {
             try
             {
@@ -33,7 +33,7 @@ namespace Inventory.Infrastructure.Clients
                     if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
                         var token = authHeader.Substring("Bearer ".Length).Trim();
-                        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                     }
                 }
             }
@@ -47,8 +47,9 @@ namespace Inventory.Infrastructure.Clients
         {
             try
             {
-                AddAuthorizationHeader(); // Attach Token
-                var response = await _client.PostAsJsonAsync("api/Supplier/get-by-ids", supplierIds);
+                var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+                AddAuthorizationHeader(client);
+                var response = await client.PostAsJsonAsync("api/Supplier/get-by-ids", supplierIds);
                 if (response.IsSuccessStatusCode)
                 {
                     var result = await response.Content.ReadFromJsonAsync<List<SupplierSelectDto>>();
@@ -67,7 +68,8 @@ namespace Inventory.Infrastructure.Clients
         {
             try
             {
-                AddAuthorizationHeader(); // Attach Token
+                var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+                AddAuthorizationHeader(client);
                 var payload = new 
                 {
                     SupplierId = supplierId,
@@ -78,11 +80,11 @@ namespace Inventory.Infrastructure.Clients
                     CreatedBy = createdBy
                 };
 
-                var response = await _client.PostAsJsonAsync("api/finance/purchase-entry", payload);
+                var response = await client.PostAsJsonAsync("api/finance/purchase-entry", payload);
                 if (!response.IsSuccessStatusCode)
                 {
                      var content = await response.Content.ReadAsStringAsync();
-                     throw new Exception($"Supplier Service Purchase Failed: {response.StatusCode} - {content} - URL: {_client.BaseAddress}api/finance/purchase-entry");
+                     throw new Exception($"Supplier Service Purchase Failed: {response.StatusCode} - {content}");
                 }
                 return true;
             }
@@ -95,21 +97,21 @@ namespace Inventory.Infrastructure.Clients
 
         public async Task<Dictionary<string, decimal>> GetGRNPaymentStatusesAsync(List<string> grnNumbers)
         {
-                if (grnNumbers == null || grnNumbers.Count == 0) 
-                    return new Dictionary<string, decimal>();
+            if (grnNumbers == null || grnNumbers.Count == 0) 
+                return new Dictionary<string, decimal>();
 
-                AddAuthorizationHeader(); // Attach Token
-                
-                var response = await _client.PostAsJsonAsync("api/finance/get-grn-statuses", grnNumbers);
-                
-                if (response.IsSuccessStatusCode)
-                {
-                    var result = await response.Content.ReadFromJsonAsync<Dictionary<string, decimal>>();
-                    return result ?? new Dictionary<string, decimal>();
-                }
-                
-                // Throw Exception so Repository sees it
-                throw new HttpRequestException($"Supplier Service Request Failed: {response.StatusCode} at {_client.BaseAddress}");
+            var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+            AddAuthorizationHeader(client);
+            
+            var response = await client.PostAsJsonAsync("api/finance/get-grn-statuses", grnNumbers);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<Dictionary<string, decimal>>();
+                return result ?? new Dictionary<string, decimal>();
+            }
+            
+            throw new HttpRequestException($"Supplier Service Request Failed: {response.StatusCode}");
         }
 
         public async Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds)
@@ -118,8 +120,9 @@ namespace Inventory.Infrastructure.Clients
 
             try
             {
-                AddAuthorizationHeader(); // Attach Token
-                var response = await _client.PostAsJsonAsync("api/finance/get-balances", supplierIds);
+                var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+                AddAuthorizationHeader(client);
+                var response = await client.PostAsJsonAsync("api/finance/get-balances", supplierIds);
                 if (response.IsSuccessStatusCode)
                 {
                     return await response.Content.ReadFromJsonAsync<Dictionary<int, decimal>>() ?? new Dictionary<int, decimal>();
@@ -129,7 +132,6 @@ namespace Inventory.Infrastructure.Clients
             catch (Exception ex)
             {
                 Console.WriteLine($"[SupplierClient] Connect Error: {ex.Message}");
-                // Return empty dictionary on failure so we don't block the listing
                 return new Dictionary<int, decimal>();
             }
         }
@@ -139,7 +141,7 @@ namespace Inventory.Infrastructure.Clients
             var payload = new
             {
                 SupplierId = supplierId,
-                Amount = amount, // This should be positive, backend logic handles it as debit note
+                Amount = amount,
                 ReferenceId = referenceId,
                 Description = description,
                 TransactionDate = DateTime.Now,
@@ -147,12 +149,10 @@ namespace Inventory.Infrastructure.Clients
                 TransactionType = "DebitNote"
             };
 
-            // Using same finance entry endpoint but with specific type updated
-            AddAuthorizationHeader(); // Attach Token
+            var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+            AddAuthorizationHeader(client);
             
-            // Adjusted endpoint if your finance service uses a specific one for returns
-            // Or use the generic one if it supports TransactionType
-            var response = await _client.PostAsJsonAsync("api/finance/purchase-return-entry", payload);
+            var response = await client.PostAsJsonAsync("api/finance/purchase-return-entry", payload);
             
             if (!response.IsSuccessStatusCode)
             {
@@ -162,5 +162,35 @@ namespace Inventory.Infrastructure.Clients
             }
             return true;
         }
+
+        public async Task<List<int>> SearchSupplierIdsByNameAsync(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return new List<int>();
+
+            try
+            {
+                var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+                AddAuthorizationHeader(client);
+                var response = await client.GetAsync($"api/Supplier/search-ids?name={Uri.EscapeDataString(name)}");
+
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<int>>() ?? new List<int>();
+                }
+                else
+                {
+                    var error = await response.Content.ReadAsStringAsync();
+                    Console.WriteLine($"[SupplierClient] Search failed for '{name}': {response.StatusCode} - {error}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SupplierClient] Search Error: {ex.Message}");
+            }
+
+            return new List<int>();
+        }
     }
 }
+
+

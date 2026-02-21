@@ -59,4 +59,18 @@ public class SupplierRepository : ISupplierRepository
 
         return suppliers ?? new List<SupplierSelectDto>();
     }
+
+    public async Task<List<int>> GetIdsByNameAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return new List<int>();
+
+        var s = name.ToLower().Trim();
+
+        return await _context.Suppliers
+            .AsNoTracking()
+            .Where(s_ent => s_ent.Name.ToLower().Contains(s))
+            .Select(s_ent => s_ent.Id)
+            .ToListAsync();
+    }
 }
+

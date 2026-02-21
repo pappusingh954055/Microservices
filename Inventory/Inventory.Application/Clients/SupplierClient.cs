@@ -1,14 +1,41 @@
 ﻿using Inventory.Application.Clients;
 using Inventory.Application.PurchaseReturn;
 using System.Net.Http.Json;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 public class SupplierClient : ISupplierClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly Microsoft.AspNetCore.Http.IHttpContextAccessor _httpContextAccessor;
 
-    public SupplierClient(IHttpClientFactory httpClientFactory)
+    public SupplierClient(IHttpClientFactory httpClientFactory, Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor)
     {
         _httpClientFactory = httpClientFactory;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private void AddAuthorizationHeader(HttpClient client)
+    {
+        try
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null && context.Request.Headers.ContainsKey("Authorization"))
+            {
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var token = authHeader.Substring("Bearer ".Length).Trim();
+                    client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SupplierClient] Failed to attach auth token: {ex.Message}");
+        }
     }
 
     public async Task<List<SupplierSelectDto>> GetSuppliersByIdsAsync(List<int> supplierIds)
@@ -71,7 +98,7 @@ public class SupplierClient : ISupplierClient
             CreatedBy = createdBy,
             TransactionType = "DebitNote"
         };
-        
+
         // Using same finance entry endpoint but with specific type
         var response = await client.PostAsJsonAsync("api/finance/purchase-entry", payload);
         return response.IsSuccessStatusCode;
@@ -89,4 +116,34 @@ public class SupplierClient : ISupplierClient
 
         return new Dictionary<int, decimal>();
     }
+
+    public async Task<List<int>> SearchSupplierIdsByNameAsync(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return new List<int>();
+
+        var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+        AddAuthorizationHeader(client);
+
+        try
+        {
+            var response = await client.GetAsync($"api/Supplier/search-ids?name={Uri.EscapeDataString(name)}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<List<int>>() ?? new List<int>();
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"[SupplierClient] Search failed: {response.StatusCode} - {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[SupplierClient] Search Exception: {ex.Message}");
+        }
+
+        return new List<int>();
+    }
 }
+

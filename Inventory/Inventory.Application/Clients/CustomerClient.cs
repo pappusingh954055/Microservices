@@ -1,21 +1,49 @@
 ﻿using Inventory.Application.Clients;
+using Microsoft.AspNetCore.Http;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Inventory.Infrastructure.Clients;
 
 public class CustomerClient : ICustomerClient
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IHttpContextAccessor _httpContextAccessor;
 
-    public CustomerClient(IHttpClientFactory httpClientFactory)
+    public CustomerClient(IHttpClientFactory httpClientFactory, IHttpContextAccessor httpContextAccessor)
     {
         _httpClientFactory = httpClientFactory;
+        _httpContextAccessor = httpContextAccessor;
+    }
+
+    private void AddAuthorizationHeader(HttpClient client)
+    {
+        try
+        {
+            var context = _httpContextAccessor.HttpContext;
+            if (context != null && context.Request.Headers.ContainsKey("Authorization"))
+            {
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    var token = authHeader.Substring("Bearer ".Length).Trim();
+                    client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CustomerClient] Failed to attach auth token: {ex.Message}");
+        }
     }
 
     public async Task<Dictionary<int, string>> GetCustomerNamesAsync(List<int> customerIds)
     {
-        
         var client = _httpClientFactory.CreateClient("CustomerService");
+        AddAuthorizationHeader(client);
 
         // Batch API call: Customer Microservice ko IDs bhejein
         var response = await client.PostAsJsonAsync("api/customers/get-names", customerIds);
@@ -30,7 +58,8 @@ public class CustomerClient : ICustomerClient
 
     public async Task<List<CustomerLookupDto>> GetCustomersForLookupAsync()
     {
-        var client = _httpClientFactory.CreateClient("CustomerService"); // Aapka 7173 wala client
+        var client = _httpClientFactory.CreateClient("CustomerService");
+        AddAuthorizationHeader(client);
         return await client.GetFromJsonAsync<List<CustomerLookupDto>>("api/customers/lookup") ?? new();
     }
 
@@ -39,6 +68,7 @@ public class CustomerClient : ICustomerClient
         if (string.IsNullOrWhiteSpace(searchName)) return new List<int>();
 
         var client = _httpClientFactory.CreateClient("CustomerService");
+        AddAuthorizationHeader(client);
 
         try
         {
@@ -61,6 +91,7 @@ public class CustomerClient : ICustomerClient
     public async Task RecordSaleAsync(int customerId, decimal amount, string referenceId, string description, string createdBy)
     {
         var client = _httpClientFactory.CreateClient("CustomerService");
+        AddAuthorizationHeader(client);
 
         var payload = new
         {
@@ -81,3 +112,4 @@ public class CustomerClient : ICustomerClient
         }
     }
 }
+

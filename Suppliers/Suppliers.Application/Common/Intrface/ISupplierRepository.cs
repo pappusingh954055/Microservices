@@ -1,5 +1,4 @@
-﻿
-using Suppliers.Application.DTOs;
+﻿using Suppliers.Application.DTOs;
 
 public interface ISupplierRepository
 {
@@ -11,5 +10,5 @@ public interface ISupplierRepository
     Task UpdateAsync(Supplier supplier);
     Task SaveChangesAsync();
     Task<List<SupplierSelectDto>> GetSuppliersByIdsAsync(List<int> ids);
+    Task<List<int>> GetIdsByNameAsync(string name);
 }
-

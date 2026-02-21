@@ -7,6 +7,9 @@ using Microsoft.EntityFrameworkCore;
 using System.Net.Http;
 using System.Net.Http.Json;
 using Inventory.Application.Common.Interfaces;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Inventory.Infrastructure.Repositories;
 
@@ -283,7 +286,7 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
             query = query.Where(x =>
                 (x.ReturnNumber != null && x.ReturnNumber.ToLower().Contains(s)) ||
                 (x.Remarks != null && x.Remarks.ToLower().Contains(s)) ||
-                (matchedSupplierIds != null && matchedSupplierIds.Contains((long)x.SupplierId))
+                (matchedSupplierIds != null && matchedSupplierIds.Contains(x.SupplierId))
             );
         }
 
@@ -350,21 +353,11 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
     }
 
     // 9. Helper Method to fetch matching Supplier IDs [cite: 2026-02-04]
-    private async Task<List<long>> GetSupplierIdsByNameFromMicroservice(string name)
+    private async Task<List<int>> GetSupplierIdsByNameFromMicroservice(string name)
     {
-        try
-        {
-            // IMPORTANT: Verify karein ki aapka microservice endpoint IDs return kar raha hai [cite: 2026-02-04]
-            // var response = await _httpClient.GetFromJsonAsync<List<long>>($"api/suppliers/search-ids?name={name}");
-            // return response ?? new List<long>();
-            return new List<long>(); // Temporary empty for now to avoid compilation error if _httpClient removed
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Supplier search error: {ex.Message}");
-            return new List<long>();
-        }
+        return await _supplierClient.SearchSupplierIdsByNameAsync(name);
     }
+
 
 
 
