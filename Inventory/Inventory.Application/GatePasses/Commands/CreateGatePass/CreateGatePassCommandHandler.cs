@@ -25,12 +25,23 @@ namespace Inventory.Application.GatePasses.Commands.CreateGatePass
             var isInward = request.PassType == "Inward";
             var prefix = isInward ? "GP-IN" : "GP";
 
-            // Count existing for this year and type to generate sequence
-            var count = await _context.GatePasses
-                .Where(x => x.CreatedAt.HasValue && x.CreatedAt.Value.Year == year && x.PassType == request.PassType)
-                .CountAsync(cancellationToken);
+            // Increment sequence based on the last generated number for this year/type
+            var lastPass = await _context.GatePasses
+                .Where(x => x.PassNo.StartsWith($"{prefix}-{year}"))
+                .OrderByDescending(x => x.PassNo)
+                .FirstOrDefaultAsync(cancellationToken);
 
-            var passNo = $"{prefix}-{year}-{(count + 1).ToString("D4")}";
+            int nextSequence = 1;
+            if (lastPass != null)
+            {
+                var parts = lastPass.PassNo.Split('-');
+                if (int.TryParse(parts.Last(), out int lastSeq))
+                {
+                    nextSequence = lastSeq + 1;
+                }
+            }
+
+            var passNo = $"{prefix}-{year}-{nextSequence.ToString("D4")}";
 
             var entity = new GatePass
             {
@@ -59,21 +70,43 @@ namespace Inventory.Application.GatePasses.Commands.CreateGatePass
             _context.GatePasses.Add(entity);
 
             // --- NEW: Update Reference Table with GatePassNo ---
-            if (request.ReferenceType == 3 && int.TryParse(request.ReferenceId, out int soId)) // 3 = SaleOrder
+            if (request.ReferenceType == 3) // 3 = SaleOrder
             {
-                var saleOrder = await _context.SaleOrders.FirstOrDefaultAsync(s => s.Id == soId, cancellationToken);
-                if (saleOrder != null)
+                var ids = request.ReferenceId.Split(',').Select(id => int.TryParse(id, out int parsedId) ? parsedId : 0).Where(id => id > 0).ToList();
+                var saleOrders = await _context.SaleOrders.Where(s => ids.Contains(s.Id)).ToListAsync(cancellationToken);
+                foreach (var so in saleOrders)
                 {
-                    saleOrder.GatePassNo = entity.PassNo;
+                    so.GatePassNo = entity.PassNo;
                 }
             }
-            else if (request.ReferenceType == 1 && int.TryParse(request.ReferenceId, out int poId)) // 1 = PurchaseOrder
+            else if (request.ReferenceType == 5) // 5 = SaleReturn
             {
-                var purchaseOrder = await _context.PurchaseOrders.FirstOrDefaultAsync(p => p.Id == poId, cancellationToken);
-                if (purchaseOrder != null)
+                var ids = request.ReferenceId.Split(',').Select(id => int.TryParse(id, out int parsedId) ? parsedId : 0).Where(id => id > 0).ToList();
+                var saleReturns = await _context.SaleReturnHeaders.Where(s => ids.Contains(s.SaleReturnHeaderId)).ToListAsync(cancellationToken);
+                foreach (var sr in saleReturns)
                 {
-                    // Update if property exists (assuming we added it)
-                    // purchaseOrder.GatePassNo = entity.PassNo; 
+                    sr.GatePassNo = entity.PassNo;
+                }
+            }
+            else if (request.ReferenceType == 4) // 4 = PurchaseReturn
+            {
+                var ids = request.ReferenceId.Split(',')
+                    .Select(id => Guid.TryParse(id, out Guid parsedId) ? parsedId : Guid.Empty)
+                    .Where(id => id != Guid.Empty)
+                    .ToList();
+                var purchaseReturns = await _context.PurchaseReturns.Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
+                foreach (var pr in purchaseReturns)
+                {
+                    pr.GatePassNo = entity.PassNo;
+                }
+            }
+            else if (request.ReferenceType == 1) // 1 = PurchaseOrder
+            {
+                var ids = request.ReferenceId.Split(',').Select(id => int.TryParse(id, out int parsedId) ? parsedId : 0).Where(id => id > 0).ToList();
+                var purchaseOrders = await _context.PurchaseOrders.Where(p => ids.Contains(p.Id)).ToListAsync(cancellationToken);
+                foreach (var po in purchaseOrders)
+                {
+                    // po.GatePassNo = entity.PassNo; // Update if property exists
                 }
             }
 

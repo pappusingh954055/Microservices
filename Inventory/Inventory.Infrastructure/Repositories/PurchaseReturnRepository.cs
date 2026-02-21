@@ -6,8 +6,11 @@ using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Net.Http;
 using System.Net.Http.Json;
+using Inventory.Application.Common.Interfaces;
 
-public class PurchaseReturnRepository : IPurchaseReturnRepository
+namespace Inventory.Infrastructure.Repositories;
+
+public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.IPurchaseReturnRepository
 {
     private readonly InventoryDbContext _context;
     private readonly ISupplierClient _supplierClient;
@@ -102,7 +105,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     }
 
 
-    public async Task<bool> CreatePurchaseReturnAsync(PurchaseReturn returnData)
+    public async Task<bool> CreatePurchaseReturnAsync(Inventory.Domain.Entities.PurchaseReturn returnData)
     {
         var strategy = _context.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -339,7 +342,8 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
             SupplierName = supplierNames.GetValueOrDefault((long)x.SupplierId, "Unknown"),
             GrnRef = grnLookup.GetValueOrDefault(x.Id, "N/A"),
             TotalAmount = x.GrandTotal,
-            Status = "Completed"
+            Status = "Completed",
+            GatePassNo = x.GatePassNo
         }).ToList();
 
         return new PurchaseReturnPagedResponse { Items = items, TotalCount = totalCount };
@@ -502,7 +506,7 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
     {
         var returns = await _context.PurchaseReturns
             .AsNoTracking()
-            .Where(x => x.Status == "Confirmed")
+            .Where(x => x.Status == "Confirmed" && (x.GatePassNo == null || x.GatePassNo == ""))
             .OrderByDescending(x => x.ReturnDate)
             .Select(x => new PendingPRDto
             {
@@ -529,5 +533,30 @@ public class PurchaseReturnRepository : IPurchaseReturnRepository
         }
 
         return returns;
+    }
+
+    public async Task<bool> BulkOutwardAsync(List<Guid> ids)
+    {
+        var records = await _context.PurchaseReturns
+            .Where(x => ids.Contains(x.Id))
+            .ToListAsync();
+
+        if (!records.Any()) return false;
+
+        bool changed = false;
+        foreach (var record in records)
+        {
+            if (record.Status != "OUTWARDED")
+            {
+                record.Status = "OUTWARDED";
+                changed = true;
+            }
+        }
+
+        if (changed)
+        {
+            await _context.SaveChangesAsync();
+        }
+        return true;
     }
 }

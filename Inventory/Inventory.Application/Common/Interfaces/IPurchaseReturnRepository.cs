@@ -4,6 +4,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+namespace Inventory.Application.Common.Interfaces;
+
 public interface IPurchaseReturnRepository
 {
     // 1. Supplier select karte hi uske rejected items lane ke liye
@@ -15,7 +17,7 @@ public interface IPurchaseReturnRepository
     Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId);
 
     // 2. Form se pura data save karne aur stock update karne ke liye [cite: 2026-02-03]
-    Task<bool> CreatePurchaseReturnAsync(PurchaseReturn returnData);
+    Task<bool> CreatePurchaseReturnAsync(Inventory.Domain.Entities.PurchaseReturn returnData);
 
     Task<PurchaseReturnPagedResponse> GetPurchaseReturnsAsync(
        string? search,
@@ -31,4 +33,5 @@ public interface IPurchaseReturnRepository
     Task<byte[]> ExportPurchaseReturnsToExcelAsync(DateTime? fromDate, DateTime? toDate);
 
     Task<List<PendingPRDto>> GetPendingPurchaseReturnsAsync();
+    Task<bool> BulkOutwardAsync(List<Guid> ids);
 }

@@ -10,7 +10,7 @@ using Inventory.Application.Clients; // Added namespace for ICompanyClient
 
 public class SaleReturnService : ISaleReturnService
 {
-    private readonly ISaleReturnRepository _repository;
+    private readonly Inventory.Application.Common.Interfaces.ISaleReturnRepository _repository;
     private readonly IInventoryDbContext _context;
 
     private readonly ICustomerHttpService _customerHttpService;

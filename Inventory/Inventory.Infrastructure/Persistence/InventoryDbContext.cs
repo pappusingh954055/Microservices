@@ -26,9 +26,9 @@ public sealed class InventoryDbContext : DbContext,
     public DbSet<SaleOrder> SaleOrders { get; set; }
     public DbSet<SaleOrderItem> SaleOrderItems { get; set; }
 
-    public DbSet<PurchaseReturn> PurchaseReturns { get; set; }
+    public DbSet<Inventory.Domain.Entities.PurchaseReturn> PurchaseReturns { get; set; }
 
-    public DbSet<PurchaseReturnItem> PurchaseReturnItems { get; set; }
+    public DbSet<Inventory.Domain.Entities.PurchaseReturnItem> PurchaseReturnItems { get; set; }
 
     public DbSet<SaleReturnHeader> SaleReturnHeaders { get; set; }
 
@@ -180,6 +180,26 @@ public sealed class InventoryDbContext : DbContext,
             entity.HasIndex(e => e.PassNo).IsUnique();
             entity.Property(e => e.TotalQty).HasPrecision(18, 2);
             entity.Property(e => e.TotalWeight).HasPrecision(18, 2);
+        });
+
+        // GRN configurations
+        modelBuilder.Entity<GRNHeader>(entity =>
+        {
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<GRNDetail>(entity =>
+        {
+            entity.Property(e => e.OrderedQty).HasPrecision(18, 2);
+            entity.Property(e => e.PendingQty).HasPrecision(18, 2);
+            entity.Property(e => e.RejectedQty).HasPrecision(18, 2);
+            entity.Property(e => e.AcceptedQty).HasPrecision(18, 2);
+            entity.Property(e => e.ReceivedQty).HasPrecision(18, 2);
+            entity.Property(e => e.UnitRate).HasPrecision(18, 2);
+            entity.Property(e => e.DiscountPercent).HasPrecision(18, 2);
+            entity.Property(e => e.GstPercent).HasPrecision(18, 2);
+            entity.Property(e => e.TaxAmount).HasPrecision(18, 2);
+            entity.Property(e => e.Total).HasPrecision(18, 2);
         });
     }
 }

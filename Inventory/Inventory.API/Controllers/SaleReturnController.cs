@@ -2,15 +2,18 @@
 using Inventory.Application.SaleOrders.DTOs;
 using Inventory.Application.SaleOrders.SaleReturn.Command;
 using Inventory.Application.Services;
+using Inventory.Application.Common.Interfaces;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+namespace Inventory.API.Controllers;
+
 [ApiController]
 [Route("api/[controller]")]
-public class SaleReturnController : ControllerBase
-{
-    private readonly ISaleReturnRepository _repo;
+    public class SaleReturnController : ControllerBase
+    {
+        private readonly Inventory.Application.Common.Interfaces.ISaleReturnRepository _repo;
     private readonly ISaleReturnService _service;
     private readonly ICustomerClient _customerClient;
     private readonly IMediator _mediator;
@@ -113,5 +116,24 @@ public class SaleReturnController : ControllerBase
     {
         var result = await _repo.GetPendingSaleReturnsAsync();
         return Ok(result);
+    }
+
+    [HttpGet("details/{id}")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var result = await _repo.GetSaleReturnByIdAsync(id);
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPost("bulk-inward")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> BulkInward([FromBody] List<int> ids)
+    {
+        if (ids == null || !ids.Any()) return BadRequest("No IDs provided");
+
+        var result = await _repo.BulkInwardAsync(ids);
+        return result ? Ok(new { message = $"{ids.Count} Returns Inwarded successfully" }) : BadRequest("Could not process inward");
     }
 }

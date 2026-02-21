@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
+namespace Inventory.Domain.Entities;
+
 public class PurchaseReturnItem
 {
     public Guid Id { get; set; }

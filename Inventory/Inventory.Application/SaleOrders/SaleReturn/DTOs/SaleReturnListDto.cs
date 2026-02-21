@@ -8,6 +8,7 @@
     public string SoRef { get; set; } = string.Empty; // SONumber from SaleOrders
     public decimal TotalAmount { get; set; } //
     public string Status { get; set; } = string.Empty; //
+    public string? GatePassNo { get; set; }
 }
 
 public class SaleReturnPagedResponse

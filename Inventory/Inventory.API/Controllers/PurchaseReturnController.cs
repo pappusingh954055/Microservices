@@ -3,6 +3,7 @@ using Inventory.Application.PurchaseReturn.DTOs;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Inventory.Application.Common.Interfaces;
 
 namespace Inventory.API.Controllers
 {
@@ -90,14 +91,14 @@ namespace Inventory.API.Controllers
             try
             {
                 // DTO ko Entity mein map karein [cite: 2026-02-04]
-                var returnEntity = new PurchaseReturn
+                var returnEntity = new Inventory.Domain.Entities.PurchaseReturn
                 {
                     SupplierId = returnDto.SupplierId,
                     ReturnDate = returnDto.ReturnDate,
                     Remarks = returnDto.Remarks,
                     GrandTotal = 0,
                     Status = "Confirmed",
-                    Items = new List<PurchaseReturnItem>()
+                    Items = new List<Inventory.Domain.Entities.PurchaseReturnItem>()
                 };
 
                 foreach (var item in returnDto.Items)
@@ -106,7 +107,7 @@ namespace Inventory.API.Controllers
                     var itemTotal = item.ReturnQty * item.Rate;
                     returnEntity.GrandTotal += itemTotal;
 
-                    returnEntity.Items.Add(new PurchaseReturnItem
+                    returnEntity.Items.Add(new Inventory.Domain.Entities.PurchaseReturnItem
                     {
                         ProductId = item.ProductId,
                         GrnRef = item.GrnRef,
@@ -193,6 +194,15 @@ namespace Inventory.API.Controllers
         {
             var result = await _repository.GetPendingPurchaseReturnsAsync();
             return Ok(result);
+        }
+        [HttpPost("bulk-outward")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> BulkOutward([FromBody] List<Guid> ids)
+        {
+            if (ids == null || !ids.Any()) return BadRequest("No IDs provided");
+
+            var result = await _repository.BulkOutwardAsync(ids);
+            return result ? Ok(new { message = $"{ids.Count} Returns Outwarded successfully" }) : BadRequest("Could not process outward");
         }
     }
 }

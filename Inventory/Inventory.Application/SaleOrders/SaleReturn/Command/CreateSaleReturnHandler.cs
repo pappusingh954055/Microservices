@@ -1,4 +1,5 @@
 ﻿using Inventory.Domain.Entities;
+using Inventory.Application.Common.Interfaces;
 using MediatR;
 using System;
 using System.Collections.Generic;

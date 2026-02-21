@@ -8,6 +8,7 @@ public class PurchaseReturnListDto
     public string GrnRef { get; set; } = string.Empty; // Multiple references ho toh comma-separated
     public decimal TotalAmount { get; set; }
     public string Status { get; set; } = "Completed";
+    public string? GatePassNo { get; set; }
 }
 
 public class PurchaseReturnPagedResponse

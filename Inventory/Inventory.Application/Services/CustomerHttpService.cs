@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net.Http.Json;
 using System.Text;
+using Inventory.Application.Common.Interfaces;
 
 namespace Inventory.Application.Services
 {

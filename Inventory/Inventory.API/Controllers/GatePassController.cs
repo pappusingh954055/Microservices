@@ -27,12 +27,18 @@ namespace Inventory.API.Controllers
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Create(CreateGatePassCommand command)
         {
-            var result = await _mediator.Send(command);
-            
-            return Ok(ApiResponse<GatePassDto>.Ok(
-                result,
-                "Gate Pass generated successfully"
-            ));
+            try 
+            {
+                var result = await _mediator.Send(command);
+                return Ok(ApiResponse<GatePassDto>.Ok(
+                    result,
+                    "Gate Pass generated successfully"
+                ));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ApiResponse<string>.Fail($"Backend Error: {ex.Message} - {ex.InnerException?.Message}"));
+            }
         }
 
         [HttpPost("GetPaged")]

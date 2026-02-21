@@ -2,6 +2,8 @@
 using Inventory.Application.SaleOrders.SaleReturn.DTOs;
 using Inventory.Domain.Entities;
 
+namespace Inventory.Application.Common.Interfaces;
+
 public interface ISaleReturnRepository
 {
     Task<SaleReturnPagedResponse> GetSaleReturnsAsync(
@@ -21,6 +23,6 @@ public interface ISaleReturnRepository
 
     Task<SaleReturnSummaryDto> GetDashboardSummaryAsync();
     Task<List<PendingSRDto>> GetPendingSaleReturnsAsync();
-
-    
+    Task<SaleReturnHeader?> GetSaleReturnByIdAsync(int id);
+    Task<bool> BulkInwardAsync(List<int> ids);
 }

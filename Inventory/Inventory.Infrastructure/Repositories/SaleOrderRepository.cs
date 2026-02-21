@@ -334,11 +334,7 @@ public class SaleOrderRepository : ISaleOrderRepository
         // 2. SAFETY LOCK: Exclude SOs that already have an "At-Gate" Gate Pass (Status 1)
         var orders = await _context.SaleOrders
             .AsNoTracking()
-            .Where(x => x.Status == "Confirmed")
-            .Where(po => !_context.GatePasses.Any(gp => 
-                gp.ReferenceType == 3 && // 3 = SaleOrder
-                gp.ReferenceId == po.Id.ToString() && 
-                gp.Status == 1)) // 1 = Entered/At-Gate
+            .Where(x => x.Status == "Confirmed" && (x.GatePassNo == null || x.GatePassNo == ""))
             .OrderByDescending(x => x.SODate)
             .Select(x => new PendingSODto
             {

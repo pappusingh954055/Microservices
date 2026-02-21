@@ -15,6 +15,10 @@ public class PriceListItemConfiguration : IEntityTypeConfiguration<PriceListItem
         builder.Property(x => x.Rate)
             .HasPrecision(18, 2)
             .IsRequired();
+
+        builder.Property(x => x.DiscountPercent)
+            .HasPrecision(18, 2);
+
         builder.Property(x => x.MinQty)
        .IsRequired();
 

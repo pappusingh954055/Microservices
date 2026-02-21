@@ -4,10 +4,11 @@ using Inventory.Application.SaleOrders.SaleReturn.DTOs;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Inventory.Application.Common.Interfaces;
 
 namespace Inventory.Infrastructure.Repositories
 {
-    public class SaleReturnRepository : ISaleReturnRepository
+    public class SaleReturnRepository : Inventory.Application.Common.Interfaces.ISaleReturnRepository
     {
         private readonly InventoryDbContext _context;
         private readonly ICustomerClient _customerClient;
@@ -108,7 +109,8 @@ namespace Inventory.Infrastructure.Repositories
                     CustomerId = x.CustomerId,
                     SoRef = x.SaleOrder != null ? x.SaleOrder.SONumber : string.Empty,
                     TotalAmount = x.TotalAmount,
-                    Status = x.Status
+                    Status = x.Status,
+                    GatePassNo = x.GatePassNo
                 }).ToListAsync();
 
             if (pagedData == null || !pagedData.Any())
@@ -270,7 +272,7 @@ namespace Inventory.Infrastructure.Repositories
         {
             var returns = await _context.SaleReturnHeaders
                 .AsNoTracking()
-                .Where(x => x.Status == "Confirmed")
+                .Where(x => x.Status == "Confirmed" && (x.GatePassNo == null || x.GatePassNo == ""))
                 .OrderByDescending(x => x.ReturnDate)
                 .Select(x => new PendingSRDto
                 {
@@ -290,7 +292,7 @@ namespace Inventory.Infrastructure.Repositories
             
             var detailedReturns = await _context.SaleReturnHeaders
                 .AsNoTracking()
-                .Where(x => x.Status == "Confirmed")
+                .Where(x => x.Status == "Confirmed" && (x.GatePassNo == null || x.GatePassNo == ""))
                 .OrderByDescending(x => x.ReturnDate)
                 .Select(x => new { x.SaleReturnHeaderId, x.CustomerId })
                 .ToListAsync();
@@ -307,6 +309,39 @@ namespace Inventory.Infrastructure.Repositories
             }
 
             return returns;
+        }
+
+        public async Task<bool> BulkInwardAsync(List<int> ids)
+        {
+            var records = await _context.SaleReturnHeaders
+                .Where(x => ids.Contains(x.SaleReturnHeaderId))
+                .ToListAsync();
+
+            if (!records.Any()) return false;
+
+            bool changed = false;
+            foreach (var record in records)
+            {
+                if (record.Status != "INWARDED")
+                {
+                    record.Status = "INWARDED";
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                await _context.SaveChangesAsync();
+            }
+            return true;
+        }
+
+        public async Task<SaleReturnHeader?> GetSaleReturnByIdAsync(int id)
+        {
+            return await _context.SaleReturnHeaders
+                .Include(x => x.ReturnItems)
+                .ThenInclude(i => i.Product)
+                .FirstOrDefaultAsync(x => x.SaleReturnHeaderId == id);
         }
     }
 }

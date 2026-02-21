@@ -28,9 +28,24 @@ public sealed class ProductConfiguration
                .IsRequired()
                .HasMaxLength(20);
 
+        builder.Property(x => x.BasePurchasePrice)
+               .HasPrecision(18, 2);
+
+        builder.Property(x => x.MRP)
+               .HasPrecision(18, 2);
+
+        builder.Property(x => x.SaleRate)
+               .HasPrecision(18, 2);
+
         builder.Property(x => x.DefaultGst)
                .HasPrecision(5, 2)
                .IsRequired(false);
+
+        builder.Property(x => x.CurrentStock)
+               .HasPrecision(18, 2);
+
+        builder.Property(x => x.DamagedStock)
+               .HasPrecision(18, 2);
 
         builder.Property(x => x.Description)
                .HasMaxLength(500);
