@@ -785,4 +785,23 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
             HeaderTitle = documentTitle
         };
     }
+
+    public async Task<decimal> GetTotalReturnedQtyAsync(int poId)
+    {
+        // 1. Calculate Total Ordered
+        var totalOrdered = await _context.PurchaseOrderItems
+            .Where(x => x.PurchaseOrderId == poId)
+            .SumAsync(x => x.Qty);
+
+        // 2. Calculate Net Received (current warehouse stock from this PO)
+        // Note: PurchaseReturnRepository subtracts ReturnedQty from ReceivedQty in GRNDetails
+        var netReceived = await _context.GRNDetails
+            .Where(gd => gd.GRNHeader.PurchaseOrderId == poId)
+            .SumAsync(gd => gd.ReceivedQty);
+
+        // 3. Difference (25 in user's case)
+        var replacementNeeded = totalOrdered - netReceived;
+
+        return replacementNeeded > 0 ? replacementNeeded : 0;
+    }
 }

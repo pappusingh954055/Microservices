@@ -388,7 +388,13 @@ namespace Inventory.API.Controllers
            
             return File(response.PdfBytes, "application/pdf", fileName);
         }
+
+        [HttpGet("replacement-qty/{poId}")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetReplacementQty(int poId)
+        {
+            var qty = await _purchaseOrderRepository.GetTotalReturnedQtyAsync(poId);
+            return Ok(new { replacementQty = qty });
+        }
     }
 }
-
-

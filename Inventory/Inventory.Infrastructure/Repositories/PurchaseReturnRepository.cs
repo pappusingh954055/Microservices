@@ -28,10 +28,9 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
     // 1. UI Form ke liye Rejected Items fetch karein
     public async Task<List<RejectedItemDto>> GetRejectedItemsBySupplierAsync(int supplierId)
     {
-        // Join with PurchaseOrderItems to get original Gross Rate/Discount/GST [cite: PO Rate Integration]
+        // Robusted query: Fetching directly from GRN details to avoid join failures with PO [cite: PR List Fix]
         var query = from gd in _context.GRNDetails.Include(x => x.Product)
                     join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
-                    join poi in _context.PurchaseOrderItems on new { gh.PurchaseOrderId, gd.ProductId } equals new { poi.PurchaseOrderId, poi.ProductId }
                     where gh.SupplierId == supplierId && gd.RejectedQty > 0
                     select new RejectedItemDto
                     {
@@ -39,9 +38,9 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         ProductName = gd.Product != null ? gd.Product.Name : "Ukn-" + gd.ProductId.ToString().Substring(0,8),
                         GrnRef = gh.GRNNumber,
                         RejectedQty = gd.RejectedQty,
-                        Rate = poi.Rate, // Original Gross Rate
-                        GstPercent = poi.GstPercent,
-                        DiscountPercent = poi.DiscountPercent
+                        Rate = gd.UnitRate, // Using rate from GRN directly
+                        GstPercent = gd.GstPercent,
+                        DiscountPercent = gd.DiscountPercent
                     };
 
         return await query.ToListAsync();
@@ -51,41 +50,31 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
     {
         try
         {
-            // 1. Updated Join Query: Ab ye sirf RejectedQty nahi dekhega,
-            // balki un sabhi Suppliers ko layega jinse GRN receive hua hai.
             var allSupplierIds = await (from gh in _context.GRNHeaders
                                         select gh.SupplierId)
                                        .Distinct()
                                        .ToListAsync();
 
-            // Agar kisi bhi supplier se koi GRN nahi hua toh empty list return karein
             if (allSupplierIds == null || !allSupplierIds.Any())
             {
                 return new List<SupplierSelectDto>();
             }
 
-            // 2. Supplier Microservice Call: Un IDs ke basis par Names aur details fetch karein
-            // Isse "ABC Enterprises" jaise naam dropdown mein bind honge
             var suppliers = await _supplierClient.GetSuppliersByIdsAsync(allSupplierIds);
-
             return suppliers ?? new List<SupplierSelectDto>();
         }
         catch (Exception ex)
         {
-            // Error logging taaki debug karna asaan ho
             Console.WriteLine($"Error in GetSuppliersForPurchaseReturnAsync: {ex.Message}");
         }
         return new List<SupplierSelectDto>();
     }
 
-
     public async Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId)
     {
-        // Accepted qty fetch karein jo warehouse mein hai [cite: PO Rate Integration]
-        // Join with PurchaseOrderItems to get the original Gross Rate
+        // accepted stock fetch [cite: PR List Fix]
         var query = from gd in _context.GRNDetails.Include(x => x.Product)
                     join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
-                    join poi in _context.PurchaseOrderItems on new { gh.PurchaseOrderId, gd.ProductId } equals new { poi.PurchaseOrderId, poi.ProductId }
                     where gh.SupplierId == supplierId && (gd.ReceivedQty - gd.RejectedQty) > 0
                     select new ReceivedStockDto
                     {
@@ -93,9 +82,9 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         ProductName = (gd.Product != null && !string.IsNullOrEmpty(gd.Product.Name)) ? gd.Product.Name : "Product-" + gd.ProductId.ToString().Substring(0, 8),
                         GrnRef = gh.GRNNumber,
                         AvailableQty = gd.ReceivedQty - gd.RejectedQty,
-                        Rate = poi.Rate, // Original Gross Rate from PO
-                        GstPercent = poi.GstPercent,
-                        DiscountPercent = poi.DiscountPercent,
+                        Rate = gd.UnitRate, // Using rate from GRN directly
+                        GstPercent = gd.GstPercent,
+                        DiscountPercent = gd.DiscountPercent,
                         ReceivedDate = gh.ReceivedDate
                     };
 
@@ -116,7 +105,6 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // 1. Unique ID aur Return Number generate karein [cite: 2026-02-04]
                 if (returnData.Id == Guid.Empty) returnData.Id = Guid.NewGuid();
                 returnData.ReturnNumber = $"PR-{DateTime.Now:yyyyMMddHHmmss}";
 
@@ -125,32 +113,27 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
 
                 foreach (var item in returnData.Items)
                 {
-                    // 2. Precise GRN Detail fetch using Product and Ref [cite: 2026-02-04]
                     var grnDetail = await _context.GRNDetails
                         .Include(gd => gd.GRNHeader)
                         .FirstOrDefaultAsync(gd => gd.ProductId == item.ProductId
                                              && gd.GRNHeader.GRNNumber == item.GrnRef);
 
                     if (grnDetail == null) throw new Exception($"GRN not found for {item.GrnRef}");
+                    if (item.ReturnQty <= 0) continue;
 
-                    // 3. Validation: Return check [cite: 2026-02-04]
-                    if (item.ReturnQty <= 0) throw new Exception("Qty must be > 0");
-                    
-                    // Available = Rejected + Accepted
-                    decimal totalAvailable = grnDetail.ReceivedQty; 
-                    if (item.ReturnQty > totalAvailable)
-                        throw new Exception($"Cannot return more than available stock: {totalAvailable}");
-
-                    // 3. Find PO Item for correct pricing [cite: PO Rate FIX]
                     var poItem = await _context.PurchaseOrderItems
                         .FirstOrDefaultAsync(poi => poi.ProductId == item.ProductId 
                                              && poi.PurchaseOrderId == grnDetail.GRNHeader.PurchaseOrderId);
 
                     if (poItem != null)
                     {
+                        poItem.ReceivedQty -= item.ReturnQty;
+                        if (poItem.ReceivedQty < 0) poItem.ReceivedQty = 0;
+                        _context.PurchaseOrderItems.Update(poItem);
+
                         item.GstPercent = poItem.GstPercent;
                         item.DiscountPercent = poItem.DiscountPercent;
-                        item.Rate = poItem.Rate; // Save Gross Rate
+                        item.Rate = poItem.Rate;
 
                         decimal baseAmount = item.ReturnQty * item.Rate;
                         decimal discountAmt = baseAmount * (item.DiscountPercent / 100);
@@ -163,55 +146,33 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         totalHeaderSubTotal += taxableAmount;
                         totalHeaderTax += itemTax;
                     }
-                    else
-                    {
-                        // Fallback if PO item not found (rare)
-                        decimal baseAmount = item.ReturnQty * item.Rate;
-                        item.TotalAmount = baseAmount;
-                        totalHeaderSubTotal += baseAmount;
-                    }
 
-                    // 5. STOCK LOGIC FIX (Important)
-                    // Pehle RejectedQty se deduct karein, fir bacha hua AcceptedQty (Received - Rejected) se
+                    // Stock Update
                     decimal qtyToReturn = item.ReturnQty;
-                    
                     if (grnDetail.RejectedQty >= qtyToReturn)
                     {
                         grnDetail.RejectedQty -= qtyToReturn;
                     }
                     else
                     {
-                        // Some part is from rejected, rest from accepted
-                        // Note: AcceptedQty is virtual (ReceivedQty - RejectedQty)
-                        // So decreasing ReceivedQty automatically decreases AcceptedQty if we don't decrease RejectedQty as much
-                        // Wait, logic:
-                        // Total Received = 10 (Rejected 2, Accepted 8)
-                        // Return 5:
-                        // Rejected becomes 0 (Returned 2)
-                        // Accepted becomes 5 (Returned 3)
-                        // Total Received becomes 5.
-                        
-                        decimal fromRejected = grnDetail.RejectedQty;
                         grnDetail.RejectedQty = 0;
-                        // Rest is already handled by ReceivedQty -= qtyToReturn
                     }
 
                     grnDetail.ReceivedQty -= qtyToReturn;
                     if (grnDetail.ReceivedQty < 0) grnDetail.ReceivedQty = 0;
+                    grnDetail.AcceptedQty = grnDetail.ReceivedQty - grnDetail.RejectedQty;
+                    if (grnDetail.AcceptedQty < 0) grnDetail.AcceptedQty = 0;
 
-                    // ========================================================
-                    // ADDITIONAL LOGIC: UPDATE PRODUCT CURRENT STOCK
-                    // ========================================================
-                    var product = await _context.Products
-                        .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                    _context.GRNDetails.Update(grnDetail);
 
+                    var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId);
                     if (product != null)
                     {
                         product.CurrentStock -= item.ReturnQty;
+                        _context.Products.Update(product);
                     }
                 }
 
-                // 6. Header Totals Update
                 returnData.SubTotal = totalHeaderSubTotal;
                 returnData.TotalTax = totalHeaderTax;
                 returnData.GrandTotal = totalHeaderSubTotal + totalHeaderTax;
@@ -220,35 +181,29 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // 7. Ledger Update (Debit Note) - Microservice Call
-                // We do this AFTER commit to ensure local data is safe. 
-                // In a real production system, use Outbox Pattern for guaranteed delivery.
                 try 
                 {
                    await _supplierClient.RecordPurchaseReturnAsync(
                        returnData.SupplierId, 
                        returnData.GrandTotal, 
                        returnData.ReturnNumber, 
-                       $"Purchase Return / Debit Note: {returnData.ReturnNumber}", 
-                       "System" // or returnData.CreatedBy
+                       $"Purchase Return: {returnData.ReturnNumber}", 
+                       "System"
                    );
                 }
-                catch (Exception ex)
-                {
-                    // Log error but don't fail the operation as the return is already created
-                    Console.WriteLine($"Failed to update ledger for PR {returnData.ReturnNumber}: {ex.Message}");
-                }
+                catch { /* Log if needed */ }
 
                 return true;
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
+                Console.WriteLine($"Error: {ex.Message}");
                 return false;
             }
         });
     }
-
+    
 
     public async Task<PurchaseReturnPagedResponse> GetPurchaseReturnsAsync(
     string? search,

@@ -268,7 +268,7 @@ namespace Inventory.Infrastructure.Repositories
             return $"GRN-{DateTime.Now.Year}-{new Random().Next(1000, 9999)}";
         }
 
-        public async Task<POForGRNDTO?> GetPODataForGRN(int poId, int? grnHeaderId = null)
+        public async Task<POForGRNDTO?> GetPODataForGRN(int poId, int? grnHeaderId = null, string? gatePassNo = null)
         {
             // 1. View Mode Logic: Agar poId 0 hai, toh header table se sahi POId nikaalein
             if (grnHeaderId != null && poId == 0)
@@ -281,61 +281,118 @@ namespace Inventory.Infrastructure.Repositories
                 if (poId == 0) return null; // Case: GRN record hi nahi mila
             }
 
-            // 2. Fetch data based on mode (View vs New)
-            return await _context.PurchaseOrders
+
+            // 3. Fetch PO Data with Items
+            var po = await _context.PurchaseOrders
                 .Include(h => h.Items)
                 .ThenInclude(i => i.Product)
-                .Where(h => h.Id == poId)
-                .Select(h => new POForGRNDTO
+                .FirstOrDefaultAsync(h => h.Id == poId);
+
+            if (po == null) return null;
+
+            // 4. Map DTO
+            var dto = new POForGRNDTO
+            {
+                POHeaderId = po.Id,
+                PONumber = po.PoNumber ?? "",
+                GrnNumber = grnHeaderId != null ?
+                            _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.GRNNumber).FirstOrDefault() :
+                            "AUTO-GEN",
+                SupplierId = po.SupplierId,
+                SupplierName = po.SupplierName ?? "Unknown",
+                Remarks = grnHeaderId != null ?
+                          _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.Remarks).FirstOrDefault() : ""
+            };
+
+            var items = new List<POItemForGRNDTO>();
+
+            if (grnHeaderId != null)
+            {
+                // VIEW MODE: Saved GRN details load karein
+                items = await (from d in _context.GRNDetails
+                             join poi in _context.PurchaseOrderItems on new { d.GRNHeader.PurchaseOrderId, d.ProductId } equals new { poi.PurchaseOrderId, poi.ProductId }
+                             where d.GRNHeaderId == grnHeaderId
+                             select new POItemForGRNDTO
+                             {
+                                 ProductId = d.ProductId,
+                                 ProductName = d.Product.Name ?? "N/A",
+                                 OrderedQty = d.OrderedQty,
+                                 ReceivedQty = d.ReceivedQty,
+                                 RejectedQty = d.RejectedQty,
+                                 AcceptedQty = d.ReceivedQty - d.RejectedQty,
+                                 UnitRate = d.UnitRate,
+                                 PendingQty = d.OrderedQty - (d.ReceivedQty - d.RejectedQty), 
+                                 DiscountPercent = poi.DiscountPercent,
+                                 GstPercent = poi.GstPercent,
+                                 TaxAmount = (d.ReceivedQty - d.RejectedQty) * d.UnitRate * (poi.GstPercent / 100)
+                             }).ToListAsync();
+            }
+            else
+            {
+                // NEW GRN MODE
+                // 1. Fetch all returns for this PO to suggest replacements
+                var returnLookup = await _context.PurchaseReturnItems
+                    .Include(ri => ri.PurchaseReturn)
+                    .Where(ri => ri.PurchaseReturn.Items.Any(i => _context.GRNDetails.Any(gd => gd.ProductId == ri.ProductId && gd.GRNHeader.PurchaseOrderId == po.Id)))
+                    // Join method is safer for complex filtering
+                    .Join(_context.GRNDetails, ri => ri.GrnRef, gd => gd.GRNHeader.GRNNumber, (ri, gd) => new { ri, gd })
+                    .Where(x => x.gd.GRNHeader.PurchaseOrderId == po.Id)
+                    .GroupBy(x => x.ri.ProductId)
+                    .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.ri.ReturnQty) })
+                    .ToDictionaryAsync(x => x.ProductId, x => x.Qty);
+
+                foreach (var d in po.Items)
                 {
-                    POHeaderId = h.Id,
-                    PONumber = h.PoNumber ?? "",
-                    // View mode mein database se saved GRN Number uthayein
-                    GrnNumber = grnHeaderId != null ?
-                                _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.GRNNumber).FirstOrDefault() :
-                                "AUTO-GEN",
-                    SupplierId = h.SupplierId,
-                    SupplierName = h.SupplierName ?? "Unknown",
-                    Remarks = grnHeaderId != null ?
-                              _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.Remarks).FirstOrDefault() : "",
+                    // Calculate net warehouse stock: Received - Rejected (since ReceivedQty is already adjusted by returns in our repo)
+                    // Actually, if ReceivedQty is reduced by returns, then netAcceptedSoFar IS the accurate warehouse stock.
+                    var netInWarehouse = await _context.GRNDetails
+                        .Where(gd => gd.ProductId == d.ProductId && gd.GRNHeader.PurchaseOrderId == po.Id)
+                        .SumAsync(gd => gd.ReceivedQty - gd.RejectedQty);
 
-                    // Problem Solve: Data Separation with Correct Logic
-                    Items = grnHeaderId != null
-                        ? _context.GRNDetails
-                            .Where(g => g.GRNHeaderId == grnHeaderId)
-                            .Include(d => d.Product)
-                            .Select(d => new { d, poi = _context.PurchaseOrderItems.FirstOrDefault(p => p.PurchaseOrderId == h.Id && p.ProductId == d.ProductId) })
-                            .Select(x => new POItemForGRNDTO
-                            {
-                                ProductId = x.d.ProductId,
-                                ProductName = x.d.Product.Name ?? "N/A",
-                                OrderedQty = x.d.OrderedQty,
-                                ReceivedQty = x.d.ReceivedQty,
-                                RejectedQty = x.d.RejectedQty,
-                                AcceptedQty = x.d.ReceivedQty - x.d.RejectedQty,
-                                UnitRate = x.d.UnitRate,
-                                PendingQty = x.d.OrderedQty - x.d.ReceivedQty,
-                                DiscountPercent = x.poi != null ? x.poi.DiscountPercent : 0,
-                                GstPercent = x.poi != null ? x.poi.GstPercent : 0,
-                                TaxAmount = (x.d.ReceivedQty - x.d.RejectedQty) * x.d.UnitRate * (x.poi != null ? x.poi.GstPercent / 100 : 0)
-                            }).ToList()
-                        : h.Items.Select(d => new POItemForGRNDTO
-                        {
-                            ProductId = d.ProductId,
-                            ProductName = d.Product.Name ?? "N/A",
-                            OrderedQty = d.Qty,
-                            UnitRate = d.Rate,
-                            DiscountPercent = d.DiscountPercent,
-                            GstPercent = d.GstPercent,
+                    var pending = d.Qty - netInWarehouse;
 
-                            PendingQty = d.Qty - (d.ReceivedQty),
-                            ReceivedQty = d.Qty - (d.ReceivedQty),
-                            RejectedQty = 0,
-                            AcceptedQty = d.Qty - (d.ReceivedQty),
-                            // Auto-calculate Tax Amount
-                            TaxAmount = ((d.Qty - (d.ReceivedQty)) * d.Rate * (1 - d.DiscountPercent / 100)) * (d.GstPercent / 100)
-                        }).ToList()
-                }).FirstOrDefaultAsync();
+                    decimal proposedRecv = 0;
+            if (!string.IsNullOrEmpty(gatePassNo))
+            {
+                // Selective Logic: 
+                // 1. Agar koi return hua hi nahi hai (First time inward), toh pending quantity default karein.
+                // 2. Agar return history hai, toh sirf wahi quantity suggest karein jo wapas ki gayi thi (Replacement mode).
+                if (returnLookup.Any())
+                {
+                    proposedRecv = returnLookup.ContainsKey(d.ProductId) ? returnLookup[d.ProductId] : 0;
+                }
+                else
+                {
+                    proposedRecv = pending;
+                }
+                
+                if (proposedRecv > pending) proposedRecv = pending;
+            }
+            else
+            {
+                proposedRecv = pending > 0 ? pending : 0;
+            }
+
+                    items.Add(new POItemForGRNDTO
+                    {
+                        ProductId = d.ProductId,
+                        ProductName = d.Product?.Name ?? "N/A",
+                        OrderedQty = d.Qty,
+                        UnitRate = d.Rate,
+                        DiscountPercent = d.DiscountPercent,
+                        GstPercent = d.GstPercent,
+                        PendingQty = pending,
+                        ReceivedQty = proposedRecv,
+                        RejectedQty = 0,
+                        AcceptedQty = proposedRecv, 
+                        TaxAmount = (proposedRecv * d.Rate * (1 - d.DiscountPercent / 100)) * (d.GstPercent / 100),
+                        IsReplacement = returnLookup.ContainsKey(d.ProductId)
+                    });
+                }
+            }
+
+            dto.Items = items;
+            return dto;
         }
 
 

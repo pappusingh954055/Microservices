@@ -16,6 +16,7 @@
     public decimal PendingQty {  get; set; }
     public decimal AcceptedQty {  get; set; }
     public decimal RejectedQty {  get; set; }
+    public decimal ReturnQty { get; set; }
 
     // Manual Mapping from Entity to DTO
     public static PurchaseOrderItemDto FromEntity(dynamic entity)

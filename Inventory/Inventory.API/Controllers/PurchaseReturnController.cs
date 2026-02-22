@@ -28,9 +28,11 @@ namespace Inventory.API.Controllers
             try
             {
                 var items = await _repository.GetRejectedItemsBySupplierAsync(supplierId);
-                if (items == null || items.Count == 0)
-                    return NotFound(new { message = "Is supplier ke liye koi rejected items nahi mile." });
-
+                
+                // FIX: API should return Empty List (Ok) instead of Error (NotFound)
+                // This prevents ForkJoin from failing on Frontend [cite: PR List Fix]
+                if (items == null) items = new List<RejectedItemDto>();
+                
                 return Ok(items);
             }
             catch (Exception ex)

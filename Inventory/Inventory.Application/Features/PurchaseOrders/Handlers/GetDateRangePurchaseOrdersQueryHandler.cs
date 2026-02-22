@@ -2,14 +2,14 @@
 using Inventory.Application.Common.Interfaces;
 using Inventory.Application.Features.PurchaseOrders.Queries;
 using MediatR;
-using Microsoft.EntityFrameworkCore; // Added for Include logic
+using Microsoft.EntityFrameworkCore; 
 
 namespace Inventory.Application.Features.PurchaseOrders.Handlers
 {
     public class GetDateRangePurchaseOrdersQueryHandler : IRequestHandler<GetDateRangePurchaseOrdersQuery, PagedResponse<PurchaseOrderDto>>
     {
         private readonly IPurchaseOrderRepository _repo;
-        private readonly IInventoryDbContext _context; // Context added to fetch GRN summaries
+        private readonly IInventoryDbContext _context; 
 
         public GetDateRangePurchaseOrdersQueryHandler(
             IPurchaseOrderRepository repo, 
@@ -21,10 +21,10 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
 
         public async Task<PagedResponse<PurchaseOrderDto>> Handle(GetDateRangePurchaseOrdersQuery query, CancellationToken ct)
         {
-            // 1. PO Data fetch ho raha hai
+            // 1. Fetch PO Data
             var result = await _repo.GetDateRangePagedOrdersAsync(query.Request);
 
-            // 2. Mapping with GRN Summary Logic
+            // 2. Mapping with Net Quantity Logic
             var dtos = result.Data.Select(x => new PurchaseOrderDto
             {
                 Id = x.Id,
@@ -43,18 +43,28 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                          ? (x.Items.All(i => i.ReceivedQty >= i.Qty) ? "Received" : "Partially Received")
                          : x.Status,
 
-                // Items mapping with extra fields
                 Items = x.Items.Select(item => {
-                    // Summarizing from GRN Details for this specific PO and Product
+                    // Fetch all GRN Details for this specific PO Item
                     var grnSummary = _context.GRNDetails
                         .Where(gd => gd.ProductId == item.ProductId && gd.GRNHeader.PurchaseOrderId == x.Id)
-                        .Select(gd => new { gd.RejectedQty, gd.AcceptedQty })
+                        .Select(gd => new { gd.ReceivedQty, gd.RejectedQty })
                         .ToList();
+
+                    // Dynamic calculation (Received - Rejected) handles both returns and original rejections accurately
+                    var totalAccepted = grnSummary.Sum(s => s.ReceivedQty - s.RejectedQty);
+                    var totalRejected = grnSummary.Sum(s => s.RejectedQty);
+                    if (totalAccepted < 0) totalAccepted = 0;
+
+                    // Fetch total returned quantity for this specific PO item
+                    var totalReturned = _context.PurchaseReturnItems
+                        .Where(ri => ri.ProductId == item.ProductId && 
+                                     _context.GRNHeaders.Any(gh => gh.GRNNumber == ri.GrnRef && gh.PurchaseOrderId == x.Id))
+                        .Sum(ri => (decimal?)ri.ReturnQty) ?? 0;
 
                     return new PurchaseOrderItemDto
                     {
                         Id = item.Id,
-                        Qty = item.Qty, // Ordered Qty
+                        Qty = item.Qty, 
                         Unit = item.Unit,
                         Rate = item.Rate,
                         Total = item.Total,
@@ -63,15 +73,14 @@ namespace Inventory.Application.Features.PurchaseOrders.Handlers
                         GstPercent = item.GstPercent,
                         ProductName = item.Product != null ? item.Product.Name : "N/A",
 
-                        // Cumulative fields calculation
+                        // Use the field from PurchaseOrderItems table (which is net-updated by repo)
                         ReceivedQty = item.ReceivedQty,
+                        AcceptedQty = totalAccepted,
+                        RejectedQty = totalRejected,
+                        ReturnQty = totalReturned,
 
-                        // NAYA: Accepted aur Rejected ka sum GRN details se
-                        AcceptedQty = grnSummary.Sum(s => s.AcceptedQty),
-                        RejectedQty = grnSummary.Sum(s => s.RejectedQty),
-
-                        // NAYA: Pending Logic (Ordered - Received)
-                        PendingQty = item.Qty - (item.ReceivedQty)
+                        // Pending = (Ordered - NetReceived)
+                        PendingQty = item.Qty - item.ReceivedQty
                     };
                 }).ToList()
             }).ToList();
