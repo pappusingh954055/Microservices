@@ -55,9 +55,32 @@ namespace Customers.Domain.Entities
             CreditLimit = creditLimit;
             BillingAddress = billingAddress;
             ShippingAddress = shippingAddress;
-            Status = Status;
+            Status = customerStatus;
             CreatedBy = createdBy;
             CreatedAt = DateTime.UtcNow;
+        }
+
+        public void Update(
+            string customerName,
+            string customerType,
+            string phone,
+            string? email,
+            string? gstNumber,
+            decimal? creditLimit,
+            Address billingAddress,
+            Address? shippingAddress,
+            string? status)
+        {
+            CustomerName = customerName;
+            CustomerType = customerType;
+            Phone = phone;
+            Email = email;
+            GstNumber = gstNumber;
+            CreditLimit = creditLimit;
+            BillingAddress = billingAddress;
+            ShippingAddress = shippingAddress;
+            Status = status;
+            UpdatedAt = DateTime.UtcNow;
         }
 
         public void UpdateStatus(string status)

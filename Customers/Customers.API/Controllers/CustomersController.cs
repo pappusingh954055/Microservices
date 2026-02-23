@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace Customers.API.Controllers;
 
 [ApiController]
-[Route("api/customers")]
+[Route("api/[controller]")]
 public class CustomersController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -90,6 +90,33 @@ public class CustomersController : ControllerBase
         // Repository se data mangwana [cite: 2026-02-05]
         var customers = await _customerRepo.GetCustomersLookupAsync();
         return Ok(customers);
+    }
+
+    [HttpGet("{id}")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> GetById(int id)
+    {
+        var result = await _mediator.Send(new GetCustomerByIdQuery(id));
+        if (result == null) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> Update(int id, [FromBody] CreateCustomerDto dto)
+    {
+        var result = await _mediator.Send(new UpdateCustomerCommand(id, dto));
+        if (!result) return NotFound();
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var result = await _mediator.Send(new DeleteCustomerCommand(id));
+        if (!result) return NotFound();
+        return Ok(result);
     }
 
     [HttpGet("search-ids")]
