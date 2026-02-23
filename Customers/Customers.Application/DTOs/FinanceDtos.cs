@@ -60,6 +60,7 @@ namespace Customers.Application.DTOs
         public decimal PendingAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public string CustomerName { get; set; }
+        public string? Phone { get; set; }  // WhatsApp reminder ke liye
         public string Status { get; set; }
         public DateTime DueDate { get; set; }
         public string? LastReferenceId { get; set; }

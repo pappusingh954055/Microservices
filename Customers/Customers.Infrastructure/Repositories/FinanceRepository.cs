@@ -231,7 +231,7 @@ namespace Customers.Infrastructure.Repositories
                 .Select(g => g.Max(l => l.Id))
                 .ToListAsync();
 
-            // 2. Fetch those ledger entries and join with Customers
+            // 2. Fetch those ledger entries and join with Customers (Phone bhi include karein)
             var dues = await (from l in _context.CustomerLedgers
                         join c in _context.Customers on l.CustomerId equals c.Id
                         where latestLedgerIds.Contains(l.Id) && l.Balance > 0
@@ -239,6 +239,7 @@ namespace Customers.Infrastructure.Repositories
                         {
                             CustomerId = l.CustomerId,
                             CustomerName = c.CustomerName,
+                            Phone = c.Phone,  // Customer ka WhatsApp number
                             PendingAmount = l.Balance,
                             TotalAmount = l.Balance,
                             Status = (l.TransactionDate.AddDays(15) < System.DateTime.Now) ? "Overdue" : "Active",
