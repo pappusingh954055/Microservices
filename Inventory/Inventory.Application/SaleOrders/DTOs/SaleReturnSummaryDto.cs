@@ -10,5 +10,6 @@ namespace Inventory.Application.SaleOrders.DTOs
         public decimal TotalRefundValue { get; set; }
         public decimal StockRefilledPcs { get; set; }
         public int ConfirmedReturns { get; set; }
+        public int PendingInwardCount { get; set; }
     }
 }

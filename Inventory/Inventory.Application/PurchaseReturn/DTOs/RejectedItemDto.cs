@@ -7,4 +7,5 @@
     public decimal Rate { get; set; }
     public decimal GstPercent { get; set; }
     public decimal DiscountPercent { get; set; }
+    public decimal CurrentStock { get; set; }
 }

@@ -25,6 +25,7 @@ public interface IPurchaseReturnRepository
        int pageSize,
        DateTime? fromDate = null,
        DateTime? toDate = null,
+       string? status = null,
        string? sortField = "ReturnDate",
        string? sortOrder = "desc");
 
@@ -33,5 +34,6 @@ public interface IPurchaseReturnRepository
     Task<byte[]> ExportPurchaseReturnsToExcelAsync(DateTime? fromDate, DateTime? toDate);
 
     Task<List<PendingPRDto>> GetPendingPurchaseReturnsAsync();
+    Task<PurchaseReturnSummaryDto> GetPurchaseReturnSummaryAsync();
     Task<bool> BulkOutwardAsync(List<Guid> ids);
 }

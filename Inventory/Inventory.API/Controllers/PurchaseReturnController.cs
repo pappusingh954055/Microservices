@@ -148,6 +148,7 @@ namespace Inventory.API.Controllers
              [FromQuery] int pageSize = 10,
              [FromQuery] DateTime? fromDate = null,
              [FromQuery] DateTime? toDate = null,
+             [FromQuery] string? status = null,
              [FromQuery] string? sortField = "ReturnDate",
              [FromQuery] string? sortOrder = "desc")
         {
@@ -158,6 +159,7 @@ namespace Inventory.API.Controllers
                 pageSize,
                 fromDate,
                 toDate,
+                status,
                 sortField,
                 sortOrder);
 
@@ -205,6 +207,14 @@ namespace Inventory.API.Controllers
 
             var result = await _repository.BulkOutwardAsync(ids);
             return result ? Ok(new { message = $"{ids.Count} Returns Outwarded successfully" }) : BadRequest("Could not process outward");
+        }
+
+        [HttpGet("summary")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> GetSummary()
+        {
+            var result = await _repository.GetPurchaseReturnSummaryAsync();
+            return Ok(result);
         }
     }
 }

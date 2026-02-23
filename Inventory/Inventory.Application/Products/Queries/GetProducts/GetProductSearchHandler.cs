@@ -54,7 +54,7 @@ public class GetProductSearchHandler : IRequestHandler<GetProductSearchQuery, Li
                 DiscountPercent = discountPercent,
 
                 // STEP 3: DIRECT BINDING WITH DATABASE COLUMN
-                CurrentStock = p.CurrentStock > 0 ? (decimal)p.CurrentStock : 0
+                CurrentStock = (decimal)p.CurrentStock
             });
         }
 

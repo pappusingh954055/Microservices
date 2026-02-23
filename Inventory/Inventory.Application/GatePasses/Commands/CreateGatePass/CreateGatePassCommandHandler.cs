@@ -86,6 +86,7 @@ namespace Inventory.Application.GatePasses.Commands.CreateGatePass
                 foreach (var sr in saleReturns)
                 {
                     sr.GatePassNo = entity.PassNo;
+                    sr.Status = "INWARDED"; // Status update for consistency [cite: 2026-02-23]
                 }
             }
             else if (request.ReferenceType == 4) // 4 = PurchaseReturn

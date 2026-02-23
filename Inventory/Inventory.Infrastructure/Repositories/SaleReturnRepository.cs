@@ -255,7 +255,11 @@ namespace Inventory.Infrastructure.Repositories
             var totalRefundValue = await confirmedQuery.SumAsync(x => x.TotalAmount);
             var confirmedCount = await confirmedQuery.CountAsync();
 
-            // 3. Stock re-filled pcs (Items table se sum)
+            // 3. Pending Inward Count (Confirmed but no GatePassNo)
+            var pendingInwardCount = await _context.SaleReturnHeaders
+                .CountAsync(x => x.Status.ToUpper() == "CONFIRMED" && (x.GatePassNo == null || x.GatePassNo == ""));
+
+            // 4. Stock re-filled pcs (Items table se sum)
             var totalPcs = await _context.SaleReturnItems
                 .SumAsync(x => x.ReturnQty);
 
@@ -264,6 +268,7 @@ namespace Inventory.Infrastructure.Repositories
                 TotalReturnsToday = totalToday,
                 TotalRefundValue = totalRefundValue,
                 ConfirmedReturns = confirmedCount,
+                PendingInwardCount = pendingInwardCount,
                 StockRefilledPcs = totalPcs
             };
         }

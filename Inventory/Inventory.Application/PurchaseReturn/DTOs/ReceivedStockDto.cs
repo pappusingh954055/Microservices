@@ -12,5 +12,7 @@ namespace Inventory.Application.PurchaseReturn.DTOs
         public decimal GstPercent { get; set; }
         public decimal DiscountPercent { get; set; }
         public DateTime ReceivedDate { get; set; }
+        public decimal CurrentStock { get; set; }
     }
 }
+

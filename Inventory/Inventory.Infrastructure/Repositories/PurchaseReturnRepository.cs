@@ -40,7 +40,8 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         RejectedQty = gd.RejectedQty,
                         Rate = gd.UnitRate, // Using rate from GRN directly
                         GstPercent = gd.GstPercent,
-                        DiscountPercent = gd.DiscountPercent
+                        DiscountPercent = gd.DiscountPercent,
+                        CurrentStock = gd.Product != null ? gd.Product.CurrentStock : 0
                     };
 
         return await query.ToListAsync();
@@ -85,7 +86,8 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         Rate = gd.UnitRate, // Using rate from GRN directly
                         GstPercent = gd.GstPercent,
                         DiscountPercent = gd.DiscountPercent,
-                        ReceivedDate = gh.ReceivedDate
+                        ReceivedDate = gh.ReceivedDate,
+                        CurrentStock = gd.Product != null ? gd.Product.CurrentStock : 0
                     };
 
         var result = await query
@@ -211,6 +213,7 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
     int pageSize,
     DateTime? fromDate = null,
     DateTime? toDate = null,
+    string? status = null,
     string? sortField = "ReturnDate",
     string? sortOrder = "desc")
     {
@@ -227,6 +230,25 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
         {
             var endOfToDate = toDate.Value.Date.AddDays(1).AddTicks(-1);
             query = query.Where(x => x.ReturnDate <= endOfToDate);
+        }
+
+        // 2.5 Status Filter Logic [cite: 2026-02-23]
+        if (!string.IsNullOrEmpty(status))
+        {
+            if (status.ToUpper() == "TODAY")
+            {
+                var today = DateTime.Today;
+                var tomorrow = today.AddDays(1);
+                query = query.Where(x => x.ReturnDate >= today && x.ReturnDate < tomorrow);
+            }
+            else if (status.ToUpper() == "CONFIRMED")
+            {
+                query = query.Where(x => x.Status == "Confirmed" && (x.GatePassNo == null || x.GatePassNo == ""));
+            }
+            else
+            {
+                query = query.Where(x => x.Status == status);
+            }
         }
 
         // 3. Robust Searching Logic
@@ -506,5 +528,38 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
             await _context.SaveChangesAsync();
         }
         return true;
+    }
+
+    public async Task<PurchaseReturnSummaryDto> GetPurchaseReturnSummaryAsync()
+    {
+        var today = DateTime.Today;
+
+        // 1. Aaj kitne returns huye
+        var totalToday = await _context.PurchaseReturns
+            .CountAsync(x => x.ReturnDate.Date == today);
+
+        // 2. Confirmed returns ka count aur refund value
+        var confirmedQuery = _context.PurchaseReturns
+            .Where(x => x.Status == "Confirmed");
+
+        var totalRefundValue = await confirmedQuery.SumAsync(x => x.GrandTotal);
+        var confirmedCount = await confirmedQuery.CountAsync();
+
+        // 3. Pending Outward Count (Confirmed but no GatePassNo)
+        var pendingOutwardCount = await _context.PurchaseReturns
+            .CountAsync(x => x.Status == "Confirmed" && (x.GatePassNo == null || x.GatePassNo == ""));
+
+        // 4. Stock reduced pcs (Items table se sum)
+        var totalPcs = await _context.PurchaseReturnItems
+            .SumAsync(x => x.ReturnQty);
+
+        return new PurchaseReturnSummaryDto
+        {
+            TotalReturnsToday = totalToday,
+            TotalRefundValue = totalRefundValue,
+            ConfirmedReturns = confirmedCount,
+            PendingOutwardCount = pendingOutwardCount,
+            StockReducedPcs = totalPcs
+        };
     }
 }
