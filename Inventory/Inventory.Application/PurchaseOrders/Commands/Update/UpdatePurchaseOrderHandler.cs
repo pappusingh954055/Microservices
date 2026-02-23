@@ -42,49 +42,51 @@ namespace Inventory.Application.PurchaseOrders.Commands.Update
             po.UpdatedBy = dto.UpdatedBy;
 
             // 3. Syncing Logic: Identify items that were removed in UI
-            var itemsToRemove = po.Items
-                .Where(existing => !dto.Items.Any(d => d.Id == existing.Id))
-                .ToList();
-
-            foreach (var item in itemsToRemove)
+            if (dto.Items != null)
             {
-                _repo.RemoveItem(item);
-            }
+                var itemsToRemove = po.Items
+                    .Where(existing => !dto.Items.Any(d => d.Id == existing.Id))
+                    .ToList();
 
-            // 4. Update existing items or Add new ones
-            foreach (var itemDto in dto.Items)
-            {
-                // Existing item check (assuming Id > 0 for existing items)
-                var existingItem = po.Items.FirstOrDefault(i => i.Id == itemDto.Id && i.Id != 0);
-
-                if (existingItem != null)
+                foreach (var item in itemsToRemove)
                 {
-                    // Update existing record fields
-                    existingItem.ProductId = itemDto.ProductId;
-                    existingItem.Qty = itemDto.Qty;
-                    existingItem.Unit = itemDto.Unit;
-                    existingItem.Rate = itemDto.Rate;
-                    existingItem.DiscountPercent = itemDto.DiscountPercent;
-                    existingItem.GstPercent = itemDto.GstPercent;
-                    existingItem.TaxAmount = itemDto.TaxAmount;
-                    existingItem.Total = itemDto.Total;
+                    _repo.RemoveItem(item);
                 }
-                else
+
+                // 4. Update existing items or Add new ones
+                foreach (var itemDto in dto.Items)
                 {
-                    // Add new item to the collection (EF will handle ID generation)
-                    po.Items.Add(new PurchaseOrderItem
+                    // Existing item check (assuming Id > 0 for existing items)
+                    var existingItem = po.Items.FirstOrDefault(i => i.Id == itemDto.Id && i.Id != 0);
+
+                    if (existingItem != null)
                     {
-                        PurchaseOrderId = po.Id, // Foreign Key link
-                        ProductId = itemDto.ProductId,
-                        Qty = itemDto.Qty,
-                        Unit = itemDto.Unit,
-                        Rate = itemDto.Rate,
-                        DiscountPercent = itemDto.DiscountPercent,
-                        GstPercent = itemDto.GstPercent,
-                        TaxAmount = itemDto.TaxAmount,
-                        Total = itemDto.Total
-                        // Note: Agar PurchaseOrderItem mein bhi UpdatedBy hai, toh yahan add karein
-                    });
+                        // Update existing record fields
+                        existingItem.ProductId = itemDto.ProductId;
+                        existingItem.Qty = itemDto.Qty;
+                        existingItem.Unit = itemDto.Unit ?? existingItem.Unit;
+                        existingItem.Rate = itemDto.Rate;
+                        existingItem.DiscountPercent = itemDto.DiscountPercent;
+                        existingItem.GstPercent = itemDto.GstPercent;
+                        existingItem.TaxAmount = itemDto.TaxAmount;
+                        existingItem.Total = itemDto.Total;
+                    }
+                    else
+                    {
+                        // Add new item to the collection (EF will handle ID generation)
+                        po.Items.Add(new PurchaseOrderItem
+                        {
+                            PurchaseOrderId = po.Id, // Foreign Key link
+                            ProductId = itemDto.ProductId,
+                            Qty = itemDto.Qty,
+                            Unit = itemDto.Unit ?? "Nos",
+                            Rate = itemDto.Rate,
+                            DiscountPercent = itemDto.DiscountPercent,
+                            GstPercent = itemDto.GstPercent,
+                            TaxAmount = itemDto.TaxAmount,
+                            Total = itemDto.Total
+                        });
+                    }
                 }
             }
 

@@ -417,15 +417,14 @@ namespace Inventory.Infrastructure.Repositories
                 .GroupBy(x => new {
                     x.ProductId,
                     ProductName = x.Product.Name,
-                    MinLevel = x.Product.MinStock
+                    MinLevel = x.Product.MinStock,
+                    ActualStock = x.Product.CurrentStock
                 })
                 .Select(g => new {
                     ProductName = g.Key.ProductName,
                     TotalReceived = g.Sum(x => x.ReceivedQty),
                     TotalRejected = g.Sum(x => x.RejectedQty),
-                    // Correct logic: 141 - 2 = 139
-                    AvailableStock = g.Sum(x => x.ReceivedQty) - g.Sum(x => x.RejectedQty),
-                    // Latest Rate: ₹1,650.00
+                    AvailableStock = g.Key.ActualStock,
                     LastRate = g.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
                     MinStockLevel = g.Key.MinLevel
                 })

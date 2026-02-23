@@ -9,7 +9,7 @@ namespace Inventory.Application.PurchaseOrders.DTOs
         public int Id { get; set; } // Agar 0 hai toh naya item add hoga
         public Guid ProductId { get; set; } //
         public decimal Qty { get; set; }
-        public string Unit { get; set; }
+        public string? Unit { get; set; }
         public decimal Rate { get; set; }
         public decimal DiscountPercent { get; set; }
         public decimal GstPercent { get; set; }

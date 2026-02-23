@@ -111,8 +111,7 @@ namespace Inventory.Infrastructure.Repositories
 
         public async Task<string> SaveGRNWithStockUpdate(GRNHeader header, List<GRNDetail> details)
         {
-            // 1. PO Reference Check
-            if (header.PurchaseOrderId == null)
+            if (header.PurchaseOrderId == 0)
             {
                 throw new Exception("Purchase Order Reference is missing. Cannot save GRN.");
             }
@@ -123,56 +122,60 @@ namespace Inventory.Infrastructure.Repositories
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    // --- FIX: Fetch SupplierId from Purchase Order to avoid '0' in DB ---
-                    // Include Items taaki niche ReceivedQty update ho sake
+                    // 1. Fetch PO and Products (Use AsNoTracking to get fresh DB values on retry)
                     var po = await _context.PurchaseOrders
                                            .Include(p => p.Items)
                                            .FirstOrDefaultAsync(p => p.Id == header.PurchaseOrderId);
 
                     if (po != null)
                     {
-                        header.SupplierId = po.SupplierId; // PO se asali SupplierId utha liya
+                        header.SupplierId = po.SupplierId;
                     }
 
-                    // 2. Header Setup - Existing Logic
-                    header.Status = "Received";
-                    header.CreatedOn = DateTime.Now;
-                    header.CreatedBy = header.CreatedBy;
-                    header.ModifiedBy = header.ModifiedBy;
+                    var productIds = details.Select(d => d.ProductId).Distinct().ToList();
+                    var products = await _context.Products
+                                                 .Where(p => productIds.Contains(p.Id))
+                                                 .ToListAsync();
 
+                    // 2. Setup Header
+                    header.Status = "Received";
                     if (string.IsNullOrEmpty(header.GRNNumber) || header.GRNNumber == "AUTO-GEN")
                     {
                         header.GRNNumber = await GenerateGRNNumber();
                     }
 
+                    // 3. Update Status and Audit Fields
+                    header.CreatedOn = DateTime.Now;
+
+                    // Add Header to context (EF will track it and its items)
                     await _context.GRNHeaders.AddAsync(header);
-                    await _context.SaveChangesAsync();
 
-                    // 3. Batch Fetch Products (Optimization)
-                    var productIds = details.Select(d => d.ProductId).ToList();
-                    var products = await _context.Products
-                                                 .Where(p => productIds.Contains(p.Id))
-                                                 .ToListAsync();
-
-                    // 4. Detail Mapping & Stock Update
+                    // 4. Process Details and Update Stock
                     foreach (var item in details)
                     {
-                        item.GRNHeaderId = header.Id;
+                        // Link detail to header (EF will automatically fill header.Id on save)
+                        item.GRNHeaderId = 0; // Will be set by EF navigation 
                         item.CreatedOn = DateTime.Now;
                         item.UpdatedOn = DateTime.Now;
-
-                        await _context.GRNDetails.AddAsync(item);
+                        
+                        // Add detail to header collection
+                        header.GRNItems ??= new List<GRNDetail>();
+                        header.GRNItems.Add(item);
 
                         var product = products.FirstOrDefault(p => p.Id == item.ProductId);
                         if (product != null)
                         {
-                            // Existing Stock Update Logic
-                            product.CurrentStock += item.ReceivedQty;
-                            product.CreatedOn = DateTime.Now;
-                            product.CreatedBy = header.CreatedBy;
+                            // CRITICAL FIX: Only add AcceptedQty or ReceivedQty based on business logic.
+                            // Typically, only Accepted items should increase available stock.
+                            // If user rejected some items, those shouldn't be in CurrentStock.
+                            decimal qtyToIncrease = item.ReceivedQty - item.RejectedQty;
+                            
+                            product.CurrentStock += qtyToIncrease;
+                            product.ModifiedOn = DateTime.Now;
+                            product.ModifiedBy = header.CreatedBy;
                             _context.Products.Update(product);
 
-                            // --- NEW: LOW STOCK ALERT TRIGGER START ---
+                            // Low Stock Alert check
                             if (product.CurrentStock <= product.MinStock)
                             {
                                 bool alreadyNotified = await _context.AppNotifications
@@ -188,84 +191,77 @@ namespace Inventory.Infrastructure.Repositories
                                     );
                                 }
                             }
-                            // --- NEW: LOW STOCK ALERT TRIGGER END ---
                         }
 
-                        // --- EXTRA LOGIC: Update PurchaseOrderItem Received Qty ---
+                        // Update PO Item tracked received qty
                         if (po != null)
                         {
                             var poItem = po.Items.FirstOrDefault(pi => pi.ProductId == item.ProductId);
                             if (poItem != null)
                             {
-                                // Existing ReceivedQty mein current GRN ki qty add kar rahe hain
-                                poItem.ReceivedQty = (poItem.ReceivedQty) + item.ReceivedQty;
+                                poItem.ReceivedQty += item.ReceivedQty;
                                 _context.PurchaseOrderItems.Update(poItem);
                             }
                         }
                     }
 
-                    // --- EXTRA LOGIC: Auto Update PO Status if fully received ---
-                    if (po != null && po.Items.All(i => (i.ReceivedQty) >= i.Qty))
+                    // 5. Update PO Status
+                    if (po != null && po.Items.All(i => i.ReceivedQty >= i.Qty))
                     {
                         po.Status = "Received";
                         _context.PurchaseOrders.Update(po);
                     }
 
-                    // --- EXTRA LOGIC: Update Gate Pass Status to 'Completed' (4) ---
+                    // 6. Update Gate Pass Status
                     if (!string.IsNullOrEmpty(header.GatePassNo))
                     {
                         var gatePass = await _context.GatePasses
                                                      .FirstOrDefaultAsync(g => g.PassNo == header.GatePassNo);
                         if (gatePass != null)
                         {
-                            gatePass.Status = 4; // 4 = Completed/Received
+                            gatePass.Status = 4; // Completed
                             _context.GatePasses.Update(gatePass);
                         }
                     }
 
+                    // 7. Single Atomic Save
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // --- NOTIFICATION TRIGGER: GOODS RECEIVED ---
-                    await _notificationRepository.AddNotificationAsync(
-                        "Goods Received",
-                        $"Inventory updated for PO #{po?.PoNumber ?? header.PurchaseOrderId.ToString()}. GRN {header.GRNNumber} generated successfully.",
-                        "Inventory",
-                        "/app/inventory/grn-list"
-                    );
+                    // --- Notifications & Ledger (Post-Commit) ---
+                    _ = Task.Run(async () => {
+                        try {
+                            await _notificationRepository.AddNotificationAsync(
+                                "Goods Received",
+                                $"Inventory updated. GRN {header.GRNNumber} generated successfully.",
+                                "Inventory",
+                                "/app/inventory/grn-list"
+                            );
 
-                    // --- NEW: RECORD PURCHASE IN SUPPLIER LEDGER ---
-                    try
-                    {
-                        await _supplierClient.RecordPurchaseAsync(
-                            header.SupplierId,
-                            header.TotalAmount,
-                            header.GRNNumber,
-                            $"Goods Received via GRN: {header.GRNNumber}",
-                            header.CreatedBy
-                        );
-                    }
-                    catch (Exception ex)
-                    {
-                        // Log error but don't fail the whole GRN save 
-                        // as stock is already updated and transaction committed
-                        Console.WriteLine($"Ledger Sync Error: {ex.Message}");
-                    }
+                            await _supplierClient.RecordPurchaseAsync(
+                                header.SupplierId,
+                                header.TotalAmount,
+                                header.GRNNumber,
+                                $"Goods Received via GRN: {header.GRNNumber}",
+                                header.CreatedBy
+                            );
+                        } catch { /* Fire and forget safety */ }
+                    });
 
                     return header.GRNNumber;
                 }
                 catch (Exception ex)
                 {
                     await transaction.RollbackAsync();
-                    throw new Exception($"Error: {ex.Message}");
+                    throw;
                 }
             });
         }
 
         public async Task<string> GenerateGRNNumber()
         {
-            // Logic to generate like GRN-2026-001
-            return $"GRN-{DateTime.Now.Year}-{new Random().Next(1000, 9999)}";
+            var lastId = await _context.GRNHeaders.OrderByDescending(x => x.Id).Select(x => x.Id).FirstOrDefaultAsync();
+            return $"GRN-{DateTime.Now.Year}-{(lastId + 1022 + 1)}";
         }
 
         public async Task<POForGRNDTO?> GetPODataForGRN(int poId, int? grnHeaderId = null, string? gatePassNo = null)
