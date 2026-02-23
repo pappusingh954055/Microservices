@@ -11,6 +11,7 @@
         string? PrimaryEmail,
         string PrimaryPhone,
         string? Website,
+        string? Message,
         bool IsActive,
         AddressDto Address, // Aapke request ke hisaab se name match
         BankDetailDto BankInfo,
@@ -56,6 +57,7 @@
         string? PrimaryEmail,
         string PrimaryPhone,
         string? Website,
+        string? Message,
         AddressDto Address,
         BankDetailDto BankInfo,
         List<AuthorizedSignatoryDto> AuthorizedSignatories

@@ -57,6 +57,7 @@ namespace Company.Application.Company.Commands.Create.Handler
                 PrimaryEmail = cmd.Request.PrimaryEmail,
                 PrimaryPhone = cmd.Request.PrimaryPhone,
                 Website = cmd.Request.Website,
+                Message = cmd.Request.Message,
                 IsActive = true,
 
                 CompanyAddress = new Address

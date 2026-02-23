@@ -62,6 +62,7 @@ namespace Company.Application.Company.Commands.Update.Handler
             profile.PrimaryEmail = cmd.Request.PrimaryEmail;
             profile.PrimaryPhone = cmd.Request.PrimaryPhone;
             profile.Website = cmd.Request.Website;
+            profile.Message = cmd.Request.Message;
 
             // 2. Address Update
             if (profile.CompanyAddress != null)

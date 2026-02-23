@@ -35,6 +35,7 @@ namespace Company.Application.Company.Queries
                 data.PrimaryEmail,
                 data.PrimaryPhone,
                 data.Website,
+                data.Message,
                 data.IsActive,
                
                 new AddressDto(

@@ -31,6 +31,7 @@ namespace Company.Application.Company.Queries
                 data.PrimaryEmail,
                 data.PrimaryPhone,
                 data.Website,
+                data.Message,
                 data.IsActive,
                 // Nested Address Record
                 new AddressDto(
