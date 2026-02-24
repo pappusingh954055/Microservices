@@ -43,7 +43,7 @@ namespace Inventory.Domain.Entities.SO
         [Required]
         public string CreatedBy { get; set; } // Login user ki email/ID [cite: 3]
 
-        public DateTime CreatedAt { get; set; } = DateTime.Now; // Record creation time [cite: 3]
+        public DateTime CreatedAt { get; set; } // Record creation time [cite: 3]
 
         // Relationship: One SaleOrder has many SaleOrderItems
         public virtual ICollection<SaleOrderItem> Items { get; set; }

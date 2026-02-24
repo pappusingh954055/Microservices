@@ -137,15 +137,18 @@ namespace Inventory.Infrastructure.Repositories
                                                  .Where(p => productIds.Contains(p.Id))
                                                  .ToListAsync();
 
+                    DateTime utcNow = DateTime.UtcNow;
+
                     // 2. Setup Header
                     header.Status = "Received";
+                    header.ReceivedDate = header.ReceivedDate != default ? header.ReceivedDate.Date.Add(utcNow.TimeOfDay) : utcNow;
                     if (string.IsNullOrEmpty(header.GRNNumber) || header.GRNNumber == "AUTO-GEN")
                     {
                         header.GRNNumber = await GenerateGRNNumber();
                     }
 
                     // 3. Update Status and Audit Fields
-                    header.CreatedOn = DateTime.Now;
+                    header.CreatedOn = utcNow;
 
                     // Add Header to context (EF will track it and its items)
                     await _context.GRNHeaders.AddAsync(header);
@@ -264,38 +267,54 @@ namespace Inventory.Infrastructure.Repositories
             return $"GRN-{DateTime.Now.Year}-{(lastId + 1022 + 1)}";
         }
 
-        public async Task<POForGRNDTO?> GetPODataForGRN(int poId, int? grnHeaderId = null, string? gatePassNo = null)
+        public async Task<POForGRNDTO?> GetPODataForGRN(string poIds, int? grnHeaderId = null, string? gatePassNo = null)
         {
-            // 1. View Mode Logic: Agar poId 0 hai, toh header table se sahi POId nikaalein
-            if (grnHeaderId != null && poId == 0)
+            var idList = new List<int>();
+            if (!string.IsNullOrEmpty(poIds))
             {
-                poId = await _context.GRNHeaders
+                idList = poIds.Split(',')
+                              .Select(s => int.TryParse(s, out int id) ? id : 0)
+                              .Where(id => id > 0)
+                              .ToList();
+            }
+
+            // 1. View Mode Logic: Agar poIds khali hai lekin grnHeaderId hai, toh header table se sahi POId nikaalein
+            if (grnHeaderId != null && !idList.Any())
+            {
+                var poId = await _context.GRNHeaders
                     .Where(x => x.Id == grnHeaderId)
                     .Select(x => x.PurchaseOrderId)
                     .FirstOrDefaultAsync();
 
-                if (poId == 0) return null; // Case: GRN record hi nahi mila
+                if (poId > 0) idList.Add(poId);
+                else return null; 
             }
 
+            if (!idList.Any()) return null;
 
             // 3. Fetch PO Data with Items
-            var po = await _context.PurchaseOrders
+            var pos = await _context.PurchaseOrders
                 .Include(h => h.Items)
                 .ThenInclude(i => i.Product)
-                .FirstOrDefaultAsync(h => h.Id == poId);
+                .Where(h => idList.Contains(h.Id))
+                .ToListAsync();
 
-            if (po == null) return null;
+            if (!pos.Any()) return null;
+
+            // If single PO, keep original behavior for DTO fields
+            var firstPO = pos.First();
+            bool isBulk = pos.Count > 1;
 
             // 4. Map DTO
             var dto = new POForGRNDTO
             {
-                POHeaderId = po.Id,
-                PONumber = po.PoNumber ?? "",
+                POHeaderId = isBulk ? 0 : firstPO.Id,
+                PONumber = isBulk ? string.Join(", ", pos.Select(p => p.PoNumber)) : (firstPO.PoNumber ?? ""),
                 GrnNumber = grnHeaderId != null ?
                             _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.GRNNumber).FirstOrDefault() :
                             "AUTO-GEN",
-                SupplierId = po.SupplierId,
-                SupplierName = po.SupplierName ?? "Unknown",
+                SupplierId = isBulk ? 0 : firstPO.SupplierId,
+                SupplierName = isBulk ? "Multiple Suppliers" : (firstPO.SupplierName ?? "Unknown"),
                 Remarks = grnHeaderId != null ?
                           _context.GRNHeaders.Where(x => x.Id == grnHeaderId).Select(x => x.Remarks).FirstOrDefault() : ""
             };
@@ -304,7 +323,8 @@ namespace Inventory.Infrastructure.Repositories
 
             if (grnHeaderId != null)
             {
-                // VIEW MODE: Saved GRN details load karein
+                // VIEW MODE: Saved GRN details load karein (Assuming View Mode is always for 1 GRN linked to 1 PO)
+                int singlePoId = idList.First();
                 items = await (from d in _context.GRNDetails
                              join poi in _context.PurchaseOrderItems on new { d.GRNHeader.PurchaseOrderId, d.ProductId } equals new { poi.PurchaseOrderId, poi.ProductId }
                              where d.GRNHeaderId == grnHeaderId
@@ -325,71 +345,70 @@ namespace Inventory.Infrastructure.Repositories
             }
             else
             {
-                // NEW GRN MODE
-                // 1. Fetch all returns for this PO to suggest replacements
+                // NEW GRN MODE (Single or Bulk)
+                // 1. Fetch returns to check replacements
                 var returnLookup = await _context.PurchaseReturnItems
                     .Include(ri => ri.PurchaseReturn)
-                    .Where(ri => ri.PurchaseReturn.Items.Any(i => _context.GRNDetails.Any(gd => gd.ProductId == ri.ProductId && gd.GRNHeader.PurchaseOrderId == po.Id)))
-                    // Join method is safer for complex filtering
+                    .Where(ri => ri.PurchaseReturn.Items.Any(i => _context.GRNDetails.Any(gd => gd.ProductId == ri.ProductId && idList.Contains(gd.GRNHeader.PurchaseOrderId))))
                     .Join(_context.GRNDetails, ri => ri.GrnRef, gd => gd.GRNHeader.GRNNumber, (ri, gd) => new { ri, gd })
-                    .Where(x => x.gd.GRNHeader.PurchaseOrderId == po.Id)
+                    .Where(x => idList.Contains(x.gd.GRNHeader.PurchaseOrderId))
                     .GroupBy(x => x.ri.ProductId)
                     .Select(g => new { ProductId = g.Key, Qty = g.Sum(x => x.ri.ReturnQty) })
                     .ToDictionaryAsync(x => x.ProductId, x => x.Qty);
 
-                foreach (var d in po.Items)
+                foreach (var po in pos)
                 {
-                    // Calculate net warehouse stock: Received - Rejected (since ReceivedQty is already adjusted by returns in our repo)
-                    // Actually, if ReceivedQty is reduced by returns, then netAcceptedSoFar IS the accurate warehouse stock.
-                    var netInWarehouse = await _context.GRNDetails
-                        .Where(gd => gd.ProductId == d.ProductId && gd.GRNHeader.PurchaseOrderId == po.Id)
-                        .SumAsync(gd => gd.ReceivedQty - gd.RejectedQty);
-
-                    var pending = d.Qty - netInWarehouse;
-
-                    decimal proposedRecv = 0;
-            if (!string.IsNullOrEmpty(gatePassNo))
-            {
-                // Selective Logic: 
-                // 1. Agar koi return hua hi nahi hai (First time inward), toh pending quantity default karein.
-                // 2. Agar return history hai, toh sirf wahi quantity suggest karein jo wapas ki gayi thi (Replacement mode).
-                if (returnLookup.Any())
-                {
-                    proposedRecv = returnLookup.ContainsKey(d.ProductId) ? returnLookup[d.ProductId] : 0;
-                }
-                else
-                {
-                    proposedRecv = pending;
-                }
-                
-                if (proposedRecv > pending) proposedRecv = pending;
-            }
-            else
-            {
-                proposedRecv = pending > 0 ? pending : 0;
-            }
-
-                    items.Add(new POItemForGRNDTO
+                    foreach (var d in po.Items)
                     {
-                        ProductId = d.ProductId,
-                        ProductName = d.Product?.Name ?? "N/A",
-                        OrderedQty = d.Qty,
-                        UnitRate = d.Rate,
-                        DiscountPercent = d.DiscountPercent,
-                        GstPercent = d.GstPercent,
-                        PendingQty = pending,
-                        ReceivedQty = proposedRecv,
-                        RejectedQty = 0,
-                        AcceptedQty = proposedRecv, 
-                        TaxAmount = (proposedRecv * d.Rate * (1 - d.DiscountPercent / 100)) * (d.GstPercent / 100),
-                        IsReplacement = returnLookup.ContainsKey(d.ProductId)
-                    });
+                        var netInWarehouse = await _context.GRNDetails
+                            .Where(gd => gd.ProductId == d.ProductId && gd.GRNHeader.PurchaseOrderId == po.Id)
+                            .SumAsync(gd => gd.ReceivedQty - gd.RejectedQty);
+
+                        var pending = d.Qty - netInWarehouse;
+                        decimal proposedRecv = 0;
+
+                        if (!string.IsNullOrEmpty(gatePassNo))
+                        {
+                            if (returnLookup.Any())
+                            {
+                                proposedRecv = returnLookup.ContainsKey(d.ProductId) ? returnLookup[d.ProductId] : 0;
+                            }
+                            else
+                            {
+                                proposedRecv = pending;
+                            }
+                            if (proposedRecv > pending) proposedRecv = pending;
+                        }
+                        else
+                        {
+                            proposedRecv = pending > 0 ? pending : 0;
+                        }
+
+                        items.Add(new POItemForGRNDTO
+                        {
+                            ProductId = d.ProductId,
+                            ProductName = d.Product?.Name ?? "N/A",
+                            OrderedQty = d.Qty,
+                            UnitRate = d.Rate,
+                            DiscountPercent = d.DiscountPercent,
+                            GstPercent = d.GstPercent,
+                            PendingQty = pending,
+                            ReceivedQty = proposedRecv,
+                            RejectedQty = 0,
+                            AcceptedQty = proposedRecv, 
+                            TaxAmount = (proposedRecv * d.Rate * (1 - d.DiscountPercent / 100)) * (d.GstPercent / 100),
+                            IsReplacement = returnLookup.ContainsKey(d.ProductId),
+                            PONumber = po.PoNumber,
+                            POId = po.Id
+                        });
+                    }
                 }
             }
 
             dto.Items = items;
             return dto;
         }
+        
 
 
 
@@ -623,35 +642,51 @@ namespace Inventory.Infrastructure.Repositories
                         // 2. Custom function se GRN Number generate karein
                         string newGrnNumber = await GenerateGRNNumber();
 
+                        DateTime utcNow = DateTime.UtcNow;
+
                         // 3. Naya GRN Header create karein
                         var grnHeader = new GRNHeader
                         {
                             GRNNumber = newGrnNumber,
                             PurchaseOrderId = poId,
                             SupplierId = poHeader.SupplierId,
-                            ReceivedDate = DateTime.Now,
+                            // Date from UI + Current Time from UTC
+                            ReceivedDate = request.ReceivedDate != default ? request.ReceivedDate.Date.Add(utcNow.TimeOfDay) : utcNow,
                             TotalAmount = poHeader.GrandTotal,
                             Status = "Received",
-                            Remarks = "Bulk Processed from PO",
+                            Remarks = request.Remarks ?? "Bulk Processed from PO",
+                            GatePassNo = request.GatePassNo,
                             CreatedBy = request.CreatedBy,
-                            CreatedOn = DateTime.Now
+                            CreatedOn = utcNow
                         };
 
                         _context.GRNHeaders.Add(grnHeader);
                         await _context.SaveChangesAsync();
 
-                        bool isFullPoReceived = true; // Check karne ke liye ki PO complete hua ya nahi
+                        bool isFullPoReceived = true; 
+                        decimal grnTotalAmount = 0;
 
-                        // 4. PO Items ko map karein, Stock update karein aur ReceivedQty track karein
+                        // 4. PO Items ko map karein
                         foreach (var item in poHeader.Items)
                         {
-                            // Pending check: Kitna aana baaki hai?
-                            decimal pendingForThisItem = item.Qty - (item.ReceivedQty);
+                            // REQ CHECK: Kya ye item request mein hai?
+                            var reqItem = request.Items.FirstOrDefault(x => x.POId == poId && x.ProductId == item.ProductId);
+                            
+                            decimal qtyToReceiveNow = 0;
+                            decimal rejectedQty = 0;
 
-                            if (pendingForThisItem <= 0) continue; // Agar ye item poora aa chuka hai toh skip karein
+                            if (reqItem != null)
+                            {
+                                qtyToReceiveNow = reqItem.ReceivedQty;
+                                rejectedQty = reqItem.RejectedQty;
+                            }
+                            else
+                            {
+                                // Fallback: Pure pending quantity (if not specifically passed from UI)
+                                qtyToReceiveNow = item.Qty - item.ReceivedQty;
+                            }
 
-                            // Bulk upload mein hum bacha hua poora maal receive kar rahe hain
-                            decimal qtyToReceiveNow = pendingForThisItem;
+                            if (qtyToReceiveNow <= 0) continue; 
 
                             var grnDetail = new GRNDetail
                             {
@@ -659,34 +694,34 @@ namespace Inventory.Infrastructure.Repositories
                                 ProductId = item.ProductId,
                                 OrderedQty = item.Qty,
                                 ReceivedQty = qtyToReceiveNow,
-                                AcceptedQty = qtyToReceiveNow,
-                                RejectedQty = 0,
+                                AcceptedQty = qtyToReceiveNow - rejectedQty,
+                                RejectedQty = rejectedQty,
                                 UnitRate = item.Rate,
                                 CreatedBy = request.CreatedBy,
-                                CreatedOn = DateTime.Now
+                                CreatedOn = utcNow
                             };
                             _context.GRNDetails.Add(grnDetail);
 
-                            // FIX A: PO Item table mein ReceivedQty update karein taaki Pending calculation sahi ho
-                            item.ReceivedQty = (item.ReceivedQty) + qtyToReceiveNow;
+                            grnTotalAmount += (qtyToReceiveNow - rejectedQty) * item.Rate * (1 + (item.GstPercent / 100));
 
-                            // FIX B: STOCK UPDATE LOGIC
-                            var product = await _context.Products
-                                .FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                            // Update ReceivedQty in PO Item
+                            item.ReceivedQty = item.ReceivedQty + qtyToReceiveNow;
 
+                            // STOCK UPDATE
+                            var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId);
                             if (product != null)
                             {
-                                product.CurrentStock += qtyToReceiveNow;
+                                product.CurrentStock += (qtyToReceiveNow - rejectedQty);
                             }
 
-                            // Check: Agar abhi bhi koi item pending reh gaya (Partial delivery case)
                             if (item.ReceivedQty < item.Qty)
                             {
                                 isFullPoReceived = false;
                             }
                         }
 
-                        // 5. PO status update (Partial vs Full)
+                        // Update Header total
+                        grnHeader.TotalAmount = grnTotalAmount;
                         poHeader.Status = isFullPoReceived ? "GRN Processed" : "Partially Received";
 
                         // 6. NOTIFICATION TRIGGER

@@ -45,7 +45,8 @@ namespace Inventory.API.Controllers
             try
             {
                 var fileContent = await _stockRepo.GenerateStockExcel(productIds);
-                string fileName = $"StockReport_{DateTime.Now:yyyyMMdd}.xlsx";
+                var indianTime = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("India Standard Time"));
+                string fileName = $"StockReport_{indianTime:yyyyMMdd_HHmm}.xlsx";
 
                 // File content type for Excel
                 return File(

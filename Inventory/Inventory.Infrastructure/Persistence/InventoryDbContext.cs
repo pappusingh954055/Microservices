@@ -202,4 +202,59 @@ public sealed class InventoryDbContext : DbContext,
             entity.Property(e => e.Total).HasPrecision(18, 2);
         });
     }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        ApplyIndianTime();
+        return base.SaveChangesAsync(cancellationToken);
+    }
+
+    public override int SaveChanges()
+    {
+        ApplyIndianTime();
+        return base.SaveChanges();
+    }
+
+    private void ApplyIndianTime()
+    {
+        var entries = ChangeTracker.Entries()
+            .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+        DateTime utcNow = DateTime.UtcNow;
+
+        foreach (var entry in entries)
+        {
+            var entity = entry.Entity;
+            var type = entity.GetType();
+
+            if (entry.State == EntityState.Added)
+            {
+                // Handle Creation Date
+                var createdProps = new[] { "CreatedOn", "CreatedDate", "CreatedAt", "CreatedDateTim" };
+                foreach (var propName in createdProps)
+                {
+                    var prop = type.GetProperty(propName);
+                    if (prop != null && prop.CanWrite)
+                    {
+                        var currentVal = prop.GetValue(entity);
+                        if (currentVal == null || (currentVal is DateTime dt && (dt == default || dt.Year < 2000)))
+                        {
+                            prop.SetValue(entity, utcNow);
+                        }
+                    }
+                }
+            }
+
+            // Handle Update Date (for both Added and Modified)
+            var updateProps = new[] { "UpdatedOn", "UpdatedDate", "ModifiedOn", "UpdatedAt" };
+            foreach (var propName in updateProps)
+            {
+                var prop = type.GetProperty(propName);
+                if (prop != null && prop.CanWrite)
+                {
+                    prop.SetValue(entity, utcNow);
+                }
+            }
+        }
+    }
 }

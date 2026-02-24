@@ -40,12 +40,12 @@ namespace Inventory.API.Controllers
             return BadRequest(new { success = false, message = "Failed to update stock" });
         }
 
-        [HttpGet("GetPOData/{poId}")]
+        [HttpGet("GetPOData")]
         [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
-        public async Task<IActionResult> GetPOData(int poId, [FromQuery] int? grnHeaderId = null, [FromQuery] string? gatePassNo = null)
+        public async Task<IActionResult> GetPOData([FromQuery] string poIds, [FromQuery] int? grnHeaderId = null, [FromQuery] string? gatePassNo = null)
         {
-            // Mediator query mein ab teen parameters jayenge
-            var data = await _mediator.Send(new GetPOForGRNQuery(poId, grnHeaderId, gatePassNo));
+            // Mediator query mein ab string poIds jayenge
+            var data = await _mediator.Send(new GetPOForGRNQuery(poIds, grnHeaderId, gatePassNo));
 
             return data != null ? Ok(data) : NotFound("PO Not Found");
         }

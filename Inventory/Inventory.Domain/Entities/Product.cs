@@ -24,8 +24,8 @@ public class Product
     public bool IsActive { get;  set; }
     public string? Description { get; private set; }
     public string? CreatedBy { get; set; }
-    public DateTime? CreatedOn { get; set; } = DateTime.Now;
-    public DateTime? ModifiedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? CreatedOn { get; set; }
+    public DateTime? ModifiedOn { get; set; }
     public string? ModifiedBy { get; set; }
     public string ProductType { get; set; } = string.Empty;
     public decimal DamagedStock { get; set; } = 0;

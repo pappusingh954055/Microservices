@@ -19,8 +19,8 @@ public class PurchaseOrder
     public string Status { get; set; } = "Draft";
     public string? CreatedBy { get; set; } //
     public string? UpdatedBy { get; set; } //
-    public DateTime? CreatedDate { get; set; } = DateTime.Now;
-    public DateTime? UpdatedDate { get; set; } = DateTime.Now;
+    public DateTime? CreatedDate { get; set; }
+    public DateTime? UpdatedDate { get; set; }
     public virtual ICollection<PurchaseOrderItem> Items { get; set; } = new List<PurchaseOrderItem>();
     public virtual ICollection<GRNHeader> GrnHeaders { get; set; } = new List<GRNHeader>();
     public bool CanBeDeleted()
@@ -45,6 +45,6 @@ public class PurchaseOrder
         this.SubTotal = this.Items.Sum(x => x.Total);
         this.TotalTax = this.Items.Sum(x => x.TaxAmount);
         this.GrandTotal = this.SubTotal + this.TotalTax;
-        this.UpdatedDate = DateTime.Now;
+        this.UpdatedDate = DateTime.UtcNow;
     }
 }

@@ -1,5 +1,11 @@
-﻿public class BulkGrnRequestDto
+﻿using Inventory.Application.GRN.DTOs.BULK;
+
+public class BulkGrnRequestDto
 {
     public List<int> PurchaseOrderIds { get; set; } = new List<int>();
     public string CreatedBy { get; set; } = string.Empty;
+    public DateTime ReceivedDate { get; set; } = DateTime.Now;
+    public string? GatePassNo { get; set; }
+    public string? Remarks { get; set; }
+    public List<BulkItemRequestDto> Items { get; set; } = new List<BulkItemRequestDto>();
 }

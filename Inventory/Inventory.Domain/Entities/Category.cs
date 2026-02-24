@@ -15,8 +15,8 @@ public class Category
     public virtual ICollection<Category> SubCategories { get;  set; } = new List<Category>();
     // --- Subcategory Logic End ---
 
-    public DateTime? CreatedOn { get; set; } = DateTime.UtcNow;
-    public DateTime? UpdatedOn { get; set; } = DateTime.UtcNow;
+    public DateTime? CreatedOn { get; set; }
+    public DateTime? UpdatedOn { get; set; }
     public int? UpdatedBy { get; set; }
     public int? CreatedBy { get; set; }
 

@@ -18,6 +18,8 @@ namespace Inventory.Application.GRN.DTOs
         public decimal RejectedQty { get; set; }
         public decimal AcceptedQty { get; set; }
         public decimal TaxAmount { get; set; }
+        public string? PONumber { get; set; }
+        public int POId { get; set; }
         public bool IsReplacement { get; set; }
     }
 }

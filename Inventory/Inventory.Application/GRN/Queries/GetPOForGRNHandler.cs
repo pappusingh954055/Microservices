@@ -12,7 +12,7 @@ namespace Inventory.Application.GRN.Queries
         public async Task<POForGRNDTO?> Handle(GetPOForGRNQuery request, CancellationToken ct)
         {
             // Logic Fix: Ab teen parameters pass karein (Replacement logic ke liye gatePassNo)
-            return await _repo.GetPODataForGRN(request.POId, request.GrnHeaderId, request.GatePassNo);
+            return await _repo.GetPODataForGRN(request.poIds, request.GrnHeaderId, request.GatePassNo);
         }
     }
 }
