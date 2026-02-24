@@ -114,13 +114,25 @@ public class SaleOrderRepository : ISaleOrderRepository
             .AsNoTracking()
             .AsQueryable();
 
-        // 2. Searching logic
+        // 2. Searching logic [cite: 2026-02-03]
         if (!string.IsNullOrEmpty(searchTerm))
         {
             searchTerm = searchTerm.Trim().ToLower();
+
+            // Fetch matching customer IDs from External Service
+            var matchingCustomerIds = new List<int>();
+            try 
+            {
+               matchingCustomerIds = await _customerClient.SearchCustomerIdsByNameAsync(searchTerm);
+            }
+            catch { /* Ignore microservice failure for search */ }
+
             query = query.Where(o =>
                 o.SONumber.ToLower().Contains(searchTerm) ||
-                o.Status.ToLower().Contains(searchTerm));
+                (o.GatePassNo != null && o.GatePassNo.ToLower().Contains(searchTerm)) ||
+                o.Status.ToLower().Contains(searchTerm) ||
+                o.GrandTotal.ToString().Contains(searchTerm) ||
+                matchingCustomerIds.Contains(o.CustomerId));
         }
 
         // 🎯 3. Calculate Global Stats (Before Pagination)
