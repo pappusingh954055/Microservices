@@ -232,25 +232,25 @@ namespace Inventory.Infrastructure.Repositories
                     await _context.SaveChangesAsync();
                     await transaction.CommitAsync();
 
-                    // --- Notifications & Ledger (Post-Commit) ---
-                    _ = Task.Run(async () => {
-                        try {
-                            await _notificationRepository.AddNotificationAsync(
-                                "Goods Received",
-                                $"Inventory updated. GRN {header.GRNNumber} generated successfully.",
-                                "Inventory",
-                                "/app/inventory/grn-list"
-                            );
+                    // --- Notifications & Ledger ---
+                    try {
+                        await _notificationRepository.AddNotificationAsync(
+                            "Goods Received",
+                            $"Inventory updated. GRN {header.GRNNumber} generated successfully.",
+                            "Inventory",
+                            "/app/inventory/grn-list"
+                        );
 
-                            await _supplierClient.RecordPurchaseAsync(
-                                header.SupplierId,
-                                header.TotalAmount,
-                                header.GRNNumber,
-                                $"Goods Received via GRN: {header.GRNNumber}",
-                                header.CreatedBy
-                            );
-                        } catch { /* Fire and forget safety */ }
-                    });
+                        await _supplierClient.RecordPurchaseAsync(
+                            header.SupplierId,
+                            header.TotalAmount,
+                            header.GRNNumber,
+                            $"Goods Received via GRN: {header.GRNNumber}",
+                            header.CreatedBy
+                        );
+                    } catch (Exception ex) { 
+                        Console.WriteLine($"[GRNRepository] Background task error: {ex.Message}");
+                    }
 
                     return header.GRNNumber;
                 }
@@ -725,13 +725,28 @@ namespace Inventory.Infrastructure.Repositories
                         grnHeader.TotalAmount = grnTotalAmount;
                         poHeader.Status = isFullPoReceived ? "GRN Processed" : "Partially Received";
 
-                        // 6. NOTIFICATION TRIGGER
-                        await _notificationRepository.AddNotificationAsync(
-                            "Goods Received",
-                            $"Inventory updated for PO #{poId}. GRN {newGrnNumber} generated successfully.",
-                            "Inventory",
-                            "/app/inventory/grn-list"
-                        );
+                        // 6. NOTIFICATION & LEDGER TRIGGER
+                        try
+                        {
+                            await _notificationRepository.AddNotificationAsync(
+                                "Goods Received",
+                                $"Inventory updated for PO #{poId}. GRN {newGrnNumber} generated successfully.",
+                                "Inventory",
+                                "/app/inventory/grn-list"
+                            );
+
+                            await _supplierClient.RecordPurchaseAsync(
+                                poHeader.SupplierId,
+                                grnHeader.TotalAmount,
+                                grnHeader.GRNNumber,
+                                $"Bulk Goods Received for PO #{poHeader.PoNumber} via GRN: {grnHeader.GRNNumber}",
+                                request.CreatedBy
+                            );
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[GRNRepository] Bulk posting error for PO {poId}: {ex.Message}");
+                        }
                     }
 
                     // 6. Update Gate Pass Status (If applicable)
