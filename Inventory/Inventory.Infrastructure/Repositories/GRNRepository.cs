@@ -218,8 +218,9 @@ namespace Inventory.Infrastructure.Repositories
                     // 6. Update Gate Pass Status
                     if (!string.IsNullOrEmpty(header.GatePassNo))
                     {
+                        string cleanGatePassNo = header.GatePassNo.Trim();
                         var gatePass = await _context.GatePasses
-                                                     .FirstOrDefaultAsync(g => g.PassNo == header.GatePassNo);
+                                                     .FirstOrDefaultAsync(g => g.PassNo.Trim() == cleanGatePassNo);
                         if (gatePass != null)
                         {
                             gatePass.Status = 4; // Completed
@@ -731,6 +732,19 @@ namespace Inventory.Infrastructure.Repositories
                             "Inventory",
                             "/app/inventory/grn-list"
                         );
+                    }
+
+                    // 6. Update Gate Pass Status (If applicable)
+                    if (!string.IsNullOrEmpty(request.GatePassNo))
+                    {
+                        string cleanGatePassNo = request.GatePassNo.Trim();
+                        var gatePass = await _context.GatePasses
+                                                     .FirstOrDefaultAsync(g => g.PassNo.Trim() == cleanGatePassNo);
+                        if (gatePass != null)
+                        {
+                            gatePass.Status = 4; // Completed
+                            _context.GatePasses.Update(gatePass);
+                        }
                     }
 
                     await _context.SaveChangesAsync();
