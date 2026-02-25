@@ -18,6 +18,7 @@ namespace Company.Domain.Entities
         public string PrimaryPhone { get; set; } = string.Empty;
         public string? Website { get; set; }
         public string? Message { get; set; } // WhatsApp/SMS reminder message
+        public string? DriverWhatsAppMessage { get; set; } // Custom message for driver tracking
         public bool IsActive { get; set; } = true;
 
         // Foreign Keys

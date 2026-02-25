@@ -63,6 +63,7 @@ namespace Company.Application.Company.Commands.Update.Handler
             profile.PrimaryPhone = cmd.Request.PrimaryPhone;
             profile.Website = cmd.Request.Website;
             profile.Message = cmd.Request.Message;
+            profile.DriverWhatsAppMessage = cmd.Request.DriverWhatsAppMessage;
 
             // 2. Address Update
             if (profile.CompanyAddress != null)

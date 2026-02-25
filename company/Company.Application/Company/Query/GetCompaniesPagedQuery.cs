@@ -28,6 +28,7 @@ namespace Company.Application.Company.Queries
                 data.PrimaryPhone,
                 data.Website,
                 data.Message,
+                data.DriverWhatsAppMessage,
                 data.IsActive,
                 new AddressDto(
                     data.CompanyAddress.Id,

@@ -12,6 +12,7 @@
         string PrimaryPhone,
         string? Website,
         string? Message,
+        string? DriverWhatsAppMessage,
         bool IsActive,
         AddressDto Address, // Aapke request ke hisaab se name match
         BankDetailDto BankInfo,
@@ -58,6 +59,7 @@
         string PrimaryPhone,
         string? Website,
         string? Message,
+        string? DriverWhatsAppMessage,
         AddressDto Address,
         BankDetailDto BankInfo,
         List<AuthorizedSignatoryDto> AuthorizedSignatories

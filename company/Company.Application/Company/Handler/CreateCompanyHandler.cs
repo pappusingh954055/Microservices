@@ -58,6 +58,7 @@ namespace Company.Application.Company.Commands.Create.Handler
                 PrimaryPhone = cmd.Request.PrimaryPhone,
                 Website = cmd.Request.Website,
                 Message = cmd.Request.Message,
+                DriverWhatsAppMessage = cmd.Request.DriverWhatsAppMessage,
                 IsActive = true,
 
                 CompanyAddress = new Address
