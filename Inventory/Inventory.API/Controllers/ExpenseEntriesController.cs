@@ -19,7 +19,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetList([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 50, [FromQuery] string? search = null)
     {
         var query = _context.ExpenseEntries
@@ -44,7 +44,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _context.ExpenseEntries
@@ -56,7 +56,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Create(ExpenseEntry entry)
     {
         _context.ExpenseEntries.Add(entry);
@@ -65,7 +65,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Update(int id, ExpenseEntry entry)
     {
         if (id != entry.Id) return BadRequest();
@@ -87,7 +87,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var entry = await _context.ExpenseEntries.FindAsync(id);
@@ -99,7 +99,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpPost("chart-data")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetChartData([FromBody] DashboardFilter filters)
     {
         var query = _context.ExpenseEntries
@@ -125,7 +125,7 @@ public class ExpenseEntriesController : ControllerBase
     }
 
     [HttpGet("monthly-totals")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetMonthlyTotals([FromQuery] int months = 6)
     {
         var startDate = DateTime.Today.AddMonths(-(months - 1));

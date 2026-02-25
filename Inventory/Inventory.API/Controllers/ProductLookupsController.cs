@@ -15,7 +15,7 @@ public sealed class ProductLookupsController : ControllerBase
 
     // ✅ Page-load API
     [HttpGet]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetLookups()
     {
         var result = await _mediator.Send(new GetProductLookupsQuery());

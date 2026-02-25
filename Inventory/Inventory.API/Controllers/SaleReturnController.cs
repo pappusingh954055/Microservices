@@ -39,7 +39,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("list")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetSaleReturns(
     [FromQuery] string? search,
     [FromQuery] string? status, // Naya Parameter
@@ -57,7 +57,7 @@ namespace Inventory.API.Controllers;
 
 
     [HttpPost("create")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Create([FromBody] CreateSaleReturnDto dto)
     {
         var result = await _mediator.Send(new CreateSaleReturnCommand(dto));
@@ -65,7 +65,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("print/{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Print(int id)
     {
         var printData = await _service.GetPrintDataAsync(id);
@@ -80,7 +80,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("print-data/{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetPrintData(int id)
     {
         var data = await _service.GetPrintDataAsync(id);
@@ -93,7 +93,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("export-excel")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> ExportExcel([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate)
     {
         var content = await _service.GenerateExcelExportAsync(fromDate, toDate);
@@ -103,7 +103,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("summary")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<ActionResult<SaleReturnSummaryDto>> GetSummary()
     {
         var summary = await _repo.GetDashboardSummaryAsync();
@@ -111,7 +111,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("pending-returns")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetPendingReturns()
     {
         var result = await _repo.GetPendingSaleReturnsAsync();
@@ -119,7 +119,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpGet("details/{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _repo.GetSaleReturnByIdAsync(id);
@@ -128,7 +128,7 @@ namespace Inventory.API.Controllers;
     }
 
     [HttpPost("bulk-inward")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> BulkInward([FromBody] List<int> ids)
     {
         if (ids == null || !ids.Any()) return BadRequest("No IDs provided");

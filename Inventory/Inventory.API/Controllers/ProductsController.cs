@@ -34,7 +34,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Create(CreateProductCommand command)
         {
             var id = await _mediator.Send(command);
@@ -46,7 +46,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Update(
         Guid id,
         UpdateProductCommand command)
@@ -67,7 +67,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -83,7 +83,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _mediator.Send(new GetProductByIdQuery(id));
@@ -91,7 +91,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetProductsQuery());
@@ -99,7 +99,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("paged")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetPaged(
             [FromQuery] GridRequest request)
         {
@@ -111,7 +111,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-delete")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             await _mediator.Send(new BulkDeleteProductCommand(ids));
@@ -124,7 +124,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("search")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Search([FromQuery] string term)
         {
             // Mediator query ko Handler tak pahuchayega
@@ -133,7 +133,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("rate")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetRate([FromQuery] Guid productId, [FromQuery] Guid priceListId)
         {
 
@@ -143,7 +143,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("low-stock")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<ActionResult<IEnumerable<LowStockProductDto>>> GetLowStock()
         {
             var products = await _productRepository.GetLowStockProductsAsync();
@@ -162,7 +162,7 @@ namespace Inventory.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("export-low-stock")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> ExportLowStock()
         {
             var data = await _productRepository.GetLowStockExportDataAsync();
@@ -221,7 +221,7 @@ namespace Inventory.API.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("export-low-stock-pdf")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> ExportLowStockPdf()
         {
             // 1. Excel wala hi Repository method call karein
@@ -313,7 +313,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("upload-excel")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> UploadExcel(IFormFile file)
         {
             if (file == null || file.Length == 0) return BadRequest("Please upload an excel file.");
@@ -328,7 +328,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("check-duplicate")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> CheckDuplicate([FromQuery] string name, [FromQuery] Guid? excludeId = null)
         {
             if (string.IsNullOrWhiteSpace(name))

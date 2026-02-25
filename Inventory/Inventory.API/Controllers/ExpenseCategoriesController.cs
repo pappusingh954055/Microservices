@@ -18,7 +18,7 @@ public class ExpenseCategoriesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetAll()
     {
         var result = await _context.ExpenseCategories
@@ -29,7 +29,7 @@ public class ExpenseCategoriesController : ControllerBase
     }
 
     [HttpPost("all")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetAllPost()
     {
         var result = await _context.ExpenseCategories
@@ -40,7 +40,7 @@ public class ExpenseCategoriesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetById(int id)
     {
         var result = await _context.ExpenseCategories.FindAsync(id);
@@ -49,7 +49,7 @@ public class ExpenseCategoriesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Create(ExpenseCategory category)
     {
         _context.ExpenseCategories.Add(category);
@@ -58,7 +58,7 @@ public class ExpenseCategoriesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Update(int id, ExpenseCategory category)
     {
         if (id != category.Id) return BadRequest();
@@ -76,7 +76,7 @@ public class ExpenseCategoriesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Delete(int id)
     {
         var category = await _context.ExpenseCategories.FindAsync(id);

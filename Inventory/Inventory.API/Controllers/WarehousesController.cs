@@ -22,7 +22,7 @@ public sealed class WarehousesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse,Super Admin")]
     public async Task<IActionResult> Create(CreateWarehouseCommand command)
     {
         var id = await _mediator.Send(command);
@@ -30,7 +30,7 @@ public sealed class WarehousesController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Update(Guid id, UpdateWarehouseCommand command)
     {
         if (id != command.Id)
@@ -41,7 +41,7 @@ public sealed class WarehousesController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteWarehouseCommand(id));
@@ -49,7 +49,7 @@ public sealed class WarehousesController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetAll()
     {
         var result = await _mediator.Send(new GetWarehousesQuery());

@@ -27,7 +27,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Create(CreateSubcategoryCommand command)
         {
             var id = await _mediator.Send(command);
@@ -39,7 +39,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Update(
           Guid id,
           UpdateSubcategoryCommand command)
@@ -60,7 +60,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Delete(Guid id)
         {
             var result = await _mediator.Send(
@@ -76,7 +76,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("{id:guid}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetById(Guid id)
         {
             var result = await _mediator.Send(new GetSubcategoryByIdQuery(id));
@@ -84,7 +84,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetAll()
         {
             var result = await _mediator.Send(new GetSubcategoriesQuery());
@@ -92,7 +92,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("by-category/{categoryId}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetByCategory(Guid categoryId)
         {
             var result = await _mediator.Send(
@@ -102,7 +102,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("paged")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetPaged(
             [FromBody] GridRequest request)
         {
@@ -114,7 +114,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-delete")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> BulkDelete([FromBody] List<Guid> ids)
         {
             await _mediator.Send(new BulkDeleteSubCategoriesCommand(ids));
@@ -127,7 +127,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("upload-excel")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> UploadExcel(IFormFile file)
         {
             if (file == null || file.Length == 0) return BadRequest("Please upload an excel file.");
@@ -142,7 +142,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("check-duplicate")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> CheckDuplicate([FromQuery] string name, [FromQuery] Guid? excludeId = null)
         {
             if (string.IsNullOrWhiteSpace(name))

@@ -22,7 +22,7 @@ public sealed class RacksController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Create(CreateRackCommand command)
     {
         var id = await _mediator.Send(command);
@@ -30,7 +30,7 @@ public sealed class RacksController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Update(Guid id, UpdateRackCommand command)
     {
         if (id != command.Id)
@@ -41,7 +41,7 @@ public sealed class RacksController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> Delete(Guid id)
     {
         await _mediator.Send(new DeleteRackCommand(id));
@@ -49,7 +49,7 @@ public sealed class RacksController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+    [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
     public async Task<IActionResult> GetAll()
     {
         var result = await _mediator.Send(new GetRacksQuery());

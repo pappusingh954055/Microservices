@@ -21,7 +21,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("Save")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Super Admin, Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> Save([FromBody] CreateGRNCommand command)
         {
            
@@ -41,7 +41,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("GetPOData")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Super Admin, Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPOData([FromQuery] string poIds, [FromQuery] int? grnHeaderId = null, [FromQuery] string? gatePassNo = null)
         {
             // Mediator query mein ab string poIds jayenge
@@ -51,7 +51,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("grn-list")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Super Admin, Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetGRNList(
         [FromQuery] string? search = "",
         [FromQuery] string? sortField = "id", // Default value rakhein
@@ -65,7 +65,7 @@ namespace Inventory.API.Controllers
 
 
         [HttpGet("print-data/{grnNumber}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Super Admin, Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> GetPrintData(string grnNumber)
         {
             // String parameter receive kar rahe hain
@@ -78,7 +78,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("bulk-create")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Super Admin, Admin, User, Manager, Employee, Warehouse")]
         public async Task<IActionResult> CreateBulkGrn([FromBody] BulkGrnRequestDto request)
         {
             if (request.PurchaseOrderIds == null || !request.PurchaseOrderIds.Any())

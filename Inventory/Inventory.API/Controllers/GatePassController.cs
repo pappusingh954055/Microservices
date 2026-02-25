@@ -25,7 +25,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("Save")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Create(CreateGatePassCommand command)
         {
             try 
@@ -43,7 +43,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpPost("GetPaged")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetPaged(GetGatePassesQuery query)
         {
             var result = await _mediator.Send(query);
@@ -51,7 +51,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> GetById(int id)
         {
             var result = await _mediator.Send(new GetGatePassByIdQuery(id));
@@ -60,7 +60,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpGet("CheckDuplicate")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> CheckDuplicate([FromQuery] string referenceNo, [FromQuery] string passType)
         {
             var result = await _mediator.Send(new CheckDuplicateGatePassQuery(referenceNo, passType));
@@ -68,7 +68,7 @@ namespace Inventory.API.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse, Super Admin")]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _mediator.Send(new DeleteGatePassCommand(id));
