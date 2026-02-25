@@ -40,7 +40,9 @@ public sealed class GetProductByIdQueryHandler
             description = p.Description,
             createdBy = p.CreatedBy,
             damagedStock = p.DamagedStock,
-            productType = int.TryParse(p.ProductType, out var type) ? type : 1
+            productType = int.TryParse(p.ProductType, out var type) ? type : 1,
+            defaultWarehouseId = p.DefaultWarehouseId,
+            defaultRackId = p.DefaultRackId
         };
     }
 }

@@ -29,7 +29,10 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
     public async Task<List<RejectedItemDto>> GetRejectedItemsBySupplierAsync(int supplierId)
     {
         // Robusted query: Fetching directly from GRN details to avoid join failures with PO [cite: PR List Fix]
-        var query = from gd in _context.GRNDetails.Include(x => x.Product)
+        var query = from gd in _context.GRNDetails
+                        .Include(x => x.Product)
+                        .Include(x => x.Warehouse)
+                        .Include(x => x.Rack)
                     join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
                     where gh.SupplierId == supplierId && gd.RejectedQty > 0
                     select new RejectedItemDto
@@ -41,7 +44,9 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         Rate = gd.UnitRate, // Using rate from GRN directly
                         GstPercent = gd.GstPercent,
                         DiscountPercent = gd.DiscountPercent,
-                        CurrentStock = gd.Product != null ? gd.Product.CurrentStock : 0
+                        CurrentStock = gd.Product != null ? gd.Product.CurrentStock : 0,
+                        WarehouseName = gd.Warehouse != null ? gd.Warehouse.Name : "N/A",
+                        RackName = gd.Rack != null ? gd.Rack.Name : "N/A"
                     };
 
         return await query.ToListAsync();
@@ -74,7 +79,10 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
     public async Task<List<ReceivedStockDto>> GetReceivedStockBySupplierAsync(int supplierId)
     {
         // accepted stock fetch [cite: PR List Fix]
-        var query = from gd in _context.GRNDetails.Include(x => x.Product)
+        var query = from gd in _context.GRNDetails
+                        .Include(x => x.Product)
+                        .Include(x => x.Warehouse)
+                        .Include(x => x.Rack)
                     join gh in _context.GRNHeaders on gd.GRNHeaderId equals gh.Id
                     where gh.SupplierId == supplierId && (gd.ReceivedQty - gd.RejectedQty) > 0
                     select new ReceivedStockDto
@@ -87,7 +95,9 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         GstPercent = gd.GstPercent,
                         DiscountPercent = gd.DiscountPercent,
                         ReceivedDate = gh.ReceivedDate,
-                        CurrentStock = gd.Product != null ? gd.Product.CurrentStock : 0
+                        CurrentStock = gd.Product != null ? gd.Product.CurrentStock : 0,
+                        WarehouseName = gd.Warehouse != null ? gd.Warehouse.Name : "N/A",
+                        RackName = gd.Rack != null ? gd.Rack.Name : "N/A"
                     };
 
         var result = await query
@@ -149,8 +159,12 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
                         totalHeaderTax += itemTax;
                     }
 
-                    // Stock Update
+                    // Stock Update Logic: 
+                    // Calculate how much we are taking from 'Accepted' (CurrentStock) vs 'Rejected' bucket
+                    decimal initialRejectedQty = grnDetail.RejectedQty;
                     decimal qtyToReturn = item.ReturnQty;
+
+                    // 1. Update GRN Detail counts (Deducting from Total Received)
                     if (grnDetail.RejectedQty >= qtyToReturn)
                     {
                         grnDetail.RejectedQty -= qtyToReturn;
@@ -167,13 +181,21 @@ public class PurchaseReturnRepository : Inventory.Application.Common.Interfaces.
 
                     _context.GRNDetails.Update(grnDetail);
 
-                    var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId);
-                    if (product != null)
+                    // 2. Update Product Master Stock
+                    // CurrentStock in Product table ONLY tracks Accepted (sellable) items.
+                    // If we return items that were previously rejected, they don't affect CurrentStock.
+                    decimal deductionFromCurrentStock = Math.Max(0, qtyToReturn - initialRejectedQty);
+
+                    if (deductionFromCurrentStock > 0)
                     {
-                        product.CurrentStock -= item.ReturnQty;
-                        _context.Products.Update(product);
+                        var product = await _context.Products.FirstOrDefaultAsync(p => p.Id == item.ProductId);
+                        if (product != null)
+                        {
+                            product.CurrentStock -= deductionFromCurrentStock;
+                            _context.Products.Update(product);
+                        }
                     }
-                }
+                } // End Foreach
 
                 returnData.SubTotal = totalHeaderSubTotal;
                 returnData.TotalTax = totalHeaderTax;

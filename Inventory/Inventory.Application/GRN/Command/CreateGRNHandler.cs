@@ -39,6 +39,8 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             GstPercent = i.GstPercent,
             TaxAmount = i.TaxAmount,
             Total = i.TotalAmount,
+            WarehouseId = i.WarehouseId,
+            RackId = i.RackId,
             UpdatedOn = DateTime.Now
         }).ToList();
 

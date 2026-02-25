@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Inventory.Application.Unit.DTOs
+namespace Inventory.Application.Units.DTOs
 {
     public class UnitRequestDto
     {

@@ -1,4 +1,8 @@
-﻿public interface IUnitRepository
+﻿using Inventory.Domain.Entities;
+
+namespace Inventory.Application.Common.Interfaces;
+
+public interface IUnitRepository
 {
     Task<UnitMaster> GetByIdAsync(int id);
     Task<IEnumerable<UnitMaster>> GetAllAsync();

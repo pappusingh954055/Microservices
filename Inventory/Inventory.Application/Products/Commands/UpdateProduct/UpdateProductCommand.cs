@@ -21,5 +21,7 @@ public sealed record UpdateProductCommand(
     string updatedby,
     decimal saleRate,
     string productType,
-    decimal damagedStock
+    decimal damagedStock,
+    Guid? defaultwarehouseid,
+    Guid? defaultrackid
 ) : IRequest<Guid>;

@@ -8,4 +8,6 @@
     public decimal GstPercent { get; set; }
     public decimal DiscountPercent { get; set; }
     public decimal CurrentStock { get; set; }
+    public string? WarehouseName { get; set; }
+    public string? RackName { get; set; }
 }

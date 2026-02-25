@@ -275,7 +275,8 @@ public class SaleOrderRepository : ISaleOrderRepository
                     DiscountPercent = oi.DiscountPercent,
                     GstPercent = oi.GSTPercent,
                     TaxAmount = oi.TaxAmount,
-                    Total = oi.Total
+                    Total = oi.Total,
+                    RackName = _context.Products.Where(p => p.Id == oi.ProductId).Select(p => p.DefaultRack != null ? p.DefaultRack.Name : "N/A").FirstOrDefault()
                 }).ToList()
             })
             .FirstOrDefaultAsync();

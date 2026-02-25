@@ -38,7 +38,9 @@ public sealed class CreateProductCommandHandler
             request.createdby,
             request.saleRate,
             request.productType,
-            request.damagedStock
+            request.damagedStock,
+            request.defaultwarehouseid,
+            request.defaultrackid
         )
         {
 

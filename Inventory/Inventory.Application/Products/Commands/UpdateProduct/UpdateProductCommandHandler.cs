@@ -44,7 +44,9 @@ internal sealed class UpdateProductCommandHandler
             request.description,
             request.updatedby,
             request.productType,
-            request.damagedStock
+            request.damagedStock,
+            request.defaultwarehouseid,
+            request.defaultrackid
             
         );
 

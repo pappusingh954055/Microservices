@@ -8,5 +8,7 @@ public record GetCurrentStockCommand(
     int PageIndex,
     int PageSize,
     DateTime? StartDate, // Added
-    DateTime? EndDate    // Added
+    DateTime? EndDate,    // Added
+    Guid? WarehouseId = null,
+    Guid? RackId = null
 ) : IRequest<StockPagedResponseDto>;

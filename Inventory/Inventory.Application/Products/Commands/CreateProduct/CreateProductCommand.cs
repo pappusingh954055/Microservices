@@ -18,5 +18,7 @@ public sealed record CreateProductCommand(
     string? description,
     string createdby,
     string productType,
-    decimal damagedStock
+    decimal damagedStock,
+    Guid? defaultwarehouseid,
+    Guid? defaultrackid
 ) : IRequest<Guid>;

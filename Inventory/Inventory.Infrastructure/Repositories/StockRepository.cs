@@ -312,7 +312,9 @@ namespace Inventory.Infrastructure.Repositories
     int pageIndex,
     int pageSize,
     DateTime? startDate = null,
-    DateTime? endDate = null)
+    DateTime? endDate = null,
+    Guid? warehouseId = null,
+    Guid? rackId = null)
         {
             // STEP 1: Base Query - GRNDetails se start karenge traceability ke liye
             var baseQuery = _context.GRNDetails.AsNoTracking().AsQueryable();
@@ -322,6 +324,11 @@ namespace Inventory.Infrastructure.Repositories
             if (endDate.HasValue)
                 baseQuery = baseQuery.Where(x => x.GRNHeader.ReceivedDate <= endDate.Value);
 
+            if (warehouseId.HasValue && warehouseId.Value != Guid.Empty)
+                baseQuery = baseQuery.Where(x => x.WarehouseId == warehouseId.Value);
+            if (rackId.HasValue && rackId.Value != Guid.Empty)
+                baseQuery = baseQuery.Where(x => x.RackId == rackId.Value);
+
             // STEP 2: Grouping Logic - Product wise aggregate [cite: 2026-02-04]
             var groupedQuery = baseQuery
                 .GroupBy(g => new
@@ -330,8 +337,11 @@ namespace Inventory.Infrastructure.Repositories
                     ProductName = g.Product.Name,
                     UnitName = g.Product.Unit,
                     MinStock = g.Product.MinStock,
-                    // DIRECT LINK: Products table ka CurrentStock column
-                    ActualCurrentStock = g.Product.CurrentStock
+                    ActualCurrentStock = g.Product.CurrentStock,
+                    g.WarehouseId,
+                    WarehouseName = g.Warehouse != null ? g.Warehouse.Name : "N/A",
+                    g.RackId,
+                    RackName = g.Rack != null ? g.Rack.Name : "N/A"
                 })
                 .Select(group => new StockSummaryDto
                 {
@@ -340,12 +350,17 @@ namespace Inventory.Infrastructure.Repositories
                     Unit = group.Key.UnitName,
                     MinStockLevel = group.Key.MinStock,
 
-                    // TotalReceived: GRN se total kitna aaya
+                    WarehouseId = group.Key.WarehouseId,
+                    WarehouseName = group.Key.WarehouseName,
+                    RackId = group.Key.RackId,
+                    RackName = group.Key.RackName,
+
+                    // TotalReceived: GRN se total kitna aaya for this location
                     TotalReceived = group.Sum(x => x.ReceivedQty),
                     TotalRejected = group.Sum(x => x.RejectedQty),
 
-                    // AvailableStock: Database Column se real-time available stock
-                    AvailableStock = group.Key.ActualCurrentStock,
+                    // AvailableStock: Inward balance for this specific location
+                    AvailableStock = group.Sum(x => x.ReceivedQty - x.RejectedQty),
 
                     LastRate = group.OrderByDescending(x => x.Id).Select(x => x.UnitRate).FirstOrDefault(),
                     LastPurchaseOrderId = group.OrderByDescending(x => x.Id).Select(x => x.GRNHeader.PurchaseOrderId).FirstOrDefault()
@@ -376,14 +391,17 @@ namespace Inventory.Infrastructure.Repositories
                                 (si.SaleOrder.Status == "Confirmed" || si.SaleOrder.Status == "Completed"))
                     .SumAsync(si => (decimal?)si.Qty) ?? 0;
 
-                // 2. Sale Return fetch karein (Net Sale calculate karne ke liye) [cite: 2026-02-06]
+                // 2. Sale Return fetch karein (Confirmed returns only)
                 var totalSaleReturn = await _context.SaleReturnItems
-                    .Where(sri => sri.ProductId == item.ProductId)
+                    .Where(sri => sri.ProductId == item.ProductId && sri.SaleReturnHeader.Status == "Confirmed")
                     .SumAsync(sri => (decimal?)sri.ReturnQty) ?? 0;
 
-                // 3. Update TotalSold with Net Value (Sold - Return)
-                // Dashboard ab 6 sold - 2 return = 4 Net Sold dikhayega [cite: 2026-02-06]
+                // 4. Update Net Stats
                 item.TotalSold = grossSold - totalSaleReturn;
+                
+                // 🎯 5. Final Stock Update: (GRN Received - Rej) - Net Sold
+                // Purchase Return is already deducted from GRNDetails by PurchaseReturnRepository, so we don't subtract it again.
+                item.AvailableStock = (item.TotalReceived - item.TotalRejected) - item.TotalSold;
 
                 // 4. Audit Trail Logic (History list)
                 item.History = await _context.GRNDetails
@@ -398,7 +416,9 @@ namespace Inventory.Infrastructure.Repositories
                         SupplierName = allG.GRNHeader.PurchaseOrder.SupplierName,
                         ProductName = allG.Product.Name,
                         ReceivedQty = allG.ReceivedQty,
-                        RejectedQty = allG.RejectedQty
+                        RejectedQty = allG.RejectedQty,
+                        WarehouseName = allG.Warehouse != null ? allG.Warehouse.Name : "N/A",
+                        RackName = allG.Rack != null ? allG.Rack.Name : "N/A"
                     }).ToListAsync();
             }
 
@@ -418,10 +438,14 @@ namespace Inventory.Infrastructure.Repositories
                     x.ProductId,
                     ProductName = x.Product.Name,
                     MinLevel = x.Product.MinStock,
-                    ActualStock = x.Product.CurrentStock
+                    ActualStock = x.Product.CurrentStock,
+                    WarehouseName = x.Warehouse != null ? x.Warehouse.Name : "N/A",
+                    RackName = x.Rack != null ? x.Rack.Name : "N/A"
                 })
                 .Select(g => new {
                     ProductName = g.Key.ProductName,
+                    WarehouseName = g.Key.WarehouseName,
+                    RackName = g.Key.RackName,
                     TotalReceived = g.Sum(x => x.ReceivedQty),
                     TotalRejected = g.Sum(x => x.RejectedQty),
                     AvailableStock = g.Key.ActualStock,
@@ -435,7 +459,7 @@ namespace Inventory.Infrastructure.Repositories
                 var worksheet = workbook.Worksheets.Add("Current Stock");
 
                 // 1. Header Styling
-                string[] headers = { "Product Name", "Total Received", "Rejected", "Current Stock", "Value (Avg)", "Total Value" };
+                string[] headers = { "Product Name", "Warehouse", "Rack", "Total Received", "Rejected", "Current Stock", "Value (Avg)", "Total Value" };
                 var headerRow = worksheet.Row(1);
                 for (int i = 0; i < headers.Length; i++)
                 {
@@ -452,10 +476,12 @@ namespace Inventory.Infrastructure.Repositories
                 foreach (var item in stockData)
                 {
                     worksheet.Cell(row, 1).Value = item.ProductName;
-                    worksheet.Cell(row, 2).Value = item.TotalReceived;
-                    worksheet.Cell(row, 3).Value = item.TotalRejected;
+                    worksheet.Cell(row, 2).Value = item.WarehouseName;
+                    worksheet.Cell(row, 3).Value = item.RackName;
+                    worksheet.Cell(row, 4).Value = item.TotalReceived;
+                    worksheet.Cell(row, 5).Value = item.TotalRejected;
 
-                    var stockCell = worksheet.Cell(row, 4);
+                    var stockCell = worksheet.Cell(row, 6);
                     stockCell.Value = item.AvailableStock;
 
                     // 2. RED COLOR LOGIC: Agar stock MinLevel se kam hai
@@ -466,31 +492,31 @@ namespace Inventory.Infrastructure.Repositories
                     }
 
                     // Rate Column
-                    var rateCell = worksheet.Cell(row, 5);
+                    var rateCell = worksheet.Cell(row, 7);
                     rateCell.Value = item.LastRate;
                     rateCell.Style.NumberFormat.Format = "₹ #,##0.00";
 
                     // Total Value Calculation
-                    var totalValCell = worksheet.Cell(row, 6);
-                    totalValCell.FormulaA1 = $"=D{row}*E{row}";
+                    var totalValCell = worksheet.Cell(row, 8);
+                    totalValCell.FormulaA1 = $"=F{row}*G{row}";
                     totalValCell.Style.NumberFormat.Format = "₹ #,##0.00";
 
                     // 3. ZEBRA STRIPES: Har alternate row par halka grey color
                     if (row % 2 != 0)
                     {
                         // Range select karke poori row ka color set karein
-                        worksheet.Range(row, 1, row, 6).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#F9FAFB"));
+                        worksheet.Range(row, 1, row, 8).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#F9FAFB"));
                     }
                     row++;
                 }
 
                 // 4. Grand Total Styling
                 int lastDataRow = row - 1;
-                worksheet.Cell(row, 5).Value = "Total Inventory Value:";
-                worksheet.Cell(row, 5).Style.Font.Bold = true;
+                worksheet.Cell(row, 7).Value = "Total Inventory Value:";
+                worksheet.Cell(row, 7).Style.Font.Bold = true;
 
-                var grandTotalCell = worksheet.Cell(row, 6);
-                grandTotalCell.FormulaA1 = $"=SUM(F2:F{lastDataRow})";
+                var grandTotalCell = worksheet.Cell(row, 8);
+                grandTotalCell.FormulaA1 = $"=SUM(H2:H{lastDataRow})";
                 grandTotalCell.Style.Font.Bold = true;
                 grandTotalCell.Style.Fill.SetBackgroundColor(XLColor.FromHtml("#F1F5F9"));
                 grandTotalCell.Style.NumberFormat.Format = "₹ #,##0.00";

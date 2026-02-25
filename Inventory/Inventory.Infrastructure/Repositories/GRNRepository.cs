@@ -178,6 +178,21 @@ namespace Inventory.Infrastructure.Repositories
                             product.ModifiedBy = header.CreatedBy;
                             _context.Products.Update(product);
 
+                            // 🆕 Record Inventory Transaction
+                            var transactionRecord = new InventoryTransaction(
+                                item.ProductId,
+                                qtyToIncrease,
+                                "GRN",
+                                header.GRNNumber,
+                                item.WarehouseId,
+                                item.RackId
+                            );
+                            // Note: Since header.Id is int and InventoryTransaction.ReferenceId is Guid, 
+                            // we might need to adjust or just store it as string if needed.
+                            // For now, using Guid.Empty or making it flexible.
+                            
+                            await _context.InventoryTransactions.AddAsync(transactionRecord);
+
                             // Low Stock Alert check
                             if (product.CurrentStock <= product.MinStock)
                             {
@@ -341,7 +356,9 @@ namespace Inventory.Infrastructure.Repositories
                                  PendingQty = d.OrderedQty - (d.ReceivedQty - d.RejectedQty), 
                                  DiscountPercent = poi.DiscountPercent,
                                  GstPercent = poi.GstPercent,
-                                 TaxAmount = (d.ReceivedQty - d.RejectedQty) * d.UnitRate * (poi.GstPercent / 100)
+                                 TaxAmount = (d.ReceivedQty - d.RejectedQty) * d.UnitRate * (poi.GstPercent / 100),
+                                 WarehouseId = d.WarehouseId,
+                                 RackId = d.RackId
                              }).ToListAsync();
             }
             else
@@ -400,7 +417,9 @@ namespace Inventory.Infrastructure.Repositories
                             TaxAmount = (proposedRecv * d.Rate * (1 - d.DiscountPercent / 100)) * (d.GstPercent / 100),
                             IsReplacement = returnLookup.ContainsKey(d.ProductId),
                             PONumber = po.PoNumber,
-                            POId = po.Id
+                            POId = po.Id,
+                            WarehouseId = d.Product?.DefaultWarehouseId,
+                            RackId = d.Product?.DefaultRackId
                         });
                     }
                 }
@@ -698,10 +717,26 @@ namespace Inventory.Infrastructure.Repositories
                                 AcceptedQty = qtyToReceiveNow - rejectedQty,
                                 RejectedQty = rejectedQty,
                                 UnitRate = item.Rate,
+                                WarehouseId = reqItem?.WarehouseId ?? item.Product?.DefaultWarehouseId,
+                                RackId = reqItem?.RackId ?? item.Product?.DefaultRackId,
                                 CreatedBy = request.CreatedBy,
                                 CreatedOn = utcNow
                             };
                             _context.GRNDetails.Add(grnDetail);
+
+                            // 🆕 Record Inventory Transaction for Bulk
+                            if (qtyToReceiveNow - rejectedQty > 0)
+                            {
+                                var transactionRecord = new InventoryTransaction(
+                                    item.ProductId,
+                                    qtyToReceiveNow - rejectedQty,
+                                    "GRN-BULK",
+                                    newGrnNumber,
+                                    grnDetail.WarehouseId,
+                                    grnDetail.RackId
+                                );
+                                await _context.InventoryTransactions.AddAsync(transactionRecord);
+                            }
 
                             grnTotalAmount += (qtyToReceiveNow - rejectedQty) * item.Rate * (1 + (item.GstPercent / 100));
 

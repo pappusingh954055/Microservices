@@ -15,8 +15,10 @@ public class GetCurrentStockHandler : IRequestHandler<GetCurrentStockCommand, St
             request.SortOrder,
             request.PageIndex,
             request.PageSize,
-            request.StartDate, // Pass to Repository
-            request.EndDate    // Pass to Repository
+            request.StartDate,
+            request.EndDate,
+            request.WarehouseId,
+            request.RackId
         );
     }
 }

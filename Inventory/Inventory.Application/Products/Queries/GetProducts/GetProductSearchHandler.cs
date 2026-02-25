@@ -20,6 +20,7 @@ public class GetProductSearchHandler : IRequestHandler<GetProductSearchQuery, Li
         // Hum base query ko AsNoTracking ke saath handle kar rahe hain
         var products = await _context.Products
             .AsNoTracking()
+            .Include(p => p.DefaultRack) // Include Rack for naming
             .Where(p => p.IsActive &&
                         (p.Name.Contains(request.Term) || p.Sku.Contains(request.Term)))
             .ToListAsync(cancellationToken);
@@ -38,23 +39,24 @@ public class GetProductSearchHandler : IRequestHandler<GetProductSearchQuery, Li
 
             productDtos.Add(new ProductSearchResponseDto
             {
-                Id = p.Id,
-                Name = p.Name,
-                IsActive = p.IsActive,
-                BasePurchasePrice = p.BasePurchasePrice,
+                id = p.Id,
+                name = p.Name,
+                isActive = p.IsActive,
+                basePurchasePrice = p.BasePurchasePrice,
                 unit = p.Unit,
                 brand = p.Brand,
                 sku = p.Sku,
                 hsncode = p.HSNCode,
                 mrp = p.MRP,
-                SaleRate = p.SaleRate ?? 0,
+                saleRate = p.SaleRate ?? 0,
 
                 // 🆕 GST Product Master se aur Discount PriceList se
-                GstPercent = p.DefaultGst ?? 0,
-                DiscountPercent = discountPercent,
+                gstPercent = p.DefaultGst ?? 0,
+                discountPercent = discountPercent,
 
                 // STEP 3: DIRECT BINDING WITH DATABASE COLUMN
-                CurrentStock = (decimal)p.CurrentStock
+                currentStock = (decimal)p.CurrentStock,
+                defaultRackName = p.DefaultRack != null ? p.DefaultRack.Name : null
             });
         }
 

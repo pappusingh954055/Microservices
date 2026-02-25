@@ -1,10 +1,13 @@
 ﻿using Inventory.Application.Common.Interfaces;
+using Inventory.Domain.Entities;
 using MediatR;
 using System;
 using System.Collections.Generic;
-using System.Text;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
-namespace Inventory.Application.Unit.Command
+namespace Inventory.Application.Units.Command
 {
     public class CreateBulkUnitsHandler : IRequestHandler<CreateBulkUnitsCommand, bool>
     {
@@ -19,7 +22,8 @@ namespace Inventory.Application.Unit.Command
 
         public async Task<bool> Handle(CreateBulkUnitsCommand request, CancellationToken ct)
         {
-            var existingUnits = (await _repo.GetAllAsync()).Select(u => u.Name.ToLower()).ToHashSet();
+            var existingItems = await _repo.GetAllAsync();
+            var existingUnits = existingItems.Select(u => u.Name.ToLower()).ToHashSet();
             var unitsToAdd = new List<UnitMaster>();
 
             foreach (var item in request.Units)
@@ -42,6 +46,7 @@ namespace Inventory.Application.Unit.Command
             return await _uow.SaveChangesAsync(ct) > 0; 
         }
     }
+
     public class UpdateUnitHandler : IRequestHandler<UpdateUnitCommand, bool>
     {
         private readonly IUnitRepository _repo;

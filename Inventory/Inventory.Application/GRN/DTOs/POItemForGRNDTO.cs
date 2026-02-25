@@ -21,5 +21,7 @@ namespace Inventory.Application.GRN.DTOs
         public string? PONumber { get; set; }
         public int POId { get; set; }
         public bool IsReplacement { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public Guid? RackId { get; set; }
     }
 }

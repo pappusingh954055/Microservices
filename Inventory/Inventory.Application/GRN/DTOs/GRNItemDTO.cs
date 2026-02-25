@@ -17,5 +17,7 @@ namespace Inventory.Application.GRN.DTOs
         public decimal GstPercent { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public Guid? RackId { get; set; }
     }
 }

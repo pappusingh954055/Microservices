@@ -30,6 +30,11 @@ public class Product
     public string ProductType { get; set; } = string.Empty;
     public decimal DamagedStock { get; set; } = 0;
 
+    public Guid? DefaultWarehouseId { get; set; }
+    public virtual Warehouse? DefaultWarehouse { get; set; }
+    public Guid? DefaultRackId { get; set; }
+    public virtual Rack? DefaultRack { get; set; }
+
     private Product() { }
 
     public Product(
@@ -50,7 +55,9 @@ public class Product
         string createdby,
         decimal saleRate,
         string productType,
-        decimal damagedStock
+        decimal damagedStock,
+        Guid? defaultWarehouseId = null,
+        Guid? defaultRackId = null
         )
     {
         Id = Guid.NewGuid();
@@ -72,6 +79,8 @@ public class Product
         CreatedBy = createdby;
         ProductType = productType;
         DamagedStock = damagedStock;
+        DefaultWarehouseId = defaultWarehouseId;
+        DefaultRackId = defaultRackId;
     }
 
     public void Update(        
@@ -93,6 +102,8 @@ public class Product
         string updatedby,
        string ? productType,
        decimal damagedStock,
+       Guid? defaultWarehouseId = null,
+       Guid? defaultRackId = null,
         DateTime? modifiedon = null
         
         )
@@ -115,6 +126,8 @@ public class Product
         ModifiedBy = updatedby;
         ProductType = productType; 
         DamagedStock = damagedStock;
+        DefaultWarehouseId = defaultWarehouseId;
+        DefaultRackId = defaultRackId;
         ModifiedOn = modifiedon ?? DateTime.UtcNow;       
     }
 }

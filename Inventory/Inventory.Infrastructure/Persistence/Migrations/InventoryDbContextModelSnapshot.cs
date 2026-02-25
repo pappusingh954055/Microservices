@@ -235,6 +235,9 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ProductId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("RackId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<decimal>("ReceivedQty")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -258,11 +261,18 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedOn")
                         .HasColumnType("datetime2");
 
+                    b.Property<Guid?>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GRNHeaderId");
 
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("RackId");
+
+                    b.HasIndex("WarehouseId");
 
                     b.ToTable("GRNDetails");
                 });
@@ -411,6 +421,43 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("GatePasses");
                 });
 
+            modelBuilder.Entity("Inventory.Domain.Entities.InventoryTransaction", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<Guid?>("RackId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ReferenceId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("TransactionType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid?>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InventoryTransactions", (string)null);
+                });
+
             modelBuilder.Entity("Inventory.Domain.Entities.PurchaseReturn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -503,6 +550,46 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.HasIndex("PurchaseReturnId");
 
                     b.ToTable("PurchaseReturnItems");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.Rack", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.ToTable("Racks", (string)null);
                 });
 
             modelBuilder.Entity("Inventory.Domain.Entities.SO.SaleOrder", b =>
@@ -791,6 +878,41 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.ToTable("Subcategories", (string)null);
                 });
 
+            modelBuilder.Entity("Inventory.Domain.Entities.Warehouse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ModifiedBy")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("UpdatedOn")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Warehouses", (string)null);
+                });
+
             modelBuilder.Entity("Inventory.Domain.PriceLists.PriceList", b =>
                 {
                     b.Property<Guid>("Id")
@@ -921,6 +1043,12 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)");
 
+                    b.Property<Guid?>("DefaultRackId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("DefaultWarehouseId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("Description")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -977,6 +1105,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");
+
+                    b.HasIndex("DefaultRackId");
+
+                    b.HasIndex("DefaultWarehouseId");
 
                     b.HasIndex("Sku")
                         .IsUnique();
@@ -1166,9 +1298,21 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Inventory.Domain.Entities.Rack", "Rack")
+                        .WithMany()
+                        .HasForeignKey("RackId");
+
+                    b.HasOne("Inventory.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId");
+
                     b.Navigation("GRNHeader");
 
                     b.Navigation("Product");
+
+                    b.Navigation("Rack");
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Entities.GRNHeader", b =>
@@ -1191,6 +1335,17 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("PurchaseReturn");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.Rack", b =>
+                {
+                    b.HasOne("Inventory.Domain.Entities.Warehouse", "Warehouse")
+                        .WithMany("Racks")
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Warehouse");
                 });
 
             modelBuilder.Entity("Inventory.Domain.Entities.SO.SaleOrderItem", b =>
@@ -1272,6 +1427,16 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("Inventory.Domain.Entities.Rack", "DefaultRack")
+                        .WithMany()
+                        .HasForeignKey("DefaultRackId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("Inventory.Domain.Entities.Warehouse", "DefaultWarehouse")
+                        .WithMany()
+                        .HasForeignKey("DefaultWarehouseId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("Inventory.Domain.Entities.Subcategory", "Subcategory")
                         .WithMany()
                         .HasForeignKey("SubcategoryId")
@@ -1279,6 +1444,10 @@ namespace Inventory.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Category");
+
+                    b.Navigation("DefaultRack");
+
+                    b.Navigation("DefaultWarehouse");
 
                     b.Navigation("Subcategory");
                 });
@@ -1341,6 +1510,11 @@ namespace Inventory.Infrastructure.Persistence.Migrations
             modelBuilder.Entity("Inventory.Domain.Entities.SaleReturnHeader", b =>
                 {
                     b.Navigation("ReturnItems");
+                });
+
+            modelBuilder.Entity("Inventory.Domain.Entities.Warehouse", b =>
+                {
+                    b.Navigation("Racks");
                 });
 
             modelBuilder.Entity("Inventory.Domain.PriceLists.PriceList", b =>

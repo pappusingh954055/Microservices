@@ -22,5 +22,9 @@ namespace Inventory.Domain.Entities
         public decimal GstPercent { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal Total { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public Warehouse? Warehouse { get; set; }
+        public Guid? RackId { get; set; }
+        public Rack? Rack { get; set; }
     }
 }

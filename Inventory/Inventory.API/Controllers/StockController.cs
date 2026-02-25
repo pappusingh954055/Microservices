@@ -24,13 +24,15 @@ namespace Inventory.API.Controllers
            [FromQuery] string? search,
            [FromQuery] string? sortField,
            [FromQuery] string? sortOrder,
-           [FromQuery] DateTime? startDate, // Naya parameter
-           [FromQuery] DateTime? endDate,   // Naya parameter
+           [FromQuery] DateTime? startDate,
+           [FromQuery] DateTime? endDate,
+           [FromQuery] Guid? warehouseId,
+           [FromQuery] Guid? rackId,
            [FromQuery] int pageIndex = 0,
            [FromQuery] int pageSize = 10)
         {
             // Dates ko bhi command mein pass karein
-            var command = new GetCurrentStockCommand(search, sortField, sortOrder, pageIndex, pageSize, startDate, endDate);
+            var command = new GetCurrentStockCommand(search, sortField, sortOrder, pageIndex, pageSize, startDate, endDate, warehouseId, rackId);
             var result = await _mediator.Send(command);
             return Ok(result);
         }

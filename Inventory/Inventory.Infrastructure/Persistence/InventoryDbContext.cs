@@ -39,6 +39,9 @@ public sealed class InventoryDbContext : DbContext,
     public DbSet<ExpenseEntry> ExpenseEntries { get; set; }
     public DbSet<GatePass> GatePasses => Set<GatePass>();
     public DbSet<UnitMaster> Units => Set<UnitMaster>();
+    public DbSet<Warehouse> Warehouses => Set<Warehouse>();
+    public DbSet<Rack> Racks => Set<Rack>();
+    public DbSet<InventoryTransaction> InventoryTransactions => Set<InventoryTransaction>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

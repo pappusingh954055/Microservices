@@ -6,20 +6,21 @@ namespace Inventory.Application.Products.DTOs
 {
     public class ProductSearchResponseDto
     {
-        public Guid Id { get; set; }
-        public string? Name { get; set; }
-        public bool? IsActive { get; set; }    
-        public decimal BasePurchasePrice { get; set; }
+        public Guid id { get; set; }
+        public string? name { get; set; }
+        public bool? isActive { get; set; }    
+        public decimal basePurchasePrice { get; set; }
         public string unit { get; set; }
         public string brand { get; set; }
         public string sku { get; set; }
         public string hsncode { get; set; }
         public decimal mrp { get; set; }
         public decimal defaultGst { get; set; }
-        public decimal SaleRate { get; set; } // Sale Order ke liye Price ki jagah Rate
-        public decimal CurrentStock { get; set; } // UI par Stock dikhane ke liye
+        public decimal saleRate { get; set; } 
+        public decimal currentStock { get; set; } 
+        public string? defaultRackName { get; set; }
 
-        public decimal GstPercent { get; set; } = 0;
-        public decimal DiscountPercent { get; set; }
-        }
+        public decimal gstPercent { get; set; } = 0;
+        public decimal discountPercent { get; set; }
+    }
 }

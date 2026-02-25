@@ -119,6 +119,10 @@ internal sealed class GetProductsPagedQueryHandler
                 p.ModifiedOn,
                 p.TrackInventory,
                 p.ProductType,
+                p.DefaultWarehouseId,
+                DefaultWarehouseName = p.DefaultWarehouse != null ? p.DefaultWarehouse.Name : null,
+                p.DefaultRackId,
+                DefaultRackName = p.DefaultRack != null ? p.DefaultRack.Name : null,
 
                 // 🆕 Fetch Discount from PriceListItems (Global logic)
                 DiscountPercent = _context.PriceListItems
@@ -155,7 +159,11 @@ internal sealed class GetProductsPagedQueryHandler
             createdOn = p.CreatedOn,
             modifiedBy = p.ModifiedBy,
             modifiedOn = p.ModifiedOn,
-            trackInventory = p.TrackInventory
+            trackInventory = p.TrackInventory,
+            defaultWarehouseId = p.DefaultWarehouseId,
+            defaultWarehouseName = p.DefaultWarehouseName,
+            defaultRackId = p.DefaultRackId,
+            defaultRackName = p.DefaultRackName
         }).ToList();
 
         return new GridResponse<ProductDto>(items, totalCount);

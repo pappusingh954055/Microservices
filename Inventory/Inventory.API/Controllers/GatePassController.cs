@@ -3,6 +3,7 @@ using Inventory.Application.Common.Models;
 using Inventory.Application.GatePasses.Commands.CreateGatePass;
 using Inventory.Application.GatePasses.Commands.DeleteGatePass;
 using Inventory.Application.GatePasses.DTOs;
+using Inventory.Application.GatePasses.Queries.CheckDuplicateGatePass;
 using Inventory.Application.GatePasses.Queries.GetGatePassById;
 using Inventory.Application.GatePasses.Queries.GetGatePassesPaged;
 using MediatR;
@@ -55,6 +56,14 @@ namespace Inventory.API.Controllers
         {
             var result = await _mediator.Send(new GetGatePassByIdQuery(id));
             if (result == null) return NotFound();
+            return Ok(result);
+        }
+
+        [HttpGet("CheckDuplicate")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        public async Task<IActionResult> CheckDuplicate([FromQuery] string referenceNo, [FromQuery] string passType)
+        {
+            var result = await _mediator.Send(new CheckDuplicateGatePassQuery(referenceNo, passType));
             return Ok(result);
         }
 

@@ -1,9 +1,8 @@
 ﻿using MediatR;
-using System;
 using System.Collections.Generic;
-using System.Text;
+using Inventory.Application.Units.DTOs;
 
-namespace Inventory.Application.Unit.Queries
+namespace Inventory.Application.Units.Queries
 {
-    public record GetAllUnitsQuery() : IRequest<IEnumerable<UnitDto>>;
+    public record GetAllUnitsQuery : IRequest<IEnumerable<Inventory.Application.Units.DTOs.UnitDto>>;
 }

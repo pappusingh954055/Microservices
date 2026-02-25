@@ -9,5 +9,7 @@ namespace Inventory.Application.GRN.DTOs.BULK
         public decimal ReceivedQty { get; set; }
         public decimal RejectedQty { get; set; }
         public decimal UnitRate { get; set; }
+        public Guid? WarehouseId { get; set; }
+        public Guid? RackId { get; set; }
     }
 }

@@ -8,7 +8,9 @@
         public decimal Quantity { get; private set; }
 
         public string TransactionType { get; private set; } = null!;
-        public Guid ReferenceId { get; private set; }
+        public string ReferenceId { get; private set; } = null!;
+        public Guid? WarehouseId { get; private set; }
+        public Guid? RackId { get; private set; }
 
         public DateTime CreatedOn { get; private set; }
 
@@ -18,13 +20,17 @@
             Guid productId,
             decimal quantity,
             string transactionType,
-            Guid referenceId)
+            string referenceId,
+            Guid? warehouseId = null,
+            Guid? rackId = null)
         {
             Id = Guid.NewGuid();
             ProductId = productId;
             Quantity = quantity;
             TransactionType = transactionType;
             ReferenceId = referenceId;
+            WarehouseId = warehouseId;
+            RackId = rackId;
             CreatedOn = DateTime.UtcNow;
         }
     }
