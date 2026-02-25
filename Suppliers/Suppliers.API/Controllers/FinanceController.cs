@@ -70,7 +70,7 @@ namespace Suppliers.API.Controllers
         }
 
         [HttpGet("pending-total")]
-        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse")]
+        [Authorize(Roles = "Admin, User, Manager, Employee, Warehouse,Super Admin")]
         public async Task<IActionResult> GetPendingTotal()
         {
             var total = await _mediator.Send(new GetTotalPendingDuesQuery());
