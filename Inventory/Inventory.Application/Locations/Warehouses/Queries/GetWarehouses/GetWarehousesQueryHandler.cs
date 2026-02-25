@@ -20,6 +20,7 @@ public sealed class GetWarehousesQueryHandler : IRequestHandler<GetWarehousesQue
         return warehouses.Select(w => new WarehouseDto(
             w.Id,
             w.Name,
+            w.City,
             w.Description,
             w.IsActive
         )).ToList();

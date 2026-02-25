@@ -19,6 +19,7 @@ public sealed class CreateWarehouseCommandHandler : IRequestHandler<CreateWareho
     {
         var warehouse = new Warehouse(
             request.Name,
+            request.City,
             request.Description,
             request.IsActive
         );
