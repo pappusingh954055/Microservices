@@ -20,6 +20,7 @@ public class GetAllSuppliersHandler : IRequestHandler<GetAllSuppliersQuery, IEnu
             s.Phone,
             s.GstIn,
             s.Address,
+            s.Email,
             s.IsActive,
             s.CreatetedBy,
             s.DefaultPriceListId

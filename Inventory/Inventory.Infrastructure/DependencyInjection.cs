@@ -58,6 +58,7 @@ namespace Inventory.Infrastructure
             services.AddScoped<ICustomerHttpService, CustomerHttpService>();
 
             services.AddScoped<ISupplierClient, SupplierClient>();
+            services.AddScoped<ICompanyClient, CompanyClient>();
 
             services.AddScoped<INotificationRepository, NotificationRepository>();
             

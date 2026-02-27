@@ -75,6 +75,7 @@ internal sealed class GetSuppliersPagedQueryHandler
                 x.Phone,
                 x.GstIn,
                 x.Address,
+                x.Email,
                 x.IsActive,
                 x.CreatetedBy,
                 x.DefaultPriceListId

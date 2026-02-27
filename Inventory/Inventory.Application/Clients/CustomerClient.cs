@@ -111,5 +111,20 @@ public class CustomerClient : ICustomerClient
             throw new Exception($"Failed to record sale in customer ledger: {error}");
         }
     }
+
+    public async Task<CustomerLookupDto?> GetCustomerByIdAsync(int id)
+    {
+        var client = _httpClientFactory.CreateClient("CustomerService");
+        AddAuthorizationHeader(client);
+
+        var response = await client.GetAsync($"api/customers/{id}");
+
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<CustomerLookupDto>();
+        }
+
+        return null;
+    }
 }
 

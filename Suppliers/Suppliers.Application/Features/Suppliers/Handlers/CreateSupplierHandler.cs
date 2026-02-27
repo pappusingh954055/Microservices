@@ -16,6 +16,7 @@ public class CreateSupplierHandler : IRequestHandler<CreateSupplierCommand, int>
             request.SupplierData.phone,
             request.SupplierData.gstIn,
             request.SupplierData.address,
+            request.SupplierData.email,
             request.SupplierData.createdBy,
             request.SupplierData.isActive,
             request.SupplierData.defaultpricelistId

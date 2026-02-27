@@ -4,6 +4,7 @@
     string phone,
     string? gstIn,
     string? address,
+    string? email,
     bool? isActive,
     string? createdBy,
     Guid? defaultpricelistId
@@ -14,6 +15,7 @@ public record CreateSupplierDto(
     string phone,
     string? gstIn,
     string? address,
+    string? email,
     string? createdBy,
     Guid? defaultpricelistId,
     bool isActive

@@ -21,6 +21,7 @@ public class UpdateSupplierHandler : IRequestHandler<UpdateSupplierCommand, bool
             request.SupplierData.phone,
             request.SupplierData.gstIn,
             request.SupplierData.address,
+            request.SupplierData.email,
             request.SupplierData.isActive,
             request.SupplierData.defaultpricelistId);
 

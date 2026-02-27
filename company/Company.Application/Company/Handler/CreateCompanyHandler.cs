@@ -55,6 +55,12 @@ namespace Company.Application.Company.Commands.Create.Handler
                 Gstin = cmd.Request.Gstin, // Max 15
                 LogoUrl = logoPath, // Physical file ka path
                 PrimaryEmail = cmd.Request.PrimaryEmail,
+                Email = cmd.Request.Email,
+                SmtpEmail = cmd.Request.SmtpEmail,
+                SmtpPassword = cmd.Request.SmtpPassword,
+                SmtpHost = cmd.Request.SmtpHost,
+                SmtpPort = cmd.Request.SmtpPort,
+                SmtpUseSsl = cmd.Request.SmtpUseSsl,
                 PrimaryPhone = cmd.Request.PrimaryPhone,
                 Website = cmd.Request.Website,
                 Message = cmd.Request.Message,
@@ -69,7 +75,8 @@ namespace Company.Application.Company.Commands.Create.Handler
                     State = cmd.Request.Address.State,
                     StateCode = cmd.Request.Address.StateCode, // Max 2
                     PinCode = cmd.Request.Address.PinCode,
-                    Country = cmd.Request.Address.Country ?? "India"
+                    Country = cmd.Request.Address.Country ?? "India",
+                    Email = cmd.Request.Address.Email
                 },
 
                 BankInformation = new BankDetail
@@ -78,7 +85,8 @@ namespace Company.Application.Company.Commands.Create.Handler
                     BranchName = cmd.Request.BankInfo.BranchName,
                     AccountNumber = cmd.Request.BankInfo.AccountNumber,
                     IfscCode = cmd.Request.BankInfo.IfscCode,
-                    AccountType = cmd.Request.BankInfo.AccountType ?? "Current"
+                    AccountType = cmd.Request.BankInfo.AccountType ?? "Current",
+                    Email = cmd.Request.BankInfo.Email
                 },
 
                 AuthorizedSignatories = new List<AuthorizedSignatory>()
@@ -108,6 +116,7 @@ namespace Company.Application.Company.Commands.Create.Handler
                         PersonName = sDto.PersonName,
                         Designation = sDto.Designation,
                         SignatureImageUrl = signaturePath,
+                        Email = sDto.Email,
                         IsDefault = sDto.IsDefault
                     });
                 }

@@ -28,6 +28,7 @@ namespace Suppliers.Application.Features.Suppliers.Handlers
                 supplier.Phone,
                 supplier.GstIn,
                 supplier.Address,
+                supplier.Email,
                 supplier.IsActive,
                 supplier.CreatetedBy,
                 supplier.DefaultPriceListId // Ye value ab frontend console mein dikhegi

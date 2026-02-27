@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace Suppliers.Infrastructure.Data.Migrations
+namespace Suppliers.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(SupplierDbContext))]
-    [Migration("20260215161413_AddFinanceEntities")]
-    partial class AddFinanceEntities
+    [Migration("20260227075133_AddEmailSuppliers")]
+    partial class AddEmailSuppliers
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -43,6 +43,9 @@ namespace Suppliers.Infrastructure.Data.Migrations
 
                     b.Property<Guid?>("DefaultPriceListId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GstIn")
                         .HasColumnType("nvarchar(max)");

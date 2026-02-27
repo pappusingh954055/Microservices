@@ -14,5 +14,6 @@ namespace Inventory.Application.Clients
         Task<List<int>> SearchCustomerIdsByNameAsync(string searchName);
 
         Task RecordSaleAsync(int customerId, decimal amount, string referenceId, string description, string createdBy);
+        Task<CustomerLookupDto?> GetCustomerByIdAsync(int id);
     }
 }

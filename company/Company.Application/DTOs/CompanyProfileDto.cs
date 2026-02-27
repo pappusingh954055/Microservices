@@ -9,6 +9,12 @@
         string Gstin,
         string? LogoUrl,
         string? PrimaryEmail,
+        string? Email,
+        string? SmtpEmail,
+        string? SmtpPassword,
+        string? SmtpHost,
+        int? SmtpPort,
+        bool SmtpUseSsl,
         string PrimaryPhone,
         string? Website,
         string? Message,
@@ -28,7 +34,8 @@
         string State = "", 
         string StateCode = "", 
         string PinCode = "", 
-        string Country = "India"
+        string Country = "India",
+        string? Email = null
     );
 
     public record BankDetailDto(
@@ -37,7 +44,8 @@
         string BranchName = "", 
         string AccountNumber = "", 
         string IfscCode = "", 
-        string AccountType = "Current"
+        string AccountType = "Current",
+        string? Email = null
     );
 
     public record AuthorizedSignatoryDto(
@@ -45,6 +53,7 @@
         string PersonName = "", 
         string Designation = "", 
         string? SignatureImageUrl = null, 
+        string? Email = null,
         bool IsDefault = false
     );
 
@@ -56,6 +65,12 @@
         string Gstin,
         string? LogoUrl,
         string? PrimaryEmail,
+        string? Email,
+        string? SmtpEmail,
+        string? SmtpPassword,
+        string? SmtpHost,
+        int? SmtpPort,
+        bool SmtpUseSsl,
         string PrimaryPhone,
         string? Website,
         string? Message,
@@ -65,4 +80,3 @@
         List<AuthorizedSignatoryDto> AuthorizedSignatories
     );
 }
-

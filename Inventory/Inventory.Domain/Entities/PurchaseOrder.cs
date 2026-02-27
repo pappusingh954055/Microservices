@@ -5,7 +5,7 @@ using System.Net.NetworkInformation;
 public class PurchaseOrder
 {
     public int Id { get; set; }
-    public string PoNumber { get; set; } // PO/26-27/0001
+    public string PoNumber { get; set; } = string.Empty; // PO/26-27/0001
     public int SupplierId { get; set; }
     public string? SupplierName { get; set; }
     public Guid PriceListId { get; set; }

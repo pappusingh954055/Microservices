@@ -12,5 +12,6 @@ namespace Company.Domain.Entities
         public string AccountNumber { get; set; } = string.Empty;
         public string IfscCode { get; set; } = string.Empty;
         public string AccountType { get; set; } = "Current"; // Savings/Current
+        public string? Email { get; set; }
     }
 }

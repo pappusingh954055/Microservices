@@ -30,7 +30,7 @@ namespace Customers.Domain.Entities
         public DateTime? UpdatedAt { get; private set; } = DateTime.UtcNow;
 
         // EF Core
-        private Customer() { }
+        private Customer() { Status = null!; }
 
 
 

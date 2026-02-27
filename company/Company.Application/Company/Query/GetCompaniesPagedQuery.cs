@@ -25,6 +25,12 @@ namespace Company.Application.Company.Queries
                 data.Gstin,
                 data.LogoUrl,
                 data.PrimaryEmail,
+                data.Email,
+                data.SmtpEmail,
+                data.SmtpPassword,
+                data.SmtpHost,
+                data.SmtpPort,
+                data.SmtpUseSsl,
                 data.PrimaryPhone,
                 data.Website,
                 data.Message,
@@ -38,7 +44,8 @@ namespace Company.Application.Company.Queries
                     data.CompanyAddress.State,
                     data.CompanyAddress.StateCode,
                     data.CompanyAddress.PinCode,
-                    data.CompanyAddress.Country
+                    data.CompanyAddress.Country,
+                    data.CompanyAddress.Email
                 ),
                 new BankDetailDto(
                     data.BankInformation.Id,
@@ -46,13 +53,15 @@ namespace Company.Application.Company.Queries
                     data.BankInformation.BranchName,
                     data.BankInformation.AccountNumber,
                     data.BankInformation.IfscCode,
-                    data.BankInformation.AccountType
+                    data.BankInformation.AccountType,
+                    data.BankInformation.Email
                 ),
                 data.AuthorizedSignatories.Select(s => new AuthorizedSignatoryDto(
                     s.Id,
                     s.PersonName,
                     s.Designation,
                     s.SignatureImageUrl,
+                    s.Email,
                     s.IsDefault
                 )).ToList()
             )).ToList();

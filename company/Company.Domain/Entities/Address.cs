@@ -14,5 +14,6 @@ namespace Company.Domain.Entities
         public string StateCode { get; set; } = string.Empty; // GST rules ke liye (e.g., 07 for Delhi)
         public string PinCode { get; set; } = string.Empty;
         public string Country { get; set; } = "India";
+        public string? Email { get; set; }
     }
 }

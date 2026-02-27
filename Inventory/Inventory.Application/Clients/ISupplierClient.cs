@@ -13,6 +13,7 @@ namespace Inventory.Application.Clients
         Task<Dictionary<int, decimal>> GetSupplierBalancesAsync(List<int> supplierIds);
         Task<bool> RecordPurchaseReturnAsync(int supplierId, decimal amount, string referenceId, string description, string createdBy);
         Task<List<int>> SearchSupplierIdsByNameAsync(string name);
+        Task<SupplierSelectDto?> GetSupplierByIdAsync(int id);
     }
 }
 

@@ -2,10 +2,6 @@ using Microsoft.EntityFrameworkCore;
 using Suppliers.Application.DTOs;
 using Suppliers.Application.Interfaces;
 using Suppliers.Domain.Entities;
-using Suppliers.Infrastructure.Data;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace Suppliers.Infrastructure.Repositories // Adjust namespace if needed
 {

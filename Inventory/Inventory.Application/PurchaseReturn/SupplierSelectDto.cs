@@ -8,5 +8,7 @@ namespace Inventory.Application.PurchaseReturn
     {
         public int Id { get; set; } // Supplier ID as int
         public string Name { get; set; }
+        public string? Email { get; set; }
+        public string? Phone { get; set; }
     }
 }

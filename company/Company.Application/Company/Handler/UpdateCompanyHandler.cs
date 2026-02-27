@@ -60,6 +60,12 @@ namespace Company.Application.Company.Commands.Update.Handler
             profile.RegistrationNumber = cmd.Request.RegistrationNumber;
             profile.Gstin = cmd.Request.Gstin; // Max 15 chars
             profile.PrimaryEmail = cmd.Request.PrimaryEmail;
+            profile.Email = cmd.Request.Email;
+            profile.SmtpEmail = cmd.Request.SmtpEmail;
+            profile.SmtpPassword = cmd.Request.SmtpPassword;
+            profile.SmtpHost = cmd.Request.SmtpHost;
+            profile.SmtpPort = cmd.Request.SmtpPort;
+            profile.SmtpUseSsl = cmd.Request.SmtpUseSsl;
             profile.PrimaryPhone = cmd.Request.PrimaryPhone;
             profile.Website = cmd.Request.Website;
             profile.Message = cmd.Request.Message;
@@ -75,6 +81,7 @@ namespace Company.Application.Company.Commands.Update.Handler
                 profile.CompanyAddress.StateCode = cmd.Request.Address.StateCode; // Max 2 chars
                 profile.CompanyAddress.PinCode = cmd.Request.Address.PinCode;
                 profile.CompanyAddress.Country = cmd.Request.Address.Country;
+                profile.CompanyAddress.Email = cmd.Request.Address.Email;
             }
 
             // 3. Bank Information Update
@@ -85,6 +92,7 @@ namespace Company.Application.Company.Commands.Update.Handler
                 profile.BankInformation.AccountNumber = cmd.Request.BankInfo.AccountNumber;
                 profile.BankInformation.IfscCode = cmd.Request.BankInfo.IfscCode;
                 profile.BankInformation.AccountType = cmd.Request.BankInfo.AccountType;
+                profile.BankInformation.Email = cmd.Request.BankInfo.Email;
             }
 
             // 4. Authorized Signatories Update
@@ -119,6 +127,7 @@ namespace Company.Application.Company.Commands.Update.Handler
                         existing.PersonName = sDto.PersonName;
                         existing.Designation = sDto.Designation;
                         existing.SignatureImageUrl = signaturePath;
+                        existing.Email = sDto.Email;
                         existing.IsDefault = sDto.IsDefault;
                     }
                     else
@@ -128,6 +137,7 @@ namespace Company.Application.Company.Commands.Update.Handler
                             PersonName = sDto.PersonName,
                             Designation = sDto.Designation,
                             SignatureImageUrl = signaturePath,
+                            Email = sDto.Email,
                             IsDefault = sDto.IsDefault
                         });
                     }

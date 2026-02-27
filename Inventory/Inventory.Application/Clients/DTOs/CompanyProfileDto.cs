@@ -9,6 +9,12 @@ namespace Inventory.Application.Clients.DTOs
         public string Gstin { get; set; }
         public string LogoUrl { get; set; }
         public string PrimaryEmail { get; set; }
+        public string Email { get; set; }
+        public string SmtpEmail { get; set; }
+        public string SmtpPassword { get; set; }
+        public string SmtpHost { get; set; }
+        public int? SmtpPort { get; set; }
+        public bool SmtpUseSsl { get; set; }
         public string PrimaryPhone { get; set; }
         public string Website { get; set; }
         public bool IsActive { get; set; }
@@ -26,6 +32,7 @@ namespace Inventory.Application.Clients.DTOs
         public string StateCode { get; set; }
         public string PinCode { get; set; }
         public string Country { get; set; }
+        public string Email { get; set; }
     }
 
     public class BankDetailDto
@@ -36,5 +43,6 @@ namespace Inventory.Application.Clients.DTOs
         public string AccountNumber { get; set; }
         public string IfscCode { get; set; }
         public string AccountType { get; set; }
+        public string Email { get; set; }
     }
 }

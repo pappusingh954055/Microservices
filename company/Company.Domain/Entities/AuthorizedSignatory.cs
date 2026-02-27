@@ -11,6 +11,7 @@ namespace Company.Domain.Entities
         public string PersonName { get; set; } = string.Empty;
         public string Designation { get; set; } = string.Empty;
         public string? SignatureImageUrl { get; set; } // Digital Signature optional
+        public string? Email { get; set; }
         public bool IsDefault { get; set; } = true;
 
     }

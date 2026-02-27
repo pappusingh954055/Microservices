@@ -10,6 +10,9 @@ public static class DependencyInjection
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssemblyContaining<AssemblyReference>());
 
+        services.AddScoped<Services.IEmailService, Services.EmailService>();
+        services.AddScoped<Services.IWhatsAppService, Services.WhatsAppService>();
+
         return services;
     }
 }

@@ -6,8 +6,8 @@ namespace Suppliers.Domain.Entities
     {
         public int Id { get; set; }
         public int SupplierId { get; set; }
-        public string TransactionType { get; set; } // Purchase, Return, Payment
-        public string ReferenceId { get; set; } // Bill No or Payment Id
+        public string TransactionType { get; set; } = string.Empty; // Purchase, Return, Payment
+        public string ReferenceId { get; set; } = string.Empty; // Bill No or Payment Id
         public decimal Debit { get; set; } // Payments/Returns
         public decimal Credit { get; set; } // Purchases
         public decimal Balance { get; set; }

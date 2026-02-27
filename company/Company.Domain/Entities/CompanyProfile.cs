@@ -14,7 +14,12 @@ namespace Company.Domain.Entities
         public string Gstin { get; set; } = string.Empty; // Tax ke liye sabse zaroori
         public string? LogoUrl { get; set; } // Report ke header ke liye optional
         public string? PrimaryEmail { get; set; }
-
+        public string? Email { get; set; }
+        public string? SmtpEmail { get; set; }
+        public string? SmtpPassword { get; set; }
+        public string? SmtpHost { get; set; }
+        public int? SmtpPort { get; set; }
+        public bool SmtpUseSsl { get; set; } = true;
         public string PrimaryPhone { get; set; } = string.Empty;
         public string? Website { get; set; }
         public string? Message { get; set; } // WhatsApp/SMS reminder message
@@ -23,10 +28,10 @@ namespace Company.Domain.Entities
 
         // Foreign Keys
         public int AddressId { get; set; }
-        public virtual Address CompanyAddress { get; set; }
+        public virtual Address CompanyAddress { get; set; } = null!;
 
         public int BankDetailId { get; set; }
-        public virtual BankDetail BankInformation { get; set; }
+        public virtual BankDetail BankInformation { get; set; } = null!;
 
         // Authorized Signatories
         public virtual ICollection<AuthorizedSignatory> AuthorizedSignatories { get; set; } = new List<AuthorizedSignatory>();

@@ -1,22 +1,34 @@
-﻿// Note: Command definition mein bhi return type 'int' se badal kar 'object' ya custom class karein
-using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Common.Interfaces;
 using Inventory.Application.SaleOrders.Commands;
 using Inventory.Application.Clients;
+using Inventory.Application.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Inventory.Domain.Entities.SO;
 
-public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, object> // Change int to object
+public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, object>
 {
     private readonly ISaleOrderRepository _repo;
     private readonly IInventoryDbContext _context;
     private readonly ICustomerClient _customerClient;
+    private readonly ICompanyClient _companyClient;
+    private readonly IEmailService _emailService;
+    private readonly IWhatsAppService _whatsAppService;
 
-    public CreateSaleOrderHandler(ISaleOrderRepository repo, IInventoryDbContext context, ICustomerClient customerClient)
+    public CreateSaleOrderHandler(
+        ISaleOrderRepository repo, 
+        IInventoryDbContext context, 
+        ICustomerClient customerClient,
+        ICompanyClient companyClient,
+        IEmailService emailService,
+        IWhatsAppService whatsAppService)
     {
         _repo = repo;
         _context = context;
         _customerClient = customerClient;
+        _companyClient = companyClient;
+        _emailService = emailService;
+        _whatsAppService = whatsAppService;
     }
 
     public async Task<object> Handle(CreateSaleOrderCommand request, CancellationToken cancellationToken)
@@ -55,11 +67,13 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
             }).ToList()
         };
 
+        object result;
+
         // 3. Conditional Logic: Confirm & Reduce Stock vs Save as Draft
         if (dto.Status == "Confirmed")
         {
             var strategy = _context.Database.CreateExecutionStrategy();
-            return await strategy.ExecuteAsync(async () =>
+            result = await strategy.ExecuteAsync(async () =>
             {
                 await _repo.BeginTransactionAsync();
                 try
@@ -94,7 +108,6 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
                         Console.WriteLine($"Ledger sync failed: {ex.Message}");
                     }
 
-                    // ✅ YAHAN FIX HAI: ID ke saath SONumber bhi return karein
                     return new { Id = savedId, SONumber = generatedSONo };
                 }
                 catch (Exception)
@@ -107,8 +120,42 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
         else
         {
             var savedId = await _repo.SaveAsync(saleOrder);
-            // ✅ YAHAN FIX HAI: Draft ke liye bhi dono return karein
-            return new { Id = savedId, SONumber = generatedSONo };
+            result = new { Id = savedId, SONumber = generatedSONo };
         }
+
+        // 4. Notifications (Email & WhatsApp)
+        if (result != null)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var company = await _companyClient.GetCompanyProfileAsync();
+                    var customer = await _customerClient.GetCustomerByIdAsync(saleOrder.CustomerId);
+
+                    if (company != null && customer != null)
+                    {
+                        // 1. Email
+                        if (!string.IsNullOrEmpty(customer.Email))
+                        {
+                            await _emailService.SendSoEmailAsync(company, customer.Email, generatedSONo, saleOrder.GrandTotal);
+                        }
+
+                        // 2. WhatsApp
+                        if (!string.IsNullOrEmpty(customer.Phone))
+                        {
+                            string msg = $"Order Confirmed! 🚀\nFrom: {company.Name}\nOrder No: {generatedSONo}\nAmount: {saleOrder.GrandTotal}\nThank you for shopping with us!";
+                            await _whatsAppService.SendMessageAsync(customer.Phone, msg);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CreateSaleOrderHandler] Notification task failed: {ex.Message}");
+                }
+            }, cancellationToken);
+        }
+
+        return result;
     }
 }

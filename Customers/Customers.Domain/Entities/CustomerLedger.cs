@@ -6,8 +6,8 @@ namespace Customers.Domain.Entities
     {
         public int Id { get; set; }
         public int CustomerId { get; set; }
-        public string TransactionType { get; set; } // Sale, Return, Receipt
-        public string ReferenceId { get; set; } // Invoice No or Receipt Id
+        public string TransactionType { get; set; } = string.Empty; // Sale, Return, Receipt
+        public string ReferenceId { get; set; } = string.Empty; // Invoice No or Receipt Id
         public decimal Debit { get; set; } // Sales
         public decimal Credit { get; set; } // Receipts/Returns
         public decimal Balance { get; set; }

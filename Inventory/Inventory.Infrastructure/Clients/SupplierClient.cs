@@ -190,6 +190,21 @@ namespace Inventory.Infrastructure.Clients
 
             return new List<int>();
         }
+
+        public async Task<SupplierSelectDto?> GetSupplierByIdAsync(int id)
+        {
+            var client = _httpClientFactory.CreateClient("SupplierServiceClient");
+            AddAuthorizationHeader(client);
+
+            var response = await client.GetAsync($"api/Supplier/{id}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<SupplierSelectDto>();
+            }
+
+            return null;
+        }
     }
 }
 
