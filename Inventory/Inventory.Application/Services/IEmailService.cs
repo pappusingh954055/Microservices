@@ -6,5 +6,6 @@ namespace Inventory.Application.Services
     {
         Task SendPoEmailAsync(CompanyProfileDto company, string supplierEmail, string poNumber, decimal amount);
         Task SendSoEmailAsync(CompanyProfileDto company, string customerEmail, string soNumber, decimal amount);
+        Task SendGrnEmailAsync(CompanyProfileDto company, string supplierEmail, string grnNumber, string poNumber, decimal amount);
     }
 }

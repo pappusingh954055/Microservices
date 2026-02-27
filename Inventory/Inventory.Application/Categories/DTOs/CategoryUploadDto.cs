@@ -6,9 +6,9 @@ namespace Inventory.Application.Categories.DTOs
 {
     public class CategoryUploadDto
     {
-        public string CategoryCode { get; set; }
-        public string CategoryName { get; set; }
+        public string CategoryCode { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
         public decimal DefaultGst { get; set; }
-        public string Description { get; set; }
+        public string Description { get; set; } = string.Empty;
     }
 }

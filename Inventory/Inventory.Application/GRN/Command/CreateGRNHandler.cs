@@ -1,12 +1,36 @@
-﻿using Inventory.Application.Common.Interfaces;
+﻿using Inventory.Application.Clients;
+using Inventory.Application.Common.Interfaces;
 using Inventory.Application.GRN.Command;
+using Inventory.Application.Services;
 using Inventory.Domain.Entities;
 using MediatR;
+using System;
+using System.Threading.Tasks;
 
 public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
 {
     private readonly IGRNRepository _repo;
-    public CreateGRNHandler(IGRNRepository repo) => _repo = repo;
+    private readonly IPurchaseOrderRepository _poRepo;
+    private readonly IEmailService _emailService;
+    private readonly IWhatsAppService _whatsAppService;
+    private readonly ICompanyClient _companyClient;
+    private readonly ISupplierClient _supplierClient;
+
+    public CreateGRNHandler(
+        IGRNRepository repo,
+        IPurchaseOrderRepository poRepo,
+        IEmailService emailService,
+        IWhatsAppService whatsAppService,
+        ICompanyClient companyClient,
+        ISupplierClient supplierClient)
+    {
+        _repo = repo;
+        _poRepo = poRepo;
+        _emailService = emailService;
+        _whatsAppService = whatsAppService;
+        _companyClient = companyClient;
+        _supplierClient = supplierClient;
+    }
 
     public async Task<string> Handle(CreateGRNCommand request, CancellationToken ct)
     {
@@ -44,6 +68,43 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             UpdatedOn = DateTime.Now
         }).ToList();
 
-        return await _repo.SaveGRNWithStockUpdate(header, details);
+        var grnNumber = await _repo.SaveGRNWithStockUpdate(header, details);
+
+        if (!string.IsNullOrEmpty(grnNumber))
+        {
+            // Background Task for notifications
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    var company = await _companyClient.GetCompanyProfileAsync();
+                    var supplier = await _supplierClient.GetSupplierByIdAsync(dto.SupplierId);
+                    var po = await _poRepo.GetByIdAsync(dto.POHeaderId);
+                    string poNumber = po?.PoNumber ?? "N/A";
+
+                    if (company != null && supplier != null)
+                    {
+                        // 1. Email
+                        if (!string.IsNullOrEmpty(supplier.Email))
+                        {
+                            await _emailService.SendGrnEmailAsync(company, supplier.Email, grnNumber, poNumber, dto.TotalAmount);
+                        }
+
+                        // 2. WhatsApp
+                        if (!string.IsNullOrEmpty(supplier.Phone))
+                        {
+                            string msg = $"Goods Received: {grnNumber}\nRef PO: {poNumber}\nSource: {company.Name}\nStatus: Received & Accepted.\nThank you!";
+                            await _whatsAppService.SendMessageAsync(supplier.Phone, msg);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CreateGRNHandler] Notification failed: {ex.Message}");
+                }
+            }, ct);
+        }
+
+        return grnNumber;
     }
 }

@@ -27,9 +27,8 @@ internal sealed class UpdateCategoryCommandHandler
             throw new KeyNotFoundException("Subcategory not found");
 
         category.Update(
+            request.CategoryName,
             request.CategoryCode,
-            request.CategoryName,         
-            
             request.DefaultGst,
             request.Description,
             request.IsActive
