@@ -4,6 +4,7 @@ using Inventory.Application.GRN.Command;
 using Inventory.Application.Services;
 using Inventory.Domain.Entities;
 using MediatR;
+using Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Threading.Tasks;
 
@@ -11,25 +12,16 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
 {
     private readonly IGRNRepository _repo;
     private readonly IPurchaseOrderRepository _poRepo;
-    private readonly IEmailService _emailService;
-    private readonly IWhatsAppService _whatsAppService;
-    private readonly ICompanyClient _companyClient;
-    private readonly ISupplierClient _supplierClient;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public CreateGRNHandler(
         IGRNRepository repo,
         IPurchaseOrderRepository poRepo,
-        IEmailService emailService,
-        IWhatsAppService whatsAppService,
-        ICompanyClient companyClient,
-        ISupplierClient supplierClient)
+        IServiceScopeFactory scopeFactory)
     {
         _repo = repo;
         _poRepo = poRepo;
-        _emailService = emailService;
-        _whatsAppService = whatsAppService;
-        _companyClient = companyClient;
-        _supplierClient = supplierClient;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<string> Handle(CreateGRNCommand request, CancellationToken ct)
@@ -75,11 +67,18 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
             // Background Task for notifications
             _ = Task.Run(async () =>
             {
+                using var scope = _scopeFactory.CreateScope();
+                var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                var companyClient = scope.ServiceProvider.GetRequiredService<ICompanyClient>();
+                var supplierClient = scope.ServiceProvider.GetRequiredService<ISupplierClient>();
+                var poRepo = scope.ServiceProvider.GetRequiredService<IPurchaseOrderRepository>();
+
                 try
                 {
-                    var company = await _companyClient.GetCompanyProfileAsync();
-                    var supplier = await _supplierClient.GetSupplierByIdAsync(dto.SupplierId);
-                    var po = await _poRepo.GetByIdAsync(dto.POHeaderId);
+                    var company = await companyClient.GetCompanyProfileAsync();
+                    var supplier = await supplierClient.GetSupplierByIdAsync(dto.SupplierId);
+                    var po = await poRepo.GetByIdAsync(dto.POHeaderId);
                     string poNumber = po?.PoNumber ?? "N/A";
 
                     if (company != null && supplier != null)
@@ -87,14 +86,14 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
                         // 1. Email
                         if (!string.IsNullOrEmpty(supplier.Email))
                         {
-                            await _emailService.SendGrnEmailAsync(company, supplier.Email, grnNumber, poNumber, dto.TotalAmount);
+                            await emailService.SendGrnEmailAsync(company, supplier.Email, grnNumber, poNumber, dto.TotalAmount);
                         }
 
                         // 2. WhatsApp
                         if (!string.IsNullOrEmpty(supplier.Phone))
                         {
                             string msg = $"Goods Received: {grnNumber}\nRef PO: {poNumber}\nSource: {company.Name}\nStatus: Received & Accepted.\nThank you!";
-                            await _whatsAppService.SendMessageAsync(supplier.Phone, msg);
+                            await whatsAppService.SendMessageAsync(supplier.Phone, msg);
                         }
                     }
                 }
@@ -102,7 +101,7 @@ public class CreateGRNHandler : IRequestHandler<CreateGRNCommand, string>
                 {
                     Console.WriteLine($"[CreateGRNHandler] Notification failed: {ex.Message}");
                 }
-            }, ct);
+            });
         }
 
         return grnNumber;

@@ -391,9 +391,10 @@ namespace Inventory.Infrastructure.Repositories
                                 (si.SaleOrder.Status == "Confirmed" || si.SaleOrder.Status == "Completed"))
                     .SumAsync(si => (decimal?)si.Qty) ?? 0;
 
-                // 2. Sale Return fetch karein (Confirmed returns only)
+                // 2. Sale Return fetch karein (Confirmed and Inwarded returns)
                 var totalSaleReturn = await _context.SaleReturnItems
-                    .Where(sri => sri.ProductId == item.ProductId && sri.SaleReturnHeader.Status == "Confirmed")
+                    .Where(sri => sri.ProductId == item.ProductId && 
+                                 (sri.SaleReturnHeader.Status == "Confirmed" || sri.SaleReturnHeader.Status == "INWARDED"))
                     .SumAsync(sri => (decimal?)sri.ReturnQty) ?? 0;
 
                 // 4. Update Net Stats

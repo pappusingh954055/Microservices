@@ -8,6 +8,8 @@ using Inventory.Application.PurchaseOrders.DTOs;
 using Inventory.Domain.Entities;
 using Inventory.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Inventory.Application.Services;
 using System.Linq;
 
 public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
@@ -16,16 +18,19 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
     private readonly IConverter _converter;
     private readonly INotificationRepository _notificationRepository;
     private readonly ICompanyClient _companyClient;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public PurchaseOrderRepository(InventoryDbContext context, 
         INotificationRepository notificationRepository,
         IConverter converter,
-        ICompanyClient companyClient)
+        ICompanyClient companyClient,
+        IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _converter = converter;
         _notificationRepository = notificationRepository;
         _companyClient = companyClient;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task AddAsync(PurchaseOrder po, CancellationToken ct)
@@ -504,6 +509,47 @@ public sealed class PurchaseOrderRepository : IPurchaseOrderRepository
                 "PO",
                 "/app/inventory/polist" // Redirect to PO list
             );
+
+            // --- BULK EMAIL/WHATSAPP TRIGGER ---
+            var poDataList = pos.Select(p => new { p.Id, p.PoNumber, p.GrandTotal, p.SupplierId }).ToList();
+            _ = Task.Run(async () =>
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                var companyClient = scope.ServiceProvider.GetRequiredService<ICompanyClient>();
+                var supplierClient = scope.ServiceProvider.GetRequiredService<ISupplierClient>();
+
+                try
+                {
+                    var company = await companyClient.GetCompanyProfileAsync();
+                    if (company == null) return;
+
+                    foreach (var poData in poDataList)
+                    {
+                        var supplier = await supplierClient.GetSupplierByIdAsync(poData.SupplierId);
+                        if (supplier != null)
+                        {
+                            // 1. Email
+                            if (!string.IsNullOrEmpty(supplier.Email))
+                            {
+                                await emailService.SendPoEmailAsync(company, supplier.Email, poData.PoNumber, poData.GrandTotal);
+                            }
+
+                            // 2. WhatsApp
+                            if (!string.IsNullOrEmpty(supplier.Phone))
+                            {
+                                string msg = $"New Purchase Order from {company.Name}:\nPO Number: {poData.PoNumber}\nAmount: {poData.GrandTotal}\nPlease check your email for details.";
+                                await whatsAppService.SendMessageAsync(supplier.Phone, msg);
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[PurchaseOrderRepository] Bulk Notification failed: {ex.Message}");
+                }
+            });
 
             return true;
         }

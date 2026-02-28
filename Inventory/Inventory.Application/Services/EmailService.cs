@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Mail;
+using System.Security.Authentication;
 using Inventory.Application.Clients.DTOs;
 
 namespace Inventory.Application.Services
@@ -22,31 +23,21 @@ namespace Inventory.Application.Services
 
             try
             {
+                // Ensure TLS 1.2 or 1.3 is used for secure connection
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+
                 var fromAddress = new MailAddress(company.SmtpEmail, company.Name);
                 var toAddress = new MailAddress(supplierEmail);
                 string subject = $"Purchase Order: {poNumber} from {company.Name}";
-                string body = $@"
-                    <html>
-                    <body>
-                        <h2>Dear Supplier,</h2>
-                        <p>We are pleased to place a New Purchase Order with you.</p>
-                        <p><strong>PO Number:</strong> {poNumber}</p>
-                        <p><strong>Total Amount:</strong> {amount}</p>
-                        <p>Please find the details in the attached document (coming soon) or log in to our portal.</p>
-                        <br/>
-                        <p>Regards,</p>
-                        <p><strong>{company.Name}</strong></p>
-                    </body>
-                    </html>";
+                string body = $@"<html><body><h2>Dear Supplier,</h2><p>We are pleased to place a New Purchase Order with you.</p><p><strong>PO Number:</strong> {poNumber}</p><p><strong>Total Amount:</strong> {amount}</p><p>Please find the details in the attached document (coming soon) or log in to our portal.</p><br/><p>Regards,</p><p><strong>{company.Name}</strong></p></body></html>";
 
-                using (var smtp = new SmtpClient())
+                using (var smtp = new SmtpClient(company.SmtpHost, company.SmtpPort ?? 587))
                 {
-                    smtp.Host = company.SmtpHost;
-                    smtp.Port = company.SmtpPort ?? 587;
                     smtp.EnableSsl = company.SmtpUseSsl;
                     smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
                     smtp.UseDefaultCredentials = false;
-                    smtp.Credentials = new NetworkCredential(fromAddress.Address, company.SmtpPassword);
+                    smtp.Credentials = new NetworkCredential(company.SmtpEmail, company.SmtpPassword);
+                    smtp.Timeout = 20000;
 
                     using (var message = new MailMessage(fromAddress, toAddress)
                     {
@@ -58,11 +49,11 @@ namespace Inventory.Application.Services
                         await smtp.SendMailAsync(message);
                     }
                 }
-                Console.WriteLine($"[EmailService] Email sent successfully to {supplierEmail} for PO {poNumber}");
+                Console.WriteLine($"[EmailService] PO Email sent to {supplierEmail}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EmailService] Failed to send email: {ex.Message}");
+                Console.WriteLine($"[EmailService] PO Email fail: {ex.Message} | {ex.InnerException?.Message}");
             }
         }
 
@@ -82,31 +73,20 @@ namespace Inventory.Application.Services
 
             try
             {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+
                 var fromAddress = new MailAddress(company.SmtpEmail, company.Name);
                 var toAddress = new MailAddress(customerEmail);
                 string subject = $"Sale Order Confirmation: {soNumber} - {company.Name}";
-                string body = $@"
-                    <html>
-                    <body>
-                        <h2>Dear Customer,</h2>
-                        <p>Thank you for your order!</p>
-                        <p><strong>Order Number:</strong> {soNumber}</p>
-                        <p><strong>Total Amount:</strong> {amount}</p>
-                        <p>We are processing your order and will notify you once it's shipped.</p>
-                        <br/>
-                        <p>Regards,</p>
-                        <p><strong>{company.Name}</strong></p>
-                    </body>
-                    </html>";
+                string body = $@"<html><body><h2>Dear Customer,</h2><p>Thank you for your order!</p><p><strong>Order Number:</strong> {soNumber}</p><p><strong>Total Amount:</strong> {amount}</p><p>We are processing your order and will notify you once it's shipped.</p><br/><p>Regards,</p><p><strong>{company.Name}</strong></p></body></html>";
 
-                using (var smtp = new SmtpClient())
+                using (var smtp = new SmtpClient(company.SmtpHost, company.SmtpPort ?? 587))
                 {
-                    smtp.Host = company.SmtpHost;
-                    smtp.Port = company.SmtpPort ?? 587;
                     smtp.EnableSsl = company.SmtpUseSsl;
                     smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
                     smtp.UseDefaultCredentials = false;
-                    smtp.Credentials = new NetworkCredential(fromAddress.Address, company.SmtpPassword);
+                    smtp.Credentials = new NetworkCredential(company.SmtpEmail, company.SmtpPassword);
+                    smtp.Timeout = 20000;
 
                     using (var message = new MailMessage(fromAddress, toAddress)
                     {
@@ -118,11 +98,11 @@ namespace Inventory.Application.Services
                         await smtp.SendMailAsync(message);
                     }
                 }
-                Console.WriteLine($"[EmailService] SO Email sent successfully to {customerEmail} for SO {soNumber}");
+                Console.WriteLine($"[EmailService] SO Email sent to {customerEmail}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EmailService] Failed to send SO email: {ex.Message}");
+                Console.WriteLine($"[EmailService] SO Email fail: {ex.Message} | {ex.InnerException?.Message}");
             }
         }
         
@@ -142,32 +122,20 @@ namespace Inventory.Application.Services
 
             try
             {
+                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+
                 var fromAddress = new MailAddress(company.SmtpEmail, company.Name);
                 var toAddress = new MailAddress(supplierEmail);
                 string subject = $"Goods Received Advice: {grnNumber} (Ref PO: {poNumber}) - {company.Name}";
-                string body = $@"
-                    <html>
-                    <body>
-                        <h2>Dear Supplier,</h2>
-                        <p>This is to inform you that we have received the goods against your supply.</p>
-                        <p><strong>GRN Number:</strong> {grnNumber}</p>
-                        <p><strong>PO Reference:</strong> {poNumber}</p>
-                        <p><strong>Accepted Amount:</strong> {amount}</p>
-                        <p>The inventory has been updated in our system. Thank you for the timely delivery.</p>
-                        <br/>
-                        <p>Regards,</p>
-                        <p><strong>{company.Name}</strong></p>
-                    </body>
-                    </html>";
+                string body = $@"<html><body><h2>Dear Supplier,</h2><p>This is to inform you that we have received the goods against your supply.</p><p><strong>GRN Number:</strong> {grnNumber}</p><p><strong>PO Reference:</strong> {poNumber}</p><p><strong>Accepted Amount:</strong> {amount}</p><p>The inventory has been updated in our system. Thank you for the timely delivery.</p><br/><p>Regards,</p><p><strong>{company.Name}</strong></p></body></html>";
 
-                using (var smtp = new SmtpClient())
+                using (var smtp = new SmtpClient(company.SmtpHost, company.SmtpPort ?? 587))
                 {
-                    smtp.Host = company.SmtpHost;
-                    smtp.Port = company.SmtpPort ?? 587;
                     smtp.EnableSsl = company.SmtpUseSsl;
                     smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
                     smtp.UseDefaultCredentials = false;
-                    smtp.Credentials = new NetworkCredential(fromAddress.Address, company.SmtpPassword);
+                    smtp.Credentials = new NetworkCredential(company.SmtpEmail, company.SmtpPassword);
+                    smtp.Timeout = 20000;
 
                     using (var message = new MailMessage(fromAddress, toAddress)
                     {
@@ -179,11 +147,11 @@ namespace Inventory.Application.Services
                         await smtp.SendMailAsync(message);
                     }
                 }
-                Console.WriteLine($"[EmailService] GRN Email sent successfully to {supplierEmail} for GRN {grnNumber}");
+                Console.WriteLine($"[EmailService] GRN Email sent to {supplierEmail}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[EmailService] Failed to send GRN email: {ex.Message}");
+                Console.WriteLine($"[EmailService] GRN Email fail: {ex.Message} | {ex.InnerException?.Message}");
             }
         }
     }

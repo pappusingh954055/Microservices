@@ -4,6 +4,7 @@ using Inventory.Application.Clients;
 using Inventory.Application.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Inventory.Domain.Entities.SO;
 
 public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, object>
@@ -11,24 +12,18 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
     private readonly ISaleOrderRepository _repo;
     private readonly IInventoryDbContext _context;
     private readonly ICustomerClient _customerClient;
-    private readonly ICompanyClient _companyClient;
-    private readonly IEmailService _emailService;
-    private readonly IWhatsAppService _whatsAppService;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public CreateSaleOrderHandler(
         ISaleOrderRepository repo, 
         IInventoryDbContext context, 
-        ICustomerClient customerClient,
-        ICompanyClient companyClient,
-        IEmailService emailService,
-        IWhatsAppService whatsAppService)
+        IServiceScopeFactory scopeFactory,
+        ICustomerClient customerClient)
     {
         _repo = repo;
         _context = context;
+        _scopeFactory = scopeFactory;
         _customerClient = customerClient;
-        _companyClient = companyClient;
-        _emailService = emailService;
-        _whatsAppService = whatsAppService;
     }
 
     public async Task<object> Handle(CreateSaleOrderCommand request, CancellationToken cancellationToken)
@@ -124,28 +119,34 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
         }
 
         // 4. Notifications (Email & WhatsApp)
-        if (result != null)
+        if (result != null && dto.Status == "Confirmed")
         {
             _ = Task.Run(async () =>
             {
+                using var scope = _scopeFactory.CreateScope();
+                var emailService = scope.ServiceProvider.GetRequiredService<IEmailService>();
+                var whatsAppService = scope.ServiceProvider.GetRequiredService<IWhatsAppService>();
+                var companyClient = scope.ServiceProvider.GetRequiredService<ICompanyClient>();
+                var customerClient = scope.ServiceProvider.GetRequiredService<ICustomerClient>();
+
                 try
                 {
-                    var company = await _companyClient.GetCompanyProfileAsync();
-                    var customer = await _customerClient.GetCustomerByIdAsync(saleOrder.CustomerId);
+                    var company = await companyClient.GetCompanyProfileAsync();
+                    var customer = await customerClient.GetCustomerByIdAsync(saleOrder.CustomerId);
 
                     if (company != null && customer != null)
                     {
                         // 1. Email
                         if (!string.IsNullOrEmpty(customer.Email))
                         {
-                            await _emailService.SendSoEmailAsync(company, customer.Email, generatedSONo, saleOrder.GrandTotal);
+                            await emailService.SendSoEmailAsync(company, customer.Email, generatedSONo, saleOrder.GrandTotal);
                         }
 
                         // 2. WhatsApp
                         if (!string.IsNullOrEmpty(customer.Phone))
                         {
                             string msg = $"Order Confirmed! 🚀\nFrom: {company.Name}\nOrder No: {generatedSONo}\nAmount: {saleOrder.GrandTotal}\nThank you for shopping with us!";
-                            await _whatsAppService.SendMessageAsync(customer.Phone, msg);
+                            await whatsAppService.SendMessageAsync(customer.Phone, msg);
                         }
                     }
                 }
@@ -153,7 +154,7 @@ public class CreateSaleOrderHandler : IRequestHandler<CreateSaleOrderCommand, ob
                 {
                     Console.WriteLine($"[CreateSaleOrderHandler] Notification task failed: {ex.Message}");
                 }
-            }, cancellationToken);
+            });
         }
 
         return result;

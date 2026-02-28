@@ -4,33 +4,25 @@ using Inventory.Application.PurchaseOrders.Queries.GetNextPoNumber;
 using Inventory.Application.Services;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseOrderCommand, bool>
 {
     private readonly IInventoryDbContext _context;
     private readonly IPurchaseOrderRepository _repo;
     private readonly IMediator _mediator;
-    private readonly IEmailService _emailService;
-    private readonly IWhatsAppService _whatsAppService;
-    private readonly ICompanyClient _companyClient;
-    private readonly ISupplierClient _supplierClient;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     public CreatePurchaseOrderCommandHandler(
         IInventoryDbContext context, 
         IPurchaseOrderRepository repo, 
         IMediator mediator,
-        IEmailService emailService,
-        IWhatsAppService whatsAppService,
-        ICompanyClient companyClient,
-        ISupplierClient supplierClient)
+        IServiceScopeFactory scopeFactory)
     {
         _context = context;
         _repo = repo;
         _mediator = mediator;
-        _emailService = emailService;
-        _whatsAppService = whatsAppService;
-        _companyClient = companyClient;
-        _supplierClient = supplierClient;
+        _scopeFactory = scopeFactory;
     }
 
     public async Task<bool> Handle(CreatePurchaseOrderCommand request, CancellationToken ct)
@@ -86,40 +78,6 @@ public class CreatePurchaseOrderCommandHandler : IRequestHandler<CreatePurchaseO
                 throw;
             }
         });
-
-        if (result && finalPoNumber != null)
-        {
-            // Background Task to send notifications
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var company = await _companyClient.GetCompanyProfileAsync();
-                    var supplier = await _supplierClient.GetSupplierByIdAsync(request.PoData.SupplierId);
-
-                    if (company != null && supplier != null)
-                    {
-                        // 1. Email
-                        if (!string.IsNullOrEmpty(supplier.Email))
-                        {
-                            await _emailService.SendPoEmailAsync(company, supplier.Email, finalPoNumber, request.PoData.GrandTotal);
-                        }
-
-                        // 2. WhatsApp
-                        if (!string.IsNullOrEmpty(supplier.Phone))
-                        {
-                            string msg = $"New Purchase Order from {company.Name}:\nPO Number: {finalPoNumber}\nAmount: {request.PoData.GrandTotal}\nPlease check your email for details.";
-                            await _whatsAppService.SendMessageAsync(supplier.Phone, msg);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[CreatePurchaseOrderHandler] Notification task failed: {ex.Message}");
-                }
-            }, ct);
-        }
-
         return result;
     }
 }

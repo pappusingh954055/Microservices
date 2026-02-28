@@ -209,7 +209,7 @@ namespace Inventory.Infrastructure.Repositories
                 .AsNoTracking()
                 .Where(sri => sri.SaleReturnHeader.SaleOrderId == saleOrderId &&
                               sri.ProductId == productId &&
-                              sri.SaleReturnHeader.Status == "Confirmed")
+                              (sri.SaleReturnHeader.Status == "Confirmed" || sri.SaleReturnHeader.Status == "INWARDED"))
                 .SumAsync(sri => (decimal?)sri.ReturnQty) ?? 0;
 
             // 3. Calculation (6 - 2 = 4 pieces available for return)
@@ -248,9 +248,9 @@ namespace Inventory.Infrastructure.Repositories
             var totalToday = await _context.SaleReturnHeaders
                 .CountAsync(x => x.ReturnDate.Date == today);
 
-            // 2. Confirmed returns ka count aur refund value (DB Side Aggregation)
+            // 2. Confirmed/Inwarded returns ka count aur refund value (DB Side Aggregation)
             var confirmedQuery = _context.SaleReturnHeaders
-                .Where(x => x.Status.ToUpper() == "CONFIRMED");
+                .Where(x => x.Status.ToUpper() == "CONFIRMED" || x.Status.ToUpper() == "INWARDED");
 
             var totalRefundValue = await confirmedQuery.SumAsync(x => x.TotalAmount);
             var confirmedCount = await confirmedQuery.CountAsync();
