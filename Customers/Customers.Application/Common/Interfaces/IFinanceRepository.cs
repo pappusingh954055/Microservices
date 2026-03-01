@@ -19,5 +19,6 @@ namespace Customers.Application.Common.Interfaces
         Task<List<OutstandingDto>> GetPendingDuesAsync();
         Task<List<MonthlyTrendDto>> GetMonthlyTrendAsync(int months);
         Task<bool> IsReferenceUniqueAsync(string referenceNumber);
+        Task<PaginatedListDto<ReceiptReportDto>> GetReceiptsReportAsync(ReceiptReportRequestDto request);
     }
 }

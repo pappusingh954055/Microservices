@@ -104,4 +104,29 @@ namespace Customers.Application.DTOs
         public string Month { get; set; }
         public decimal Amount { get; set; }
     }
+
+    public class ReceiptReportDto
+    {
+        public int Id { get; set; }
+        public int CustomerId { get; set; }
+        public string CustomerName { get; set; }
+        public decimal Amount { get; set; }
+        public DateTime ReceiptDate { get; set; }
+        public string ReceiptMode { get; set; }
+        public string ReferenceNumber { get; set; }
+        public string Remarks { get; set; }
+        public string CreatedBy { get; set; }
+    }
+
+    public class ReceiptReportRequestDto
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int? CustomerId { get; set; }
+        public string? SearchTerm { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 10;
+        public string SortBy { get; set; } = "ReceiptDate";
+        public string SortOrder { get; set; } = "desc";
+    }
 }

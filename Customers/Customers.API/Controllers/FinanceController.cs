@@ -96,5 +96,12 @@ namespace Customers.API.Controllers
             var result = await _mediator.Send(new GetMonthlyReceiptsTrendQuery(months));
             return Ok(result);
         }
+
+        [HttpPost("receipts-report")]
+        public async Task<IActionResult> GetReceiptsReport([FromBody] ReceiptReportRequestDto request)
+        {
+            var result = await _mediator.Send(new GetReceiptsReportQuery(request));
+            return Ok(result);
+        }
     }
 }

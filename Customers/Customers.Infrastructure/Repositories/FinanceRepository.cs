@@ -285,5 +285,64 @@ namespace Customers.Infrastructure.Repositories
 
             return true;
         }
+
+        public async Task<PaginatedListDto<ReceiptReportDto>> GetReceiptsReportAsync(ReceiptReportRequestDto request)
+        {
+            var query = from r in _context.CustomerReceipts
+                        join c in _context.Customers on r.CustomerId equals c.Id
+                        select new ReceiptReportDto
+                        {
+                            Id = r.Id,
+                            CustomerId = r.CustomerId,
+                            CustomerName = c.CustomerName,
+                            Amount = r.Amount,
+                            ReceiptDate = r.ReceiptDate,
+                            ReceiptMode = r.ReceiptMode,
+                            ReferenceNumber = r.ReferenceNumber,
+                            Remarks = r.Remarks,
+                            CreatedBy = r.CreatedBy
+                        };
+
+            // 1. Filtering
+            query = query.Where(r => r.ReceiptDate >= request.StartDate && r.ReceiptDate <= request.EndDate);
+
+            if (request.CustomerId.HasValue)
+                query = query.Where(r => r.CustomerId == request.CustomerId.Value);
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(r => 
+                    r.CustomerName.ToLower().Contains(term) || 
+                    (r.ReferenceNumber != null && r.ReferenceNumber.ToLower().Contains(term)) || 
+                    (r.Remarks != null && r.Remarks.ToLower().Contains(term))
+                );
+            }
+
+            // 2. Sorting
+            query = request.SortBy.ToLower() switch
+            {
+                "receiptdate" => request.SortOrder == "desc" ? query.OrderByDescending(r => r.ReceiptDate) : query.OrderBy(r => r.ReceiptDate),
+                "customername" => request.SortOrder == "desc" ? query.OrderByDescending(r => r.CustomerName) : query.OrderBy(r => r.CustomerName),
+                "amount" => request.SortOrder == "desc" ? query.OrderByDescending(r => r.Amount) : query.OrderBy(r => r.Amount),
+                "receiptmode" => request.SortOrder == "desc" ? query.OrderByDescending(r => r.ReceiptMode) : query.OrderBy(r => r.ReceiptMode),
+                _ => query.OrderByDescending(r => r.ReceiptDate)
+            };
+
+            // 3. Counts and Pagination
+            var totalCount = await query.CountAsync();
+            var items = await query
+                .Skip((request.PageNumber - 1) * request.PageSize)
+                .Take(request.PageSize)
+                .ToListAsync();
+
+            return new PaginatedListDto<ReceiptReportDto>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                PageNumber = request.PageNumber,
+                PageSize = request.PageSize
+            };
+        }
     }
 }

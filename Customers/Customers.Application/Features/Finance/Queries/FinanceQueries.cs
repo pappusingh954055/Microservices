@@ -10,4 +10,5 @@ namespace Customers.Application.Features.Finance.Queries
     public record GetTotalOutstandingQuery() : IRequest<decimal>;
     public record GetPendingDuesQuery() : IRequest<List<OutstandingDto>>;
     public record GetMonthlyReceiptsTrendQuery(int Months) : IRequest<List<MonthlyTrendDto>>;
+    public record GetReceiptsReportQuery(ReceiptReportRequestDto Request) : IRequest<PaginatedListDto<ReceiptReportDto>>;
 }
